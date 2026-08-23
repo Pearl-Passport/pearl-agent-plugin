@@ -7,7 +7,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const PLUGIN_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const EXPECTED_VERSION = "0.8.5";
+const EXPECTED_VERSION = "0.8.6";
 const EXPECTED_MCP_URL = "https://agent.joinpearl.co/mcp";
 const PUBLIC_CONTACT_EMAIL = "hello@joinpearl.co";
 const CLAUDE_HOSTED_CLIENT_ID = "pearl-claude-hosted";
@@ -226,6 +226,26 @@ export function validatePublicCommitEmails(emails) {
     .map((email) => `Public Git history contains a non-public commit email: ${email}`);
 }
 
+const HTTP_URL_PATTERN = /https?:\/\/[^\s`<>()\[\]"']+/g;
+
+export function hasExactHttpUrl(contents, expectedUrl) {
+  let expected;
+  try {
+    expected = new URL(expectedUrl);
+  } catch {
+    return false;
+  }
+
+  return [...contents.matchAll(HTTP_URL_PATTERN)].some(([matched]) => {
+    const candidate = matched.replace(/[.,;:!?]+$/, "");
+    try {
+      return candidate === expectedUrl && new URL(candidate).href === expected.href;
+    } catch {
+      return false;
+    }
+  });
+}
+
 function secretishJsonKey(value) {
   if (Array.isArray(value)) return value.some(secretishJsonKey);
   if (!value || typeof value !== "object") return false;
@@ -351,7 +371,7 @@ export async function validatePackage() {
   check(openaiYaml.includes("$pearl-concierge"), "OpenAI skill metadata must reference $pearl-concierge", errors);
 
   check(setupGuide.includes(CLAUDE_HOSTED_CLIENT_ID) && oauthGuide.includes(CLAUDE_HOSTED_CLIENT_ID), "Claude hosted setup must use its registered public client", errors);
-  check(oauthGuide.includes(CLAUDE_HOSTED_CALLBACK), "Claude hosted setup must use the exact hosted callback", errors);
+  check(hasExactHttpUrl(oauthGuide, CLAUDE_HOSTED_CALLBACK), "Claude hosted setup must use the exact hosted callback", errors);
   check(/OAuth Client Secret[^\n]*(?:Leave|leave)[^\n]*empty/.test(setupGuide) && /OAuth Client Secret[^\n]*(?:Leave|leave)[^\n]*empty/.test(oauthGuide), "Claude hosted setup must explicitly leave the secret empty", errors);
   const documentedScopes = [...oauthGuide.matchAll(/`([a-z-]+:(?:read|write))`/g)].map((match) => match[1]);
   check(JSON.stringify(documentedScopes) === JSON.stringify(PUBLIC_READ_SCOPES), "OAuth docs must list exactly the seven public read scopes", errors);
@@ -359,11 +379,11 @@ export async function validatePackage() {
   check(oauthGuide.includes("DCR endpoint remains disabled") && liveValidator.includes("register.status === 404"), "Documentation and live validation must keep DCR disabled", errors);
   check([setupGuide, oauthGuide].every((guide) => guide.includes("Anthropic-hosted CIMD") && guide.includes("localhost") && guide.includes("127.0.0.1") && /ephemeral (?:loopback )?port/.test(guide)), "Claude Code must document its CIMD loopback boundary", errors);
   check(setupGuide.includes("claude mcp login plugin:pearl:pearl") && setupGuide.includes("claude mcp get plugin:pearl:pearl") && !/--client-id|--client-secret|--callback-port/.test(setupGuide), "Claude Code must use its plugin-namespaced CIMD server without static overrides", errors);
-  check(oauthGuide.includes("http://localhost:8080/callback") && oauthGuide.includes("--callback-port 8080") && oauthGuide.includes("Pearl has not published this fallback client"), "Claude Code static fallback must use a fixed registered loopback port and remain clearly unavailable", errors);
+  check(hasExactHttpUrl(oauthGuide, "http://localhost:8080/callback") && oauthGuide.includes("--callback-port 8080") && oauthGuide.includes("Pearl has not published this fallback client"), "Claude Code static fallback must use a fixed registered loopback port and remain clearly unavailable", errors);
   check(oauthGuide.includes("Do not reuse `pearl-claude-hosted`") && oauthGuide.includes("do not pass `--client-secret`"), "Claude Code static fallback must not reuse the hosted client or require a secret", errors);
   check(releaseGuide.includes("Claude Code CIMD"), "Release checks must cover Claude Code CIMD", errors);
-  check([setupGuide, oauthGuide].every((guide) => guide.includes(CURSOR_CLIENT_ID) && guide.includes(CURSOR_HOSTED_CALLBACK) && guide.includes(CURSOR_LOOPBACK_CALLBACK)), "Cursor docs must include its public client and both callbacks", errors);
-  check(submissionGuide.includes("https://cursor.com/marketplace/publish") && submissionGuide.includes("https://platform.claude.com/plugins/submit"), "Submission docs must link to the current host forms", errors);
+  check([setupGuide, oauthGuide].every((guide) => guide.includes(CURSOR_CLIENT_ID) && hasExactHttpUrl(guide, CURSOR_HOSTED_CALLBACK) && hasExactHttpUrl(guide, CURSOR_LOOPBACK_CALLBACK)), "Cursor docs must include its public client and both callbacks", errors);
+  check(hasExactHttpUrl(submissionGuide, "https://cursor.com/marketplace/publish") && hasExactHttpUrl(submissionGuide, "https://platform.claude.com/plugins/submit"), "Submission docs must link to the current host forms", errors);
   check(submissionGuide.includes("Claude Connectors Directory") && submissionGuide.includes("separate review"), "Submission docs must distinguish Claude plugin and connector review", errors);
   check(submissionGuide.includes("public GitHub repository") && submissionGuide.includes("does not make Pearl an official or approved integration"), "Submission docs must require public source without claiming approval", errors);
   check(/node-version:\s*24\b/.test(publicWorkflow), "Public CI must run on the current Node.js LTS", errors);

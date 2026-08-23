@@ -2,7 +2,7 @@
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "pearl",
   "displayName": "Pearl",
-  "version": "0.8.5",
+  "version": "0.8.6",
   "description": "Active Pearl Elite members can search and match trusted places, get taste-aware recommendations, and review private Pearl travel activity through a read-only authenticated connection.",
   "author": {
     "name": "Pearl LLC",

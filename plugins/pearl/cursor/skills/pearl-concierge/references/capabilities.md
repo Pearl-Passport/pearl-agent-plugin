@@ -1,6 +1,6 @@
 # Pearl capability snapshot
 
-This public documentation snapshot is dated **2026-08-23** for package `0.8.5`. It is not a tool allowlist. The authenticated MCP `tools/list` response is authoritative and may vary by host, member, OAuth grant, or rollout.
+This public documentation snapshot is dated **2026-08-23** for package `0.8.6`. It is not a tool allowlist. The authenticated MCP `tools/list` response is authoritative and may vary by host, member, OAuth grant, or rollout.
 
 ## Current public read set
 
