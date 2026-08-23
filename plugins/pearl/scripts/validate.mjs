@@ -397,7 +397,13 @@ export async function validatePackage() {
     publicRelativeRoot = REPOSITORY_ROOT;
     errors.push(...validatePublicFileInventory(publicFiles.map((file) => portableRelative(REPOSITORY_ROOT, file))));
     try {
-      const gitEmails = execFileSync("git", ["log", "--format=%ae%n%ce", "--all"], {
+      const gitEmails = execFileSync("git", [
+        "log",
+        "--format=%ae%n%ce",
+        "--branches",
+        "--remotes=origin",
+        "--tags"
+      ], {
         cwd: REPOSITORY_ROOT,
         encoding: "utf8",
         stdio: ["ignore", "pipe", "pipe"]
