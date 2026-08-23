@@ -1,6 +1,6 @@
 {
   "name": "@pearl/agent-integrations",
-  "version": "0.8.4",
+  "version": "0.8.5",
   "private": true,
   "description": "Portable Codex, Claude, and Cursor integration package for Pearl's remote MCP server",
   "type": "module",

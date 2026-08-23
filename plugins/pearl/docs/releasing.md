@@ -1,6 +1,6 @@
 # Versioning and release
 
-The Codex, Claude, and Cursor manifests, marketplace entries, package metadata, and validators use one semantic version. Package `0.8.4` is the sanitized read-only public distribution candidate.
+The Codex, Claude, and Cursor manifests, marketplace entries, package metadata, and validators use one semantic version. Package `0.8.5` is the current sanitized read-only public release.
 
 Use:
 
@@ -26,15 +26,14 @@ Use:
    npm --prefix plugins/pearl run validate
    npm --prefix plugins/pearl run validate:live
    npm --prefix plugins/pearl run validate:host-clients-live
-   python3 ~/.codex/skills/.system/plugin-creator/scripts/validate_plugin.py plugins/pearl
-   python3 ~/.codex/skills/.system/skill-creator/scripts/quick_validate.py plugins/pearl/skills/pearl-concierge
-   python3 ~/.codex/skills/.system/skill-creator/scripts/quick_validate.py plugins/pearl/cursor/skills/pearl-concierge
    claude plugin validate plugins/pearl --strict
    claude plugin validate . --strict
    ```
 
+   Pearl maintainers with Codex's bundled `plugin-creator` and `skill-creator` skills installed must also run those skills' validators against the package and both packaged Pearl Concierge skill directories. Do not present local Codex system-skill paths as public package dependencies.
+
 11. Generate the distribution into a new empty directory and rerun its tests and validators.
-12. Scan the complete public Git history with a credential scanner and verify commit identity contains no personal email.
+12. Scan the complete public Git history with a credential scanner and verify commit identity contains no personal email. Public CI downloads the reviewed Gitleaks release, verifies its checksum, and scans full history.
 13. Require a pull request, passing validation, secret scanning/push protection, and reviewed legal/brand approval before making the repository public or submitting it to a host marketplace.
 
 14. Confirm the public repository is actually public, then follow the distinct Cursor Marketplace, Claude community plugin, and Claude Connectors Directory paths in [submission.md](submission.md). Never describe a pending submission as approved, official, endorsed, or listed.

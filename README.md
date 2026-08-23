@@ -4,7 +4,7 @@ Pearl's installable package connects Codex, Claude, Cursor, and Grok Bot to Pear
 
 Pearl Agent access currently requires active Pearl Elite membership. The server enforces eligibility and OAuth scopes; installing this package cannot widen access.
 
-Package `0.8.4` is read-only. Runtime MCP `tools/list` is authoritative. The public package contains thin host manifests, current workflow guidance, public documentation, approved brand assets, and zero-dependency validation—no application, OAuth server, database, executor, environment, deployment configuration, or credential.
+Package `0.8.5` is read-only. Runtime MCP `tools/list` is authoritative. The public package contains thin host manifests, current workflow guidance, public documentation, approved brand assets, and zero-dependency validation—no application, OAuth server, database, executor, environment, deployment configuration, or credential.
 
 Repository availability does not mean Anthropic, Cursor, or OpenAI has approved, endorsed, or listed Pearl.
 
@@ -13,7 +13,7 @@ Repository availability does not mean Anthropic, Cursor, or OpenAI has approved,
 ### Codex Desktop and CLI
 
 ```bash
-git clone https://github.com/Pearl-Passport/pearl-agent-plugin.git
+git clone --branch v0.8.5 --depth 1 https://github.com/Pearl-Passport/pearl-agent-plugin.git
 cd pearl-agent-plugin
 codex plugin marketplace add .
 codex plugin add pearl@pearl-integrations
@@ -23,7 +23,7 @@ codex mcp login pearl
 ### Claude Code
 
 ```bash
-git clone https://github.com/Pearl-Passport/pearl-agent-plugin.git
+git clone --branch v0.8.5 --depth 1 https://github.com/Pearl-Passport/pearl-agent-plugin.git
 cd pearl-agent-plugin
 claude plugin marketplace add .
 claude plugin install pearl@pearl-integrations
@@ -35,7 +35,7 @@ For Claude web/desktop Chat, add `https://agent.joinpearl.co/mcp` as a custom co
 ### Cursor IDE, Cloud Agents, and Grok Bot
 
 ```bash
-git clone https://github.com/Pearl-Passport/pearl-agent-plugin.git
+git clone --branch v0.8.5 --depth 1 https://github.com/Pearl-Passport/pearl-agent-plugin.git
 cd pearl-agent-plugin
 mkdir -p ~/.cursor/plugins/local
 test ! -e ~/.cursor/plugins/local/pearl-cursor
@@ -54,7 +54,7 @@ npm --prefix plugins/pearl run validate:live
 
 See [cross-host setup](plugins/pearl/docs/setup.md), the [capability snapshot](plugins/pearl/skills/pearl-concierge/references/capabilities.md), and [source provenance](SOURCE.md).
 
-Marketplace publication is a separate host-review step. See [submission paths](plugins/pearl/docs/submission.md) before applying to Cursor or Anthropic.
+Marketplace publication remains a separate host-review step. See [submission paths](plugins/pearl/docs/submission.md) for new applications and future release updates.
 
 ## Security, policies, and brand
 
