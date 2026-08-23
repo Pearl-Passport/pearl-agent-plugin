@@ -1,6 +1,6 @@
 # Versioning and release
 
-The Codex, Claude, and Cursor manifests, marketplace entries, package metadata, and validators use one semantic version. Package `0.8.5` is the current sanitized read-only public release.
+The Codex, Claude, and Cursor manifests, marketplace entries, package metadata, and validators use one semantic version. Package `0.8.6` is the current sanitized read-only public release.
 
 Use:
 

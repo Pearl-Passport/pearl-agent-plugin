@@ -5,6 +5,7 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 import {
   EXPECTED_PUBLIC_REPOSITORY_FILES,
+  hasExactHttpUrl,
   validatePackage,
   validatePublicCommitEmails,
   validatePublicFileInventory,
@@ -39,6 +40,14 @@ test("public repository validation rejects inventory drift and private metadata"
   const privateNoreply = ["84434824+adxburgess", "users.noreply.github.com"].join("@");
   assert.deepEqual(validatePublicCommitEmails([privateNoreply, "hello@joinpearl.co"]), []);
   assert.match(validatePublicCommitEmails([nonPublicEmail])[0], /non-public commit email/);
+});
+
+test("exact URL validation rejects prefixed, suffixed, and look-alike hosts", () => {
+  const callback = "https://claude.ai/api/mcp/auth_callback";
+  assert.equal(hasExactHttpUrl(`Callback: \`${callback}\`.`, callback), true);
+  assert.equal(hasExactHttpUrl(`https://attacker.example/${callback}`, callback), false);
+  assert.equal(hasExactHttpUrl(`${callback}.attacker.example`, callback), false);
+  assert.equal(hasExactHttpUrl("https://claude.ai.attacker.example/api/mcp/auth_callback", callback), false);
 });
 
 test("the three host manifests share one logical MCP endpoint", async () => {
