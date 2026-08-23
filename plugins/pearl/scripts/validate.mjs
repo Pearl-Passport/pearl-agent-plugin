@@ -7,7 +7,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const PLUGIN_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const EXPECTED_VERSION = "0.8.6";
+const EXPECTED_VERSION = "0.8.7";
 const EXPECTED_MCP_URL = "https://agent.joinpearl.co/mcp";
 const PUBLIC_CONTACT_EMAIL = "hello@joinpearl.co";
 const CLAUDE_HOSTED_CLIENT_ID = "pearl-claude-hosted";

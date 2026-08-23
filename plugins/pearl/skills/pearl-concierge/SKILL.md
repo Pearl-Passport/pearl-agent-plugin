@@ -40,8 +40,8 @@ Direct member-place creation and provenance-only filtering are not part of the c
 
 ## Profile, visits, saves, trips, and reservations
 
-- Use `profile_get` for the authenticated member's Pearl taste profile and available summary signals. Do not ask for a member ID.
-- Use `visits_list` for committed visits. Request full notes only when needed. Preserve `visit_id` and `location_id`, follow `next_cursor` for complete date-window reviews, and use exact `visit_id` lookup for verification.
+- Use `profile_get` for the authenticated member's Pearl taste profile and available summary signals. Pass the closest supported `lens` when the member asks about a particular dimension such as cuisines, palate, footprint, setting, recognition, exploration, or recommendations. A lens focuses the response; it does not authorize reading another member. Do not ask for a member ID.
+- Use `visits_list` for committed visits. For “my favorites” or “the best places I have visited,” pass `sort: "score"`; combine it with `city`, `category`/`cuisine`, `trip`, or `min_score` when the member supplies those constraints. Request full notes only when needed. Preserve `visit_id` and `location_id`, follow `next_cursor` only for compatible recent-history pages, and use exact `visit_id` lookup for verification.
 - Use `saves_list` for places already saved in Pearl. A save is not a reservation or proof of a visit.
 - Use `trips_list` to select an owned trip or collection and `trip_get` to read its stops. A trip is not a booking.
 - Use `reservations_list` to select an existing Pearl reservation, then pass both its returned `source` and `id` to `reservation_get` for exact details. Do not claim Pearl booked, changed, or cancelled it.

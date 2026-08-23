@@ -1,6 +1,6 @@
 {
   "name": "pearl",
-  "version": "0.8.6",
+  "version": "0.8.7",
   "description": "Search and match Pearl places, get taste-aware recommendations, and review private Pearl travel activity through a read-only connection.",
   "author": {
     "name": "Pearl LLC",

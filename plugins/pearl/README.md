@@ -8,7 +8,7 @@ The package contains host manifests, the Pearl Concierge skill, public setup doc
 
 ## Current release
 
-Package `0.8.6` is read-only. The live MCP `tools/list` response is authoritative; manifests do not pin tools. The documented public set contains 13 reads for venue search, recommendations, new openings, place matching, profile, visits, saves, friends and requests, trips, and reservations.
+Package `0.8.7` is read-only. The live MCP `tools/list` response is authoritative; manifests do not pin tools. The documented public set contains 13 reads for venue search, recommendations, new openings, place matching, profile, visits, saves, friends and requests, trips, and reservations.
 
 See the [capability snapshot](skills/pearl-concierge/references/capabilities.md) for exact current tools and honest unavailable-workflow labels. The package does not claim that a host has approved or listed Pearl.
 

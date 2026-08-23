@@ -1,6 +1,6 @@
 # Pearl capability snapshot
 
-This public documentation snapshot is dated **2026-08-23** for package `0.8.6`. It is not a tool allowlist. The authenticated MCP `tools/list` response is authoritative and may vary by host, member, OAuth grant, or rollout.
+This public documentation snapshot is dated **2026-08-23** for package `0.8.7`. It is not a tool allowlist. The authenticated MCP `tools/list` response is authoritative and may vary by host, member, OAuth grant, or rollout.
 
 ## Current public read set
 
@@ -10,8 +10,8 @@ This public documentation snapshot is dated **2026-08-23** for package `0.8.6`. 
 | `venues_recommend` | Get profile-aware venue recommendations | Recommendation is not a reservation or guarantee |
 | `venues_new_openings` | Find coming-soon and newly opened venues | Established fallbacks must not be described as openings |
 | `places_match` | Reconcile up to 20 supplied names with canonical venues | Returns review states and writes nothing |
-| `profile_get` | Read the authenticated member's taste profile and available signals | Does not edit profile or account settings |
-| `visits_list` | List committed visits with pagination and exact visit lookup | Does not import, edit, or delete visits |
+| `profile_get` | Read the authenticated member's taste profile and focus it by supported taste lens | Does not edit profile or account settings, and a lens never changes member scope |
+| `visits_list` | List committed visits, including score-ranked favorites and city, cuisine/category, trip, or score filters | Cursor pagination is limited to compatible recent-history pages; it does not import, edit, or delete visits |
 | `saves_list` | List saved venues | Does not save or remove a venue |
 | `friends_search` | Search Pearl's privacy-filtered member directory | Does not expose hidden data or send a request |
 | `friends_list` | List accepted friends and pending request states | Does not change friendship state |
