@@ -8,7 +8,7 @@ The package contains host manifests, the Pearl Concierge skill, public setup doc
 
 ## Current release
 
-Package `0.8.4` is read-only. The live MCP `tools/list` response is authoritative; manifests do not pin tools. The documented public set contains 13 reads for venue search, recommendations, new openings, place matching, profile, visits, saves, friends and requests, trips, and reservations.
+Package `0.8.5` is read-only. The live MCP `tools/list` response is authoritative; manifests do not pin tools. The documented public set contains 13 reads for venue search, recommendations, new openings, place matching, profile, visits, saves, friends and requests, trips, and reservations.
 
 See the [capability snapshot](skills/pearl-concierge/references/capabilities.md) for exact current tools and honest unavailable-workflow labels. The package does not claim that a host has approved or listed Pearl.
 
@@ -31,14 +31,13 @@ From the repository root:
 npm --prefix plugins/pearl test
 npm --prefix plugins/pearl run validate
 npm --prefix plugins/pearl run validate:live
-python3 ~/.codex/skills/.system/plugin-creator/scripts/validate_plugin.py plugins/pearl
-python3 ~/.codex/skills/.system/skill-creator/scripts/quick_validate.py plugins/pearl/skills/pearl-concierge
-python3 ~/.codex/skills/.system/skill-creator/scripts/quick_validate.py plugins/pearl/cursor/skills/pearl-concierge
 claude plugin validate plugins/pearl --strict
 claude plugin validate . --strict
 ```
 
 Live validation performs only public discovery and unauthenticated challenge checks. It does not use credentials or invoke member tools.
+
+Pearl maintainers who have Codex's bundled `plugin-creator` and `skill-creator` skills installed should additionally run those skills' validators against `plugins/pearl` and both packaged Pearl Concierge skill directories. These are maintainer checks, not public package dependencies.
 
 Before a marketplace release, also run the safe static-host registration probes documented in [docs/submission.md](docs/submission.md). Those probes use an intentionally invalid MCP resource and never create an authorization request or invoke a member tool.
 

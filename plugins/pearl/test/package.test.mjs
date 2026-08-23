@@ -3,7 +3,13 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
-import { validatePackage } from "../scripts/validate.mjs";
+import {
+  EXPECTED_PUBLIC_REPOSITORY_FILES,
+  validatePackage,
+  validatePublicCommitEmails,
+  validatePublicFileInventory,
+  validatePublicText
+} from "../scripts/validate.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const REPOSITORY_ROOT = path.resolve(ROOT, "..", "..");
@@ -14,6 +20,25 @@ async function json(relativePath) {
 
 test("the canonical portable package validates", async () => {
   assert.deepEqual(await validatePackage(), []);
+});
+
+test("public repository validation rejects inventory drift and private metadata", () => {
+  assert.deepEqual(validatePublicFileInventory(EXPECTED_PUBLIC_REPOSITORY_FILES), []);
+  assert.match(
+    validatePublicFileInventory([...EXPECTED_PUBLIC_REPOSITORY_FILES, "UNEXPECTED_INTERNAL_FILE.md"])[0],
+    /Unexpected public distribution files/
+  );
+  const nonPublicEmail = ["reviewer", "example.com"].join("@");
+  const localPath = ["", "Users", "reviewer", "secret.txt"].join("/");
+  const internalTicket = ["AGENT", "99"].join("-");
+  const privateRepository = ["Pearl-Passport", "pearl-app"].join("/");
+  assert.match(validatePublicText("README.md", `Contact ${nonPublicEmail}`)[0], /non-public contact email/);
+  assert.match(validatePublicText("README.md", `Path ${localPath}`)[0], /local user path/);
+  assert.match(validatePublicText("README.md", `Ticket ${internalTicket}`)[0], /internal ticket identifier/);
+  assert.match(validatePublicText("README.md", `Repository ${privateRepository}`)[0], /private source repository/);
+  const privateNoreply = ["84434824+adxburgess", "users.noreply.github.com"].join("@");
+  assert.deepEqual(validatePublicCommitEmails([privateNoreply, "hello@joinpearl.co"]), []);
+  assert.match(validatePublicCommitEmails([nonPublicEmail])[0], /non-public commit email/);
 });
 
 test("the three host manifests share one logical MCP endpoint", async () => {
