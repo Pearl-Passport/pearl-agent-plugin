@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 
 import { createHash } from "node:crypto";
+import { execFileSync } from "node:child_process";
 import { lstat, readFile, readdir, stat } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const PLUGIN_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const EXPECTED_VERSION = "0.8.4";
+const EXPECTED_VERSION = "0.8.5";
 const EXPECTED_MCP_URL = "https://agent.joinpearl.co/mcp";
 const PUBLIC_CONTACT_EMAIL = "hello@joinpearl.co";
 const CLAUDE_HOSTED_CLIENT_ID = "pearl-claude-hosted";
@@ -44,6 +45,42 @@ const EXPECTED_ASSETS = new Map([
   ["cursor/assets/logo.png", "d44a653a7e18653c737a966335c28fc58314fb5e4514179a3733a5264e4f565f"]
 ]);
 const FORBIDDEN_PNG_CHUNKS = new Set(["eXIf", "iTXt", "tEXt", "zTXt", "tIME"]);
+export const EXPECTED_PUBLIC_REPOSITORY_FILES = [
+  ".agents/plugins/marketplace.json",
+  ".claude-plugin/marketplace.json",
+  ".cursor-plugin/marketplace.json",
+  ".github/workflows/validate.yml",
+  ".gitignore",
+  "LICENSE",
+  "README.md",
+  "SECURITY.md",
+  "SOURCE.md",
+  "TRADEMARKS.md",
+  "chatgpt-app-submission.json",
+  "plugins/pearl/.claude-plugin/plugin.json",
+  "plugins/pearl/.codex-plugin/plugin.json",
+  "plugins/pearl/.mcp.json",
+  "plugins/pearl/README.md",
+  "plugins/pearl/assets/README.md",
+  "plugins/pearl/assets/icon.png",
+  "plugins/pearl/assets/logo.png",
+  "plugins/pearl/cursor/.cursor-plugin/plugin.json",
+  "plugins/pearl/cursor/assets/logo.png",
+  "plugins/pearl/cursor/skills/pearl-concierge/SKILL.md",
+  "plugins/pearl/cursor/skills/pearl-concierge/agents/openai.yaml",
+  "plugins/pearl/cursor/skills/pearl-concierge/references/capabilities.md",
+  "plugins/pearl/docs/oauth.md",
+  "plugins/pearl/docs/releasing.md",
+  "plugins/pearl/docs/setup.md",
+  "plugins/pearl/docs/submission.md",
+  "plugins/pearl/package.json",
+  "plugins/pearl/scripts/validate-live.mjs",
+  "plugins/pearl/scripts/validate.mjs",
+  "plugins/pearl/skills/pearl-concierge/SKILL.md",
+  "plugins/pearl/skills/pearl-concierge/agents/openai.yaml",
+  "plugins/pearl/skills/pearl-concierge/references/capabilities.md",
+  "plugins/pearl/test/package.test.mjs"
+].sort();
 const PUBLIC_PACKAGE_PATHS = [
   ".codex-plugin",
   ".claude-plugin",
@@ -57,6 +94,42 @@ const PUBLIC_PACKAGE_PATHS = [
   "cursor",
   "skills",
   "test/package.test.mjs"
+];
+const SECRET_PATTERNS = [
+  ["AWS access key", /\b(?:AKIA|ASIA)[A-Z0-9]{16}\b/],
+  ["Google API key", /\bAIza[A-Za-z0-9_-]{35}\b/],
+  ["GitHub token", /\bgh[pousr]_[A-Za-z0-9]{20,}\b/],
+  ["OpenAI API key", /\bsk-(?:proj-)?[A-Za-z0-9_-]{20,}\b/],
+  ["Slack token", /\bxox[baprs]-[A-Za-z0-9-]{10,}\b/],
+  ["Stripe key", /\b[rs]k_(?:live|test)_[A-Za-z0-9]{16,}\b/],
+  ["Supabase key", /\bsb_(?:secret|publishable)_[A-Za-z0-9_-]{16,}\b/],
+  ["JWT", /\beyJ[A-Za-z0-9_-]{8,}\.eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b/],
+  ["Bearer token", /Bearer\s+[A-Za-z0-9._~-]{16,}/i],
+  ["personal token", /\b(?:pat|prt)_[A-Za-z0-9_-]{12,}\b/],
+  ["private key", /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/],
+  ["assigned secret", /\b(?:client_?secret|access_?token|refresh_?token|api_?key|password)\b\s*[:=]\s*["'][^"'${}\s][^"']{7,}["']/i]
+];
+const PRIVATE_METADATA_PATTERNS = [
+  ["local user path", /\/(?:Users|home)\/[A-Za-z0-9._-]+(?:\/|\\)/],
+  ["Windows user path", /[A-Za-z]:\\Users\\[A-Za-z0-9._-]+\\/],
+  ["local temporary path", /\/(?:private\/tmp|var\/folders)\//],
+  ["Codex worktree path", /\.codex\/worktrees\//],
+  ["Codex system-skill path", /~\/\.codex\/skills\/\.system\//],
+  ["internal ticket identifier", /\bAGENT-\d+\b/],
+  ["private Notion task link", /app\.notion\.(?:com|so)\/p\/[a-f0-9]{24,}/i],
+  ["private source repository", new RegExp(["Pearl-Passport", "pearl-app"].join("/"), "i")],
+  ["backend source path", new RegExp(["supabase", "functions"].join("/"), "i")],
+  ["private storage vendor detail", new RegExp(`\\b${["Bun", "ny"].join("")}\\b`, "i")],
+  ["legacy brand metadata", new RegExp(["En", "Primeur", "Club"].join(" "), "i")],
+  ["design-tool identifier", new RegExp(`\\b(?:${[
+    ["DAG7", "shwG0Ec"].join(""),
+    ["UAG1", "uE8lP_o"].join(""),
+    ["BAG1", "uOepooI"].join("")
+  ].join("|")})\\b`)],
+  ["unreleased tool contract", /\b[A-Za-z0-9]+(?:_[A-Za-z0-9]+)*_(?:prepare|commit)\b/],
+  ["unreleased photo contract", /\bvisits?_photos?\b/i],
+  ["unreleased OAuth scope", new RegExp(`\\b(?:${["collections", "read"].join(":")}|[a-z-]+:write)\\b`)],
+  ["private commit provenance", new RegExp(["private", "source", "commit"].join(" "), "i")]
 ];
 
 async function findRepositoryRoot(start) {
@@ -110,6 +183,49 @@ async function filesUnder(target) {
   return nested;
 }
 
+async function repositoryFilesUnder(root) {
+  const nested = [];
+  for (const entry of (await readdir(root)).sort()) {
+    if (entry === ".git") continue;
+    nested.push(...await filesUnder(path.join(root, entry)));
+  }
+  return nested;
+}
+
+function portableRelative(root, file) {
+  return path.relative(root, file).split(path.sep).join("/");
+}
+
+export function validatePublicFileInventory(relativeFiles) {
+  const actual = [...new Set(relativeFiles.map((relative) => relative.split(path.sep).join("/")))].sort();
+  const missing = EXPECTED_PUBLIC_REPOSITORY_FILES.filter((relative) => !actual.includes(relative));
+  const unexpected = actual.filter((relative) => !EXPECTED_PUBLIC_REPOSITORY_FILES.includes(relative));
+  const errors = [];
+  if (missing.length) errors.push(`Missing public distribution files: ${missing.join(", ")}`);
+  if (unexpected.length) errors.push(`Unexpected public distribution files: ${unexpected.join(", ")}`);
+  return errors;
+}
+
+export function isPublicTextFile(relative) {
+  return /\.(?:json|md|mjs|ya?ml|txt)$/.test(relative) || [".gitignore", "LICENSE"].includes(path.basename(relative));
+}
+
+export function validatePublicText(relative, contents) {
+  const errors = [];
+  const emails = [...contents.matchAll(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi)].map((match) => match[0].toLowerCase());
+  check(emails.every((email) => email === PUBLIC_CONTACT_EMAIL), `${relative} contains a non-public contact email`, errors);
+  for (const [kind, pattern] of SECRET_PATTERNS) check(!pattern.test(contents), `${relative} appears to contain a ${kind}`, errors);
+  for (const [kind, pattern] of PRIVATE_METADATA_PATTERNS) check(!pattern.test(contents), `${relative} contains a ${kind}`, errors);
+  return errors;
+}
+
+export function validatePublicCommitEmails(emails) {
+  const githubNoreply = ["noreply", "github.com"].join("@");
+  return [...new Set(emails.map((email) => email.trim().toLowerCase()).filter(Boolean))]
+    .filter((email) => email !== PUBLIC_CONTACT_EMAIL && email !== githubNoreply && !/@users\.noreply\.github\.com$/.test(email))
+    .map((email) => `Public Git history contains a non-public commit email: ${email}`);
+}
+
 function secretishJsonKey(value) {
   if (Array.isArray(value)) return value.some(secretishJsonKey);
   if (!value || typeof value !== "object") return false;
@@ -146,7 +262,7 @@ function pngInfo(buffer) {
   return { width, height, chunkTypes };
 }
 
-async function validateMarkdownLinks(file, errors) {
+async function validateMarkdownLinks(file, relativeRoot, errors) {
   const contents = await readFile(file, "utf8");
   for (const match of contents.matchAll(/!?\[[^\]]*\]\(([^)]+)\)/g)) {
     let destination = match[1].trim();
@@ -159,7 +275,7 @@ async function validateMarkdownLinks(file, errors) {
     try {
       await stat(resolved);
     } catch {
-      errors.push(`Broken Markdown link: ${path.relative(PLUGIN_ROOT, file)} -> ${destination}`);
+      errors.push(`Broken Markdown link: ${portableRelative(relativeRoot, file)} -> ${destination}`);
     }
   }
 }
@@ -253,6 +369,8 @@ export async function validatePackage() {
   check(/node-version:\s*24\b/.test(publicWorkflow), "Public CI must run on the current Node.js LTS", errors);
   check(/permissions:\s*\n\s*contents:\s*read/.test(publicWorkflow) && publicWorkflow.includes("persist-credentials: false"), "Public CI must use read-only permissions without persisting credentials", errors);
   check(!/uses:\s+[^#\n]+@v\d+/i.test(publicWorkflow), "Public CI actions must be pinned by commit SHA", errors);
+  check(publicWorkflow.includes("fetch-depth: 0"), "Public CI must fetch complete history for credential scanning", errors);
+  check(publicWorkflow.includes("gitleaks_8.30.1_linux_x64.tar.gz") && publicWorkflow.includes("551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb"), "Public CI must use the reviewed Gitleaks binary and checksum", errors);
 
   const publicToolNames = Object.keys(submission.tools ?? {});
   check(submission.$schema === "https://developers.openai.com/apps-sdk/schemas/chatgpt-app-submission.v1.json", "OpenAI submission schema is incorrect", errors);
@@ -271,21 +389,41 @@ export async function validatePackage() {
     check(createHash("sha256").update(contents).digest("hex") === expectedHash, `${relative} does not match the reviewed Pearl artwork`, errors);
   }
 
-  const publicFiles = [];
-  for (const relative of PUBLIC_PACKAGE_PATHS) publicFiles.push(...await filesUnder(path.join(PLUGIN_ROOT, relative)));
+  let publicFiles = [];
+  let publicRelativeRoot = PLUGIN_ROOT;
+  try {
+    await stat(path.join(REPOSITORY_ROOT, "SOURCE.md"));
+    publicFiles = await repositoryFilesUnder(REPOSITORY_ROOT);
+    publicRelativeRoot = REPOSITORY_ROOT;
+    errors.push(...validatePublicFileInventory(publicFiles.map((file) => portableRelative(REPOSITORY_ROOT, file))));
+    try {
+      const gitEmails = execFileSync("git", [
+        "log",
+        "--format=%ae%n%ce",
+        "--branches",
+        "--remotes=origin",
+        "--tags"
+      ], {
+        cwd: REPOSITORY_ROOT,
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"]
+      }).split("\n");
+      errors.push(...validatePublicCommitEmails(gitEmails));
+    } catch {
+      // A generated export may not be a Git checkout; CI and release clones are.
+    }
+  } catch (error) {
+    if (error?.code !== "ENOENT") throw error;
+    for (const relative of PUBLIC_PACKAGE_PATHS) publicFiles.push(...await filesUnder(path.join(PLUGIN_ROOT, relative)));
+  }
   for (const file of publicFiles) {
-    const relative = path.relative(PLUGIN_ROOT, file);
+    const relative = portableRelative(publicRelativeRoot, file);
     const mode = (await stat(file)).mode;
     check((mode & 0o111) === 0, `Distribution file must not be executable: ${relative}`, errors);
-    if (/\.md$/.test(file)) await validateMarkdownLinks(file, errors);
-    if (!/\.(?:json|md|mjs|ya?ml)$/.test(file)) continue;
+    if (/\.md$/.test(file)) await validateMarkdownLinks(file, publicRelativeRoot, errors);
+    if (!isPublicTextFile(relative)) continue;
     const contents = await readFile(file, "utf8");
-    const pearlEmails = [...contents.matchAll(/[A-Z0-9._%+-]+@joinpearl\.co/gi)].map((match) => match[0].toLowerCase());
-    check(pearlEmails.every((email) => email === PUBLIC_CONTACT_EMAIL), `${relative} contains an unsupported Pearl contact mailbox`, errors);
-    check(!/\b(?:pat|prt)_[A-Za-z0-9_-]{12,}\b/.test(contents), `${relative} appears to contain a personal token`, errors);
-    check(!/Bearer\s+[A-Za-z0-9._~-]{16,}/i.test(contents), `${relative} appears to contain a bearer token`, errors);
-    check(!/-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/.test(contents), `${relative} appears to contain a private key`, errors);
-    check(!/@gmail\.com/i.test(contents), `${relative} contains a personal Gmail address`, errors);
+    errors.push(...validatePublicText(relative, contents));
   }
 
   check(path.relative(REPOSITORY_ROOT, PLUGIN_ROOT) === path.join("plugins", "pearl"), "plugins/pearl must remain the canonical package root", errors);
