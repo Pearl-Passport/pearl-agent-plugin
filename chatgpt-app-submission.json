@@ -1,0 +1,236 @@
+{
+  "$schema": "https://developers.openai.com/apps-sdk/schemas/chatgpt-app-submission.v1.json",
+  "schema_version": 1,
+  "app_info": {
+    "display_name": "Pearl",
+    "subtitle": "Plan with your Pearl profile",
+    "description": "Pearl helps Elite members search and match trusted places, discover new and upcoming openings, get personalized recommendations, and review their private Pearl profile, visits, saves, trips, reservations, friends, and friend requests in ChatGPT.",
+    "category": "TRAVEL"
+  },
+  "tools": {
+    "venues_search": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Only searches Pearl's venue catalog and does not create or update records.",
+        "open_world_justification": "Does not change public internet state or any third-party system.",
+        "destructive_justification": "Does not delete, overwrite, revoke, or perform an irreversible action."
+      }
+    },
+    "venues_recommend": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Only computes recommendations from the member's existing Pearl profile and catalog data.",
+        "open_world_justification": "Does not publish content or modify an external service.",
+        "destructive_justification": "Does not delete, overwrite, revoke, or perform an irreversible action."
+      }
+    },
+    "venues_new_openings": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Only reads Pearl's catalog to surface coming-soon and newly-opened venues, with an explicitly labeled fallback when no qualifying openings exist.",
+        "open_world_justification": "Does not publish content, contact a venue, or modify Pearl or any third-party system.",
+        "destructive_justification": "Does not delete, overwrite, revoke, or perform an irreversible action."
+      }
+    },
+    "places_match": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Only resolves supplied place names against Pearl's canonical venue catalog and returns review results without changing records.",
+        "open_world_justification": "Does not publish content or modify Pearl or any third-party system.",
+        "destructive_justification": "Does not delete, overwrite, revoke, or perform an irreversible action."
+      }
+    },
+    "profile_get": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Only retrieves the authenticated member's existing Pearl taste profile and summary signals.",
+        "open_world_justification": "Keeps the operation within the member's private Pearl account and does not modify another system.",
+        "destructive_justification": "Does not delete, overwrite, revoke, or perform an irreversible action."
+      }
+    },
+    "visits_list": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Only lists visits already committed to the authenticated member's Pearl account.",
+        "open_world_justification": "Does not publish the visit history or modify an external service.",
+        "destructive_justification": "Does not delete, overwrite, revoke, or perform an irreversible action."
+      }
+    },
+    "saves_list": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Only lists venues the authenticated member previously saved in Pearl.",
+        "open_world_justification": "Does not publish saved venues or modify a third-party system.",
+        "destructive_justification": "Does not delete, overwrite, revoke, or perform an irreversible action."
+      }
+    },
+    "friends_search": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Only searches Pearl's privacy-filtered member directory for the authenticated member and does not change friendship state.",
+        "open_world_justification": "Keeps the operation inside Pearl and does not message members, send requests, or modify another system.",
+        "destructive_justification": "Does not delete, overwrite, revoke, or perform an irreversible action."
+      }
+    },
+    "friends_list": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Only retrieves the authenticated member's existing accepted friendships and incoming or outgoing pending requests.",
+        "open_world_justification": "Keeps the operation inside the member's private Pearl account and does not contact anyone or modify another system.",
+        "destructive_justification": "Does not accept, decline, cancel, delete, overwrite, or perform an irreversible action."
+      }
+    },
+    "trips_list": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Only lists the authenticated member's existing Pearl trips and collections.",
+        "open_world_justification": "Does not share trips publicly or modify an external system.",
+        "destructive_justification": "Does not delete, overwrite, revoke, or perform an irreversible action."
+      }
+    },
+    "trip_get": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Only retrieves stops from one trip or collection owned by the authenticated member.",
+        "open_world_justification": "Does not publish trip contents or modify another service.",
+        "destructive_justification": "Does not delete, overwrite, revoke, or perform an irreversible action."
+      }
+    },
+    "reservations_list": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Only retrieves reservation details already linked or imported into the member's Pearl account.",
+        "open_world_justification": "Does not book, cancel, message, or otherwise change a reservation provider.",
+        "destructive_justification": "Does not cancel, delete, overwrite, or perform an irreversible action."
+      }
+    },
+    "reservation_get": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Only retrieves one reservation already present in the authenticated member's Pearl account, using the source and reservation ID returned by Pearl.",
+        "open_world_justification": "Does not contact, book, change, cancel, or expose a deep link for any reservation provider.",
+        "destructive_justification": "Does not change or remove the reservation, its venue link, its trip link, or any provider booking."
+      }
+    }
+  },
+  "test_cases": [
+    {
+      "description": "Match supplied place names, then search Pearl's venue catalog with a specific destination and occasion.",
+      "user_prompt": "Match L'Effervescence and Narisawa in Pearl, then find more Pearl restaurants in Tokyo for a quiet anniversary dinner.",
+      "file_attachment_urls": null,
+      "tools_triggered": "places_match, venues_search",
+      "expected_output": "Returns canonical match review results for the supplied names and relevant Pearl restaurants in Tokyo with enough detail to compare the options.",
+      "expected_output_url": null
+    },
+    {
+      "description": "Discover new openings and get personalized venue recommendations constrained by city and venue type.",
+      "user_prompt": "Show me what is newly opened or coming soon in Paris, then recommend Pearl hotels there based on my taste profile.",
+      "file_attachment_urls": null,
+      "tools_triggered": "venues_new_openings, venues_recommend",
+      "expected_output": "Returns recency-ranked newly-opened or coming-soon Pearl venues for Paris, honestly labels any zero-result alternatives, and includes a concise set of personalized Pearl hotel recommendations.",
+      "expected_output_url": null
+    },
+    {
+      "description": "Retrieve the authenticated member's private taste profile.",
+      "user_prompt": "What does my Pearl profile say about my taste and allergies, and what were my recent visits?",
+      "file_attachment_urls": null,
+      "tools_triggered": "profile_get, visits_list",
+      "expected_output": "Summarizes the member's available Pearl taste signals, allergies, and recent visits without asking for an account identifier.",
+      "expected_output_url": null
+    },
+    {
+      "description": "Review private trips, reservations, and saved places already available in Pearl.",
+      "user_prompt": "Show my Pearl trips, open my Tuscany collection, include my upcoming reservations and saved places, then show the exact details for my next reservation.",
+      "file_attachment_urls": null,
+      "tools_triggered": "trips_list, trip_get, reservations_list, reservation_get, saves_list",
+      "expected_output": "Lists the member's trips, opens the owned Tuscany collection if it exists, returns upcoming reservations and saved places, and retrieves the exact next reservation by its Pearl source and ID without modifying it.",
+      "expected_output_url": null
+    },
+    {
+      "description": "Search Pearl members and review the authenticated member's existing friendship state.",
+      "user_prompt": "Find my friend Maya on Pearl and show my accepted friends and pending requests.",
+      "file_attachment_urls": null,
+      "tools_triggered": "friends_search, friends_list",
+      "expected_output": "Returns privacy-filtered member matches and the authenticated member's accepted and pending friendships without sending or changing a request.",
+      "expected_output_url": null
+    }
+  ],
+  "negative_test_cases": [
+    {
+      "description": "Do not use the read-only launch set to create or modify a reservation.",
+      "user_prompt": "Book a table for four at the first restaurant tonight.",
+      "file_attachment_urls": null,
+      "tools_triggered": null,
+      "expected_output": "Pearl should not be invoked to book because the public launch set is read-only.",
+      "expected_output_url": null
+    },
+    {
+      "description": "Do not expose feature-gated account writes as public launch capabilities.",
+      "user_prompt": "Send Maya a friend request, save Narisawa, update my profile, and import these old visits into Pearl.",
+      "file_attachment_urls": null,
+      "tools_triggered": null,
+      "expected_output": "The public Pearl plugin should not invoke gated write tools or claim that any account change was completed.",
+      "expected_output_url": null
+    },
+    {
+      "description": "Do not trigger Pearl for unrelated live travel data.",
+      "user_prompt": "What is the live status of flight UA123?",
+      "file_attachment_urls": null,
+      "tools_triggered": null,
+      "expected_output": "Pearl should not be invoked because live flight status is outside the submitted tool set.",
+      "expected_output_url": null
+    }
+  ]
+}

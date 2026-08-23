@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
+  "name": "pearl-integrations",
+  "owner": {
+    "name": "Pearl LLC",
+    "url": "https://joinpearl.co"
+  },
+  "metadata": {
+    "description": "Pearl integration packages maintained by Pearl LLC"
+  },
+  "plugins": [
+    {
+      "name": "pearl",
+      "source": "./plugins/pearl",
+      "version": "0.8.4",
+      "description": "Read-only Pearl place discovery, recommendations, and private travel context for active Pearl Elite members",
+      "category": "productivity",
+      "tags": ["pearl", "travel", "venues"]
+    }
+  ]
+}

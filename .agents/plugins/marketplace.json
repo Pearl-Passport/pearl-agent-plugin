@@ -1,0 +1,20 @@
+{
+  "name": "pearl-integrations",
+  "interface": {
+    "displayName": "Pearl Integrations"
+  },
+  "plugins": [
+    {
+      "name": "pearl",
+      "source": {
+        "source": "local",
+        "path": "./plugins/pearl"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Travel"
+    }
+  ]
+}

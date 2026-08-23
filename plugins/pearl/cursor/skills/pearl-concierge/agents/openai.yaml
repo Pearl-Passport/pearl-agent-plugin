@@ -1,0 +1,4 @@
+interface:
+  display_name: "Pearl Concierge"
+  short_description: "Plan places, trips, friends, and Pearl activity"
+  default_prompt: "Use $pearl-concierge to recommend a Pearl venue for my next trip."

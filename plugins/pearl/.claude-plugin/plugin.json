@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "pearl",
+  "displayName": "Pearl",
+  "version": "0.8.4",
+  "description": "Active Pearl Elite members can search and match trusted places, get taste-aware recommendations, and review private Pearl travel activity through a read-only authenticated connection.",
+  "author": {
+    "name": "Pearl LLC",
+    "email": "hello@joinpearl.co",
+    "url": "https://joinpearl.co"
+  },
+  "homepage": "https://joinpearl.co",
+  "repository": "https://github.com/Pearl-Passport/pearl-agent-plugin",
+  "license": "MIT",
+  "keywords": ["pearl", "travel", "venues", "trips", "friends", "concierge"],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json"
+}

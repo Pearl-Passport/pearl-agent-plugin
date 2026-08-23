@@ -1,0 +1,32 @@
+{
+  "name": "pearl-integrations",
+  "owner": {
+    "name": "Pearl LLC",
+    "email": "hello@joinpearl.co"
+  },
+  "metadata": {
+    "description": "Pearl integration packages maintained by Pearl LLC"
+  },
+  "plugins": [
+    {
+      "name": "pearl-cursor",
+      "source": "plugins/pearl/cursor",
+      "version": "0.8.4",
+      "description": "Read-only Pearl place discovery, recommendations, and private travel context for active Pearl Elite members",
+      "author": {
+        "name": "Pearl LLC",
+        "email": "hello@joinpearl.co"
+      },
+      "homepage": "https://joinpearl.co",
+      "repository": "https://github.com/Pearl-Passport/pearl-agent-plugin",
+      "license": "MIT",
+      "logo": "assets/logo.png",
+      "category": "productivity",
+      "tags": [
+        "pearl",
+        "travel",
+        "venues"
+      ]
+    }
+  ]
+}

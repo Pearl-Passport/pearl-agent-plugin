@@ -1,0 +1,38 @@
+{
+  "name": "pearl-cursor",
+  "version": "0.8.4",
+  "description": "Pearl Elite members can search and match trusted places, get taste-aware recommendations, and review their private Pearl travel activity.",
+  "author": {
+    "name": "Pearl LLC",
+    "email": "hello@joinpearl.co"
+  },
+  "homepage": "https://joinpearl.co",
+  "repository": "https://github.com/Pearl-Passport/pearl-agent-plugin",
+  "license": "MIT",
+  "keywords": [
+    "pearl",
+    "travel",
+    "venues",
+    "recommendations",
+    "friends"
+  ],
+  "logo": "assets/logo.png",
+  "skills": "./skills/",
+  "mcpServers": {
+    "pearl-cursor": {
+      "url": "https://agent.joinpearl.co/mcp",
+      "auth": {
+        "CLIENT_ID": "pearl-cursor",
+        "scopes": [
+          "venues:read",
+          "profile:read",
+          "visits:read",
+          "saves:read",
+          "friends:read",
+          "trips:read",
+          "reservations:read"
+        ]
+      }
+    }
+  }
+}
