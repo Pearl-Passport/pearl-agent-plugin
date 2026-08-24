@@ -5,7 +5,7 @@ The Codex, Claude, and Cursor manifests, marketplace entries, package metadata, 
 | Surface | Version | Release tag | Publication boundary |
 | --- | --- | --- | --- |
 | Codex, Claude, Cursor, and shared skill | `0.8.7` | `v0.8.7` | Separate host installation or review |
-| MCP Registry metadata | `0.8.7` | `v0.8.7` | Protected Registry OIDC job after the reviewed host-package release |
+| MCP Registry metadata | `0.8.7` | `v0.8.7` | Protected Registry OIDC job after the validated host-package release |
 | Pearl CLI | `1.0.0` | `cli-v1.0.0` | Protected npm Trusted Publishing job |
 
 The MCP Registry is in preview, so publishing may encounter breaking changes or a data reset. Repository availability and a successful Registry publish are not host approval.
@@ -14,7 +14,8 @@ The standalone CLI has an independent `cli-vMAJOR.MINOR.PATCH` release stream.
 Its first candidate is `@joinpearl/cli` `1.0.0`. Do not publish it until Pearl
 has verified control of the `@joinpearl` npm scope, configured npm Trusted
 Publishing for this public repository, and protected the
-`pearl-cli-publish` GitHub environment with a required reviewer. No npm token
+`pearl-cli-publish` GitHub environment with a `cli-v*` tag-only deployment
+policy. No npm token
 or client secret belongs in repository settings, workflow files, or releases.
 
 Use:
@@ -67,6 +68,6 @@ Use:
     inspect npm provenance and signatures before documenting the package as
     available.
 
-17. For an MCP Registry release, first protect the `mcp-registry-publish` GitHub environment with a required Pearl reviewer and a deployment rule limited to reviewed `v*` release tags. The public workflow downloads `mcp-publisher` `v1.8.1` from the official Registry release, verifies its pinned SHA-256 checksum, validates `server.json`, confirms the tag and all host-package versions match, requires the tag commit to be on `main`, runs offline and live checks, and then authenticates with GitHub OIDC. It needs `id-token: write` and no PAT or dedicated secret. Trigger the protected job only from the matching published release or a deliberate manual dispatch of that existing tag. After publication, query the Registry for the exact name and version and compare its one remote URL byte-for-byte before calling the entry listed.
+17. For an MCP Registry release, protect the `mcp-registry-publish` GitHub environment with a deployment rule limited to validated `v*` release tags. This small-team repository does not require a second human approver; required CI, signed commits, linear history, admin enforcement, secret scanning, push protection, and the tag-only publication boundary remain enforced. The public workflow downloads `mcp-publisher` `v1.8.1` from the official Registry release, verifies its pinned SHA-256 checksum, validates `server.json`, confirms the tag and all host-package versions match, requires the tag commit to be on `main`, runs offline and live checks, and then authenticates with GitHub OIDC. It needs `id-token: write` and no PAT or dedicated secret. Trigger the protected job only from the matching published release or a deliberate manual dispatch of that existing tag. After publication, query the Registry for the exact name and version and compare its one remote URL byte-for-byte before calling the entry listed.
 
 A public repository, successful validation, or portal draft is not host approval. Do not claim listing or endorsement until the host approves the exact submitted release.

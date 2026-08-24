@@ -80,7 +80,7 @@ the CLI README. Do not install an unverified package with a similar name.
 
 [`server.json`](server.json) is Pearl's remote-only metadata for the preview MCP Registry. It declares `io.github.Pearl-Passport/pearl-agent-plugin`, matching the case-sensitive public GitHub owner, and the same one Streamable HTTP endpoint used by every host wrapper. It contains no header, token, client secret, package runtime, or tool allowlist.
 
-Registry publication is intentionally separate from source availability. It requires a reviewed `v0.8.7` release, a protected `mcp-registry-publish` GitHub environment with a required reviewer and release-tag restriction, and secretless GitHub OIDC. Until that protected workflow completes and the exact version is verified in the Registry, do not describe Pearl as listed there. The Registry is itself in preview.
+Registry publication is intentionally separate from source availability. It requires a validated `v0.8.7` release from protected `main`, a protected `mcp-registry-publish` GitHub environment restricted to `v*` release tags, and secretless GitHub OIDC. This small-team repository does not require a second human approver; required CI, signed commits, linear history, admin enforcement, secret scanning, push protection, and the tag-only publication boundary remain enforced. Until that protected workflow completes and the exact version is verified in the Registry, do not describe Pearl as listed there. The Registry is itself in preview.
 
 See [cross-host setup](plugins/pearl/docs/setup.md), the [capability snapshot](plugins/pearl/skills/pearl-concierge/references/capabilities.md), and [source provenance](SOURCE.md).
 
