@@ -1,0 +1,112 @@
+name: Publish Pearl to MCP Registry
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Existing reviewed host-package tag, for example v0.8.7
+        required: true
+        type: string
+      confirmation:
+        description: Publishing is an external registry mutation
+        required: true
+        default: do-not-publish
+        type: choice
+        options:
+          - do-not-publish
+          - publish
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    if: >-
+      (github.event_name == 'workflow_dispatch' && inputs.confirmation == 'publish') ||
+      (github.event_name == 'release' && !github.event.release.prerelease && startsWith(github.event.release.tag_name, 'v'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: mcp-registry-publish
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      RELEASE_TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || inputs.release_tag }}
+      MCP_PUBLISHER_VERSION: v1.8.1
+      MCP_PUBLISHER_SHA256: a06c9096dcb9727c13555b6be26c7effa707b01f06a4c561ba7a3635443cf2cc
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+      - name: Verify reviewed release and distribution
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(node -p "require('./plugins/pearl/package.json').version")"
+          test "${RELEASE_TAG}" = "v${version}"
+          test "$(node -p "require('./server.json').version")" = "${version}"
+          test "$(node -p "require('./plugins/pearl/.codex-plugin/plugin.json').version")" = "${version}"
+          test "$(node -p "require('./plugins/pearl/.claude-plugin/plugin.json').version")" = "${version}"
+          test "$(node -p "require('./plugins/pearl/cursor/.cursor-plugin/plugin.json').version")" = "${version}"
+          test "${GITHUB_REF}" = "refs/tags/${RELEASE_TAG}"
+          test "$(git rev-parse HEAD)" = "$(git rev-parse "refs/tags/${RELEASE_TAG}^{commit}")"
+          git fetch --no-tags origin main:refs/remotes/origin/main
+          git merge-base --is-ancestor HEAD refs/remotes/origin/main
+          npm --prefix plugins/pearl test
+          npm --prefix plugins/pearl run validate
+          npm --prefix plugins/pearl run validate:registry:live
+          npm --prefix cli/pearl run check
+          npm --prefix cli/pearl test
+          npm --prefix cli/pearl run validate
+      - name: Install checksum-verified MCP publisher
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="${RUNNER_TEMP}/mcp-publisher_linux_amd64.tar.gz"
+          curl --proto '=https' --tlsv1.2 --fail --location --silent --show-error \
+            --output "${archive}" \
+            "https://github.com/modelcontextprotocol/registry/releases/download/${MCP_PUBLISHER_VERSION}/mcp-publisher_linux_amd64.tar.gz"
+          echo "${MCP_PUBLISHER_SHA256}  ${archive}" | sha256sum --check --strict
+          tar --extract --gzip --file "${archive}" --directory "${RUNNER_TEMP}" mcp-publisher
+          "${RUNNER_TEMP}/mcp-publisher" validate server.json
+      - name: Authenticate with GitHub OIDC
+        run: |
+          "${RUNNER_TEMP}/mcp-publisher" login github-oidc
+      - name: Publish reviewed server metadata
+        run: |
+          "${RUNNER_TEMP}/mcp-publisher" publish server.json
+      - name: Verify the published Registry projection
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import { readFile } from "node:fs/promises";
+          const expected = JSON.parse(await readFile("server.json", "utf8"));
+          const name = encodeURIComponent(expected.name);
+          const version = encodeURIComponent(expected.version);
+          const url = `https://registry.modelcontextprotocol.io/v0.1/servers/${name}/versions/${version}`;
+          let published;
+          for (let attempt = 0; attempt < 5; attempt += 1) {
+            const response = await fetch(url, { signal: AbortSignal.timeout(10_000) });
+            if (response.ok) {
+              published = await response.json();
+              break;
+            }
+            if (attempt === 4) throw new Error(`Registry verification returned HTTP ${response.status}`);
+            await new Promise((resolve) => setTimeout(resolve, 3_000));
+          }
+          const server = published?.server;
+          if (server?.name !== expected.name || server?.version !== expected.version) {
+            throw new Error("Published Registry name or version did not match server.json");
+          }
+          if (JSON.stringify(server?.remotes) !== JSON.stringify(expected.remotes)) {
+            throw new Error("Published Registry remote did not exactly match server.json");
+          }
+          NODE

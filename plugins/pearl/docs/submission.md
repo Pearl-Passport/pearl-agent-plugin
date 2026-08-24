@@ -38,4 +38,8 @@ The plugin repository contains `.claude-plugin/plugin.json`, a root Claude marke
 
 For connector review, prepare public setup/privacy/support documentation, a stable reviewer account, and three representative read-only examples. Exercise every advertised tool through MCP Inspector and a Claude custom connector. Never provide production credentials in the repository or application narrative; transmit reviewer access only through the host's approved private channel.
 
+## MCP Registry preview
+
+The MCP Registry is a distinct discovery channel, not a Codex, Claude, Cursor, or OpenAI approval path. The public repository exports one root `server.json` with the `2025-12-11` schema, case-sensitive GitHub namespace `io.github.Pearl-Passport/pearl-agent-plugin`, and the same URL-only Streamable HTTP remote. Publish only through the protected GitHub OIDC workflow described in [releasing.md](releasing.md); never add a PAT, static header, client secret, or tool inventory to registry metadata. Verify the exact name, version, and remote after publication before calling it listed.
+
 Do not claim Anthropic approval, official-marketplace inclusion, connector-directory listing, or endorsement until Anthropic confirms the exact reviewed release.

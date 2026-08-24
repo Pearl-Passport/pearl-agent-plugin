@@ -1,13 +1,16 @@
 {
   "name": "@pearl/agent-integrations",
-  "version": "0.8.6",
+  "version": "0.8.7",
   "private": true,
   "description": "Portable Codex, Claude, and Cursor integration package for Pearl's remote MCP server",
   "type": "module",
   "scripts": {
-    "test": "node --test test/*.test.mjs",
-    "validate": "node scripts/validate.mjs",
+    "test": "node --test test/*.test.mjs && npm --prefix mcp-apps test",
+    "validate": "node scripts/validate.mjs && npm --prefix mcp-apps run validate",
     "validate:live": "node scripts/validate-live.mjs",
+    "validate:registry": "node scripts/validate-registry.mjs",
+    "validate:registry:schema": "node scripts/validate-registry.mjs --schema",
+    "validate:registry:live": "node scripts/validate-registry.mjs --live",
     "validate:host-clients-live": "node scripts/validate-live.mjs --require-static-host-clients",
     "validate:submission-live": "node scripts/validate-live.mjs --require-openai-challenge"
   },

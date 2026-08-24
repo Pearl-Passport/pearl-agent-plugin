@@ -1,0 +1,25 @@
+{
+  "structuredContent": {
+    "reservations": [
+      {
+        "reservation_id": "reservation-1",
+        "venue_name": "Le Jardin",
+        "reservation_date": "2026-09-12",
+        "reservation_time": "19:30",
+        "city": "Paris",
+        "party_size": 2,
+        "status": "confirmed"
+      }
+    ],
+    "trips": [
+      {
+        "trip_id": "trip-1",
+        "name": "Paris weekend",
+        "start_date": "2026-09-11",
+        "city": "Paris",
+        "status": "pending",
+        "summary": "A short food and design weekend."
+      }
+    ]
+  }
+}

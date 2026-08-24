@@ -1,0 +1,17 @@
+{
+  "name": "@pearl/mcp-apps-ui",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Portable, presentation-only MCP Apps UI resources for Pearl",
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "generate": "node scripts/build.mjs --write-artifact",
+    "preview:fixture": "node scripts/render-fixture.mjs",
+    "test": "node --test test/*.test.mjs",
+    "validate": "node scripts/validate.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

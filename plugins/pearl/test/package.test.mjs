@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
+import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
@@ -11,9 +13,13 @@ import {
   validatePublicFileInventory,
   validatePublicText
 } from "../scripts/validate.mjs";
+import { validateRegistryManifest } from "../scripts/validate-registry.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const REPOSITORY_ROOT = path.resolve(ROOT, "..", "..");
+const EXPORTED_REPOSITORY_LAYOUT = existsSync(path.join(REPOSITORY_ROOT, "server.json"));
+const PUBLIC_REPOSITORY_ROOT = EXPORTED_REPOSITORY_LAYOUT ? REPOSITORY_ROOT : path.join(ROOT, "public");
+const REGISTRY_MANIFEST = path.join(EXPORTED_REPOSITORY_LAYOUT ? REPOSITORY_ROOT : ROOT, "server.json");
 
 async function json(relativePath) {
   return JSON.parse(await readFile(path.join(ROOT, relativePath), "utf8"));
@@ -105,6 +111,87 @@ test("the shared MCP connector contains no static credentials or tool allowlist"
       }
     }
   });
+});
+
+test("the MCP Registry entry is a remote-only projection of the canonical package", async () => {
+  const registry = JSON.parse(await readFile(REGISTRY_MANIFEST, "utf8"));
+  const pkg = await json("package.json");
+  assert.deepEqual(validateRegistryManifest(registry, { expectedVersion: pkg.version }), []);
+  assert.equal(registry.$schema, "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json");
+  assert.equal(registry.name, "io.github.Pearl-Passport/pearl-agent-plugin");
+  assert.deepEqual(registry.repository, {
+    url: "https://github.com/Pearl-Passport/pearl-agent-plugin",
+    source: "github",
+    id: "1343507179",
+    subfolder: "plugins/pearl"
+  });
+  assert.deepEqual(registry.remotes, [{ type: "streamable-http", url: "https://agent.joinpearl.co/mcp" }]);
+  assert.equal("packages" in registry, false);
+  assert.equal(JSON.stringify(registry).includes("headers"), false);
+
+  const withHeader = structuredClone(registry);
+  withHeader.remotes[0].headers = [{ name: "Authorization", value: "Bearer example" }];
+  assert.match(validateRegistryManifest(withHeader, { expectedVersion: pkg.version }).join("; "), /only type and url|credentials/);
+  const withWrongRepository = structuredClone(registry);
+  withWrongRepository.repository.url = "https://github.com/example/lookalike";
+  assert.match(validateRegistryManifest(withWrongRepository, { expectedVersion: pkg.version }).join("; "), /repository must be/);
+  const withWrongUrl = structuredClone(registry);
+  withWrongUrl.remotes[0].url = "https://agent.joinpearl.co/mcp/other";
+  assert.match(validateRegistryManifest(withWrongUrl, { expectedVersion: pkg.version }).join("; "), /registry remote must be/i);
+});
+
+test("MCP Registry publishing is OIDC-only, checksum-pinned, and release-gated", async () => {
+  const workflow = await readFile(path.join(PUBLIC_REPOSITORY_ROOT, ".github", "workflows", "publish-mcp-registry.yml"), "utf8");
+  assert.match(workflow, /workflow_dispatch:/);
+  assert.match(workflow, /release:\n\s+types: \[published\]/);
+  assert.match(workflow, /environment: mcp-registry-publish/);
+  assert.match(workflow, /id-token: write/);
+  assert.match(workflow, /login github-oidc/);
+  assert.match(workflow, /MCP_PUBLISHER_VERSION: v1\.8\.1/);
+  assert.match(workflow, /a06c9096dcb9727c13555b6be26c7effa707b01f06a4c561ba7a3635443cf2cc/);
+  assert.match(workflow, /test "\$\{RELEASE_TAG\}" = "v\$\{version\}"/);
+  assert.match(workflow, /test "\$\{GITHUB_REF\}" = "refs\/tags\/\$\{RELEASE_TAG\}"/);
+  assert.match(workflow, /refs\/tags\/\$\{RELEASE_TAG\}\^\{commit\}/);
+  assert.match(workflow, /merge-base --is-ancestor/);
+  assert.doesNotMatch(workflow, /MCP_GITHUB_TOKEN|github_pat_|gh[pousr]_/);
+  assert.doesNotMatch(workflow, /uses:\s+[^#\n]+@v\d+/i);
+});
+
+test("exported GitHub workflows are valid YAML", () => {
+  const workflows = [
+    path.join(PUBLIC_REPOSITORY_ROOT, ".github", "workflows", "publish-cli.yml"),
+    path.join(PUBLIC_REPOSITORY_ROOT, ".github", "workflows", "publish-mcp-registry.yml"),
+    path.join(PUBLIC_REPOSITORY_ROOT, ".github", "workflows", "validate.yml")
+  ];
+  const parsed = spawnSync(
+    "ruby",
+    ["-e", "require 'yaml'; ARGV.each { |file| YAML.parse_file(file) }", ...workflows],
+    { encoding: "utf8" }
+  );
+  assert.equal(parsed.status, 0, parsed.stderr || parsed.error?.message || "Ruby YAML parser failed");
+});
+
+test("the public CLI is a read-only runtime projection with secretless trusted publishing", async () => {
+  const cliRoot = path.join(REPOSITORY_ROOT, "cli", "pearl");
+  const manifest = JSON.parse(await readFile(path.join(cliRoot, "package.json"), "utf8"));
+  const source = await readFile(path.join(cliRoot, "src", "index.mjs"), "utf8");
+  const oauth = await readFile(path.join(cliRoot, "src", "oauth.mjs"), "utf8");
+  const keychain = await readFile(path.join(cliRoot, "src", "keychain.mjs"), "utf8");
+  const workflow = await readFile(path.join(PUBLIC_REPOSITORY_ROOT, ".github", "workflows", "publish-cli.yml"), "utf8");
+  assert.equal(manifest.name, "@joinpearl/cli");
+  assert.equal(manifest.version, "1.0.0");
+  assert.equal(manifest.private, undefined);
+  assert.equal(manifest.publishConfig.provenance, true);
+  assert.match(source, /readOnlyHint !== true/);
+  assert.match(source, /api\/v1\/capabilities/);
+  assert.doesNotMatch([source, oauth, keychain].join("\n"), /\b[A-Za-z0-9]+(?:_[A-Za-z0-9]+)*_(?:prepare|commit)\b/);
+  assert.doesNotMatch(oauth, /\b[a-z-]+:write\b/);
+  assert.match(keychain, /'-U', '-w'/);
+  assert.match(workflow, /id-token: write/);
+  assert.match(workflow, /environment: pearl-cli-publish/);
+  assert.match(workflow, /test "\$\{GITHUB_REF\}" = "refs\/tags\/\$\{\{ github\.event\.release\.tag_name \}\}"/);
+  assert.match(workflow, /refs\/tags\/\$\{\{ github\.event\.release\.tag_name \}\}\^\{commit\}/);
+  assert.doesNotMatch(workflow, /NODE_AUTH_TOKEN|NPM_TOKEN|npm_[A-Za-z0-9]{20,}/);
 });
 
 test("the dated skill snapshot covers the exact 13 public reads", async () => {

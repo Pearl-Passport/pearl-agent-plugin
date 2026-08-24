@@ -1,0 +1,40 @@
+{
+  "name": "@joinpearl/cli",
+  "version": "1.0.0",
+  "description": "Read-only command-line client for Pearl's authenticated Agent API",
+  "type": "module",
+  "bin": {
+    "pearl": "./src/index.mjs"
+  },
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --test",
+    "check": "node --check src/index.mjs && node --check src/oauth.mjs && node --check src/keychain.mjs",
+    "validate": "node scripts/validate-package.mjs",
+    "prepack": "npm run check && npm test && npm run validate"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Pearl-Passport/pearl-agent-plugin.git",
+    "directory": "cli/pearl"
+  },
+  "bugs": {
+    "url": "https://github.com/Pearl-Passport/pearl-agent-plugin/issues"
+  },
+  "homepage": "https://github.com/Pearl-Passport/pearl-agent-plugin/tree/main/cli/pearl#readme",
+  "author": "Pearl LLC <hello@joinpearl.co>",
+  "keywords": ["pearl", "mcp", "travel", "venues", "cli"],
+  "os": ["darwin", "linux"],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "license": "MIT"
+}

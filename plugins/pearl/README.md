@@ -4,11 +4,11 @@ Pearl's installable package connects Codex, Claude, Cursor, and Grok Bot to one 
 
 `https://agent.joinpearl.co/mcp`
 
-The package contains host manifests, the Pearl Concierge skill, public setup documentation, brand assets, and validation code. It contains no application, database, OAuth server, MCP executor, deployment configuration, access token, or client secret.
+The package contains host manifests, the Pearl Concierge skill, public setup documentation, brand assets, a presentation-only MCP Apps resource, and validation code. The resource is deployed and source-wired to five reviewed read tools, but final real-host rendering verification is still pending, so the package does not claim that any host renders it successfully. The package contains no application, database, OAuth server, MCP executor, deployment configuration, access token, or client secret.
 
 ## Current release
 
-Package `0.8.6` is read-only. The live MCP `tools/list` response is authoritative; manifests do not pin tools. The documented public set contains 13 reads for venue search, recommendations, new openings, place matching, profile, visits, saves, friends and requests, trips, and reservations.
+Package `0.8.7` is read-only. The live MCP `tools/list` response is authoritative; manifests do not pin tools. The documented public set contains 13 reads for venue search, recommendations, new openings, place matching, profile, visits, saves, friends and requests, trips, and reservations.
 
 See the [capability snapshot](skills/pearl-concierge/references/capabilities.md) for exact current tools and honest unavailable-workflow labels. The package does not claim that a host has approved or listed Pearl.
 
@@ -18,9 +18,11 @@ See the [capability snapshot](skills/pearl-concierge/references/capabilities.md)
 - `.claude-plugin/plugin.json`: Claude Code and Cowork metadata.
 - `cursor/.cursor-plugin/plugin.json`: the isolated Cursor source plus the host-specific `pearl-cursor` identifier and secretless public OAuth configuration.
 - `.mcp.json`: the single shared URL-only Codex and Claude connection; Cursor's isolated thin wrapper uses the same endpoint with its required static public client.
+- `server.json`: the MCP Registry preview entry for the same remote URL; it contains no headers, credentials, package runtime, or tool inventory.
 - `skills/pearl-concierge/`: the canonical discovery-first workflow skill for Codex and Claude; Cursor ships a byte-for-byte validated mirror under its isolated source subtree.
 - `docs/`: host setup, OAuth, and release instructions.
 - `assets/`: approved Pearl marketplace artwork; see [assets/README.md](assets/README.md). Cursor's isolated source contains a hash-validated logo mirror.
+- `mcp-apps/`: the dependency-free, versioned inline UI resource and integration helpers. It adds no tools, auth, network endpoint, or business logic; see [mcp-apps/README.md](mcp-apps/README.md).
 - `scripts/` and `test/`: zero-dependency validation.
 
 ## Validate
@@ -31,6 +33,9 @@ From the repository root:
 npm --prefix plugins/pearl test
 npm --prefix plugins/pearl run validate
 npm --prefix plugins/pearl run validate:live
+npm --prefix plugins/pearl run validate:registry
+npm --prefix plugins/pearl run validate:registry:schema
+npm --prefix plugins/pearl run validate:registry:live
 claude plugin validate plugins/pearl --strict
 claude plugin validate . --strict
 ```
@@ -40,6 +45,8 @@ Live validation performs only public discovery and unauthenticated challenge che
 Pearl maintainers who have Codex's bundled `plugin-creator` and `skill-creator` skills installed should additionally run those skills' validators against `plugins/pearl` and both packaged Pearl Concierge skill directories. These are maintainer checks, not public package dependencies.
 
 Before a marketplace release, also run the safe static-host registration probes documented in [docs/submission.md](docs/submission.md). Those probes use an intentionally invalid MCP resource and never create an authorization request or invoke a member tool.
+
+The official MCP Registry is in preview. Keeping `server.json` in the package does not publish it or imply Registry, Anthropic, Cursor, or OpenAI approval. Registry publication is a separate protected release action documented in [docs/releasing.md](docs/releasing.md).
 
 ## Security and support
 
