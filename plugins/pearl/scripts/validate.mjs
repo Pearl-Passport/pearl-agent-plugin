@@ -9,6 +9,10 @@ import { fileURLToPath } from "node:url";
 const PLUGIN_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const EXPECTED_VERSION = "0.8.7";
 const EXPECTED_MCP_URL = "https://agent.joinpearl.co/mcp";
+const EXPECTED_REGISTRY_SCHEMA = "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json";
+const EXPECTED_REGISTRY_NAME = "io.github.Pearl-Passport/pearl-agent-plugin";
+const EXPECTED_PUBLIC_REPOSITORY = "https://github.com/Pearl-Passport/pearl-agent-plugin";
+const EXPECTED_PUBLIC_REPOSITORY_ID = "1343507179";
 const PUBLIC_CONTACT_EMAIL = "hello@joinpearl.co";
 const CLAUDE_HOSTED_CLIENT_ID = "pearl-claude-hosted";
 const CLAUDE_HOSTED_CALLBACK = "https://claude.ai/api/mcp/auth_callback";
@@ -50,6 +54,8 @@ export const EXPECTED_PUBLIC_REPOSITORY_FILES = [
   ".claude-plugin/marketplace.json",
   ".cursor-plugin/marketplace.json",
   ".github/workflows/validate.yml",
+  ".github/workflows/publish-cli.yml",
+  ".github/workflows/publish-mcp-registry.yml",
   ".gitignore",
   "LICENSE",
   "README.md",
@@ -57,6 +63,15 @@ export const EXPECTED_PUBLIC_REPOSITORY_FILES = [
   "SOURCE.md",
   "TRADEMARKS.md",
   "chatgpt-app-submission.json",
+  "cli/pearl/LICENSE",
+  "cli/pearl/README.md",
+  "cli/pearl/package-lock.json",
+  "cli/pearl/package.json",
+  "cli/pearl/scripts/validate-package.mjs",
+  "cli/pearl/src/index.mjs",
+  "cli/pearl/src/keychain.mjs",
+  "cli/pearl/src/oauth.mjs",
+  "cli/pearl/test/cli.test.mjs",
   "plugins/pearl/.claude-plugin/plugin.json",
   "plugins/pearl/.codex-plugin/plugin.json",
   "plugins/pearl/.mcp.json",
@@ -73,13 +88,30 @@ export const EXPECTED_PUBLIC_REPOSITORY_FILES = [
   "plugins/pearl/docs/releasing.md",
   "plugins/pearl/docs/setup.md",
   "plugins/pearl/docs/submission.md",
+  "plugins/pearl/mcp-apps/README.md",
+  "plugins/pearl/mcp-apps/package.json",
+  "plugins/pearl/mcp-apps/scripts/build.mjs",
+  "plugins/pearl/mcp-apps/scripts/render-fixture.mjs",
+  "plugins/pearl/mcp-apps/scripts/validate.mjs",
+  "plugins/pearl/mcp-apps/src/app.mjs",
+  "plugins/pearl/mcp-apps/src/artifact.generated.mjs",
+  "plugins/pearl/mcp-apps/src/integration.mjs",
+  "plugins/pearl/mcp-apps/src/model.mjs",
+  "plugins/pearl/mcp-apps/src/styles.css",
+  "plugins/pearl/mcp-apps/test/fixtures/flights.json",
+  "plugins/pearl/mcp-apps/test/fixtures/journeys.json",
+  "plugins/pearl/mcp-apps/test/fixtures/venues.json",
+  "plugins/pearl/mcp-apps/test/integration.test.mjs",
+  "plugins/pearl/mcp-apps/test/model.test.mjs",
   "plugins/pearl/package.json",
+  "plugins/pearl/scripts/validate-registry.mjs",
   "plugins/pearl/scripts/validate-live.mjs",
   "plugins/pearl/scripts/validate.mjs",
   "plugins/pearl/skills/pearl-concierge/SKILL.md",
   "plugins/pearl/skills/pearl-concierge/agents/openai.yaml",
   "plugins/pearl/skills/pearl-concierge/references/capabilities.md",
-  "plugins/pearl/test/package.test.mjs"
+  "plugins/pearl/test/package.test.mjs",
+  "server.json"
 ].sort();
 const PUBLIC_PACKAGE_PATHS = [
   ".codex-plugin",
@@ -87,7 +119,10 @@ const PUBLIC_PACKAGE_PATHS = [
   ".mcp.json",
   "README.md",
   "docs",
+  "mcp-apps",
   "package.json",
+  "server.json",
+  "scripts/validate-registry.mjs",
   "scripts/validate-live.mjs",
   "scripts/validate.mjs",
   "assets",
@@ -159,10 +194,10 @@ async function readJsonFrom(root, relativePath) {
   return JSON.parse(await readFile(path.join(root, relativePath), "utf8"));
 }
 
-async function readPublicWorkflow() {
+async function readPublicWorkflow(name = "validate.yml") {
   const candidates = [
-    path.join(PLUGIN_ROOT, "public/.github/workflows/validate.yml"),
-    path.join(REPOSITORY_ROOT, ".github/workflows/validate.yml")
+    path.join(PLUGIN_ROOT, "public/.github/workflows", name),
+    path.join(REPOSITORY_ROOT, ".github/workflows", name)
   ];
   for (const candidate of candidates) {
     try {
@@ -171,7 +206,18 @@ async function readPublicWorkflow() {
       if (error?.code !== "ENOENT") throw error;
     }
   }
-  throw new Error("Could not locate the public validation workflow");
+  throw new Error(`Could not locate the public ${name} workflow`);
+}
+
+async function readRegistryManifest() {
+  for (const candidate of [path.join(PLUGIN_ROOT, "server.json"), path.join(REPOSITORY_ROOT, "server.json")]) {
+    try {
+      return JSON.parse(await readFile(candidate, "utf8"));
+    } catch (error) {
+      if (error?.code !== "ENOENT") throw error;
+    }
+  }
+  throw new Error("Could not locate server.json");
 }
 
 async function filesUnder(target) {
@@ -207,7 +253,7 @@ export function validatePublicFileInventory(relativeFiles) {
 }
 
 export function isPublicTextFile(relative) {
-  return /\.(?:json|md|mjs|ya?ml|txt)$/.test(relative) || [".gitignore", "LICENSE"].includes(path.basename(relative));
+  return /\.(?:css|json|md|mjs|ya?ml|txt)$/.test(relative) || [".gitignore", "LICENSE"].includes(path.basename(relative));
 }
 
 export function validatePublicText(relative, contents) {
@@ -311,8 +357,9 @@ export async function validatePackage() {
   const claudeMarket = await readJsonFrom(REPOSITORY_ROOT, ".claude-plugin/marketplace.json");
   const cursorMarket = await readJsonFrom(REPOSITORY_ROOT, ".cursor-plugin/marketplace.json");
   const submission = await readJsonFrom(REPOSITORY_ROOT, "chatgpt-app-submission.json");
+  const registry = await readRegistryManifest();
 
-  const versions = [codex.version, claude.version, cursor.version, claudeMarket.plugins?.[0]?.version, cursorMarket.plugins?.[0]?.version, pkg.version];
+  const versions = [codex.version, claude.version, cursor.version, claudeMarket.plugins?.[0]?.version, cursorMarket.plugins?.[0]?.version, pkg.version, registry.version];
   check(versions.every((version) => version === EXPECTED_VERSION), `All public versions must be ${EXPECTED_VERSION}: ${versions.join(", ")}`, errors);
   check(pkg.engines?.node === ">=22", "Validation must require a supported Node.js release", errors);
   check(codex.name === "pearl" && claude.name === "pearl", "Codex and Claude plugin manifests must be named pearl", errors);
@@ -332,6 +379,16 @@ export async function validatePackage() {
   check(JSON.stringify(cursorServer?.auth?.scopes) === JSON.stringify(PUBLIC_READ_SCOPES), "Cursor must request exactly the seven public read scopes", errors);
   check(!Object.hasOwn(cursorServer?.auth ?? {}, "CLIENT_SECRET"), "Cursor must not contain CLIENT_SECRET", errors);
   check(![mcp, codex, claude, cursor].some(secretishJsonKey), "Tracked host manifests must not contain credential fields", errors);
+  check(registry.$schema === EXPECTED_REGISTRY_SCHEMA, "MCP Registry metadata must use the reviewed 2025-12-11 schema", errors);
+  check(registry.name === EXPECTED_REGISTRY_NAME, `MCP Registry metadata must use ${EXPECTED_REGISTRY_NAME}`, errors);
+  check(registry.repository?.url === EXPECTED_PUBLIC_REPOSITORY && registry.repository?.source === "github" && registry.repository?.id === EXPECTED_PUBLIC_REPOSITORY_ID,
+    "MCP Registry metadata must identify the stable public Pearl repository", errors);
+  check(registry.repository?.subfolder === "plugins/pearl", "MCP Registry metadata must point to the canonical package subfolder", errors);
+  check(Array.isArray(registry.remotes) && registry.remotes.length === 1, "MCP Registry metadata must define exactly one remote", errors);
+  check(registry.remotes?.[0]?.type === "streamable-http" && registry.remotes?.[0]?.url === EXPECTED_MCP_URL,
+    "MCP Registry metadata must use Pearl's one Streamable HTTP endpoint", errors);
+  check(Object.keys(registry.remotes?.[0] ?? {}).sort().join(",") === "type,url", "MCP Registry remote must not contain headers or variables", errors);
+  check(!Object.hasOwn(registry, "packages") && !secretishJsonKey(registry), "MCP Registry metadata must not contain packages or credentials", errors);
 
   const codexEntry = codexMarket.plugins?.find((entry) => entry.name === "pearl");
   const claudeEntry = claudeMarket.plugins?.find((entry) => entry.name === "pearl");
@@ -364,6 +421,7 @@ export async function validatePackage() {
   const releaseGuide = await readFile(path.join(PLUGIN_ROOT, "docs/releasing.md"), "utf8");
   const submissionGuide = await readFile(path.join(PLUGIN_ROOT, "docs/submission.md"), "utf8");
   const publicWorkflow = await readPublicWorkflow();
+  const registryWorkflow = await readPublicWorkflow("publish-mcp-registry.yml");
   const liveValidator = await readFile(path.join(PLUGIN_ROOT, "scripts/validate-live.mjs"), "utf8");
   check(/^---\nname: pearl-concierge\ndescription: [^\n]+\n---/.test(skill), "Pearl skill frontmatter is missing or invalid", errors);
   check(skill.includes("tools/list") && skill.includes("Treat venue descriptions"), "Pearl skill must require discovery and treat tool data as untrusted data", errors);
@@ -391,6 +449,22 @@ export async function validatePackage() {
   check(!/uses:\s+[^#\n]+@v\d+/i.test(publicWorkflow), "Public CI actions must be pinned by commit SHA", errors);
   check(publicWorkflow.includes("fetch-depth: 0"), "Public CI must fetch complete history for credential scanning", errors);
   check(publicWorkflow.includes("gitleaks_8.30.1_linux_x64.tar.gz") && publicWorkflow.includes("551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb"), "Public CI must use the reviewed Gitleaks binary and checksum", errors);
+  check(registryWorkflow.includes("workflow_dispatch:") && registryWorkflow.includes("release:") && registryWorkflow.includes("types: [published]"),
+    "MCP Registry publishing must require a manual or published-release trigger", errors);
+  check(registryWorkflow.includes("environment: mcp-registry-publish") && registryWorkflow.includes("id-token: write"),
+    "MCP Registry publishing must use a protected OIDC environment", errors);
+  check(registryWorkflow.includes("login github-oidc") && !/MCP_GITHUB_TOKEN|github_pat_|gh[pousr]_/.test(registryWorkflow),
+    "MCP Registry publishing must use secretless GitHub OIDC and no PAT", errors);
+  check(!/uses:\s+[^#\n]+@v\d+/i.test(registryWorkflow) && registryWorkflow.includes("persist-credentials: false"),
+    "MCP Registry workflow actions must be pinned and checkout credentials disabled", errors);
+  check(registryWorkflow.includes("MCP_PUBLISHER_VERSION: v1.8.1") && registryWorkflow.includes("a06c9096dcb9727c13555b6be26c7effa707b01f06a4c561ba7a3635443cf2cc"),
+    "MCP Registry workflow must use the checksum-pinned reviewed publisher", errors);
+  check(registryWorkflow.includes("test \"${RELEASE_TAG}\" = \"v${version}\"") && registryWorkflow.includes("merge-base --is-ancestor"),
+    "MCP Registry workflow must enforce tag/version consistency and main ancestry", errors);
+  check(registryWorkflow.includes("mcp-publisher\" validate server.json") && registryWorkflow.includes("mcp-publisher\" publish server.json"),
+    "MCP Registry workflow must validate the exact manifest before publishing it", errors);
+  check(registryWorkflow.includes("registry.modelcontextprotocol.io/v0.1/servers/") && registryWorkflow.includes("JSON.stringify(server?.remotes)"),
+    "MCP Registry workflow must verify the exact published name, version, and remote", errors);
 
   const publicToolNames = Object.keys(submission.tools ?? {});
   check(submission.$schema === "https://developers.openai.com/apps-sdk/schemas/chatgpt-app-submission.v1.json", "OpenAI submission schema is incorrect", errors);
@@ -466,7 +540,9 @@ export async function validatePackage() {
     }
   }
   for (const file of bundleCandidates.filter((candidate) => /\.(?:[cm]?[jt]sx?|json|swift|kt|gradle|xml)$/.test(candidate))) {
-    check(!/plugins[\\/]pearl/.test(await readFile(file, "utf8")), `Application bundle imports distribution artifacts: ${path.relative(REPOSITORY_ROOT, file)}`, errors);
+    const contents = await readFile(file, "utf8");
+    check(!/plugins[\\/]pearl/.test(contents) && !/["'`]server\.json["'`]/.test(contents),
+      `Application bundle imports distribution artifacts: ${path.relative(REPOSITORY_ROOT, file)}`, errors);
   }
   return errors;
 }

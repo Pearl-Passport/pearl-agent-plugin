@@ -1,0 +1,34 @@
+{
+  "structuredContent": {
+    "destination": { "city": "Paris" },
+    "venues": [
+      {
+        "location_id": "venue-1",
+        "name": "Le Jardin",
+        "type": "restaurant",
+        "neighborhood": "Saint-Germain",
+        "city": "Paris",
+        "recommendation_reason": "Warm service and a concise seasonal menu.",
+        "pearl_score": 9.2,
+        "status": "available"
+      },
+      {
+        "location_id": "venue-2",
+        "name": "Maison Minuit",
+        "type": "bar",
+        "neighborhood": "Le Marais",
+        "city": "Paris",
+        "recommendation_reason": "A quiet room with an inventive drinks list.",
+        "pearl_score": 8.8
+      },
+      {
+        "location_id": "venue-3",
+        "name": "Hôtel Rive",
+        "type": "hotel",
+        "city": "Paris",
+        "recommendation_reason": "A polished base within walking distance of the river.",
+        "pearl_score": 8.5
+      }
+    ]
+  }
+}

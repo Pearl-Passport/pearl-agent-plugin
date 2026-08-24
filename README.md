@@ -4,7 +4,7 @@ Pearl's installable package connects Codex, Claude, Cursor, and Grok Bot to Pear
 
 Pearl Agent access currently requires active Pearl Elite membership. The server enforces eligibility and OAuth scopes; installing this package cannot widen access.
 
-Package `0.8.7` is read-only. Runtime MCP `tools/list` is authoritative. The public package contains thin host manifests, current workflow guidance, public documentation, approved brand assets, and zero-dependency validation—no application, OAuth server, database, executor, environment, deployment configuration, or credential.
+Package `0.8.7` is read-only. Runtime MCP `tools/list` is authoritative. The public package contains thin host manifests, current workflow guidance, public documentation, approved brand assets, a presentation-only MCP Apps resource, and zero-dependency validation. The resource is deployed and source-wired to five reviewed read tools, but final real-host rendering verification is still pending, so the package does not claim that any host renders it successfully. The package contains no application, OAuth server, database, executor, environment, deployment configuration, or credential.
 
 Repository availability does not mean Anthropic, Cursor, or OpenAI has approved, endorsed, or listed Pearl.
 
@@ -49,8 +49,38 @@ Reload Cursor and enable **Pearl Cursor** in **Customize**. The plugin and serve
 ```bash
 npm --prefix plugins/pearl test
 npm --prefix plugins/pearl run validate
+npm --prefix plugins/pearl/mcp-apps test
+npm --prefix plugins/pearl/mcp-apps run validate
 npm --prefix plugins/pearl run validate:live
+npm --prefix plugins/pearl run validate:registry
+npm --prefix plugins/pearl run validate:registry:schema
+npm --prefix plugins/pearl run validate:registry:live
+npm --prefix cli/pearl run check
+npm --prefix cli/pearl test
+npm --prefix cli/pearl run validate
 ```
+
+### Pearl CLI release candidate
+
+The same repository contains Pearl's standalone read-only CLI in
+[`cli/pearl`](cli/pearl). After Pearl verifies ownership of the `@joinpearl`
+npm scope and publishes through the protected Trusted Publishing workflow:
+
+```bash
+npm install --global @joinpearl/cli
+pearl doctor --json
+pearl login
+pearl tools --json
+```
+
+Until that npm release exists, use the repository development instructions in
+the CLI README. Do not install an unverified package with a similar name.
+
+### MCP Registry release candidate
+
+[`server.json`](server.json) is Pearl's remote-only metadata for the preview MCP Registry. It declares `io.github.Pearl-Passport/pearl-agent-plugin`, matching the case-sensitive public GitHub owner, and the same one Streamable HTTP endpoint used by every host wrapper. It contains no header, token, client secret, package runtime, or tool allowlist.
+
+Registry publication is intentionally separate from source availability. It requires a reviewed `v0.8.7` release, a protected `mcp-registry-publish` GitHub environment with a required reviewer and release-tag restriction, and secretless GitHub OIDC. Until that protected workflow completes and the exact version is verified in the Registry, do not describe Pearl as listed there. The Registry is itself in preview.
 
 See [cross-host setup](plugins/pearl/docs/setup.md), the [capability snapshot](plugins/pearl/skills/pearl-concierge/references/capabilities.md), and [source provenance](SOURCE.md).
 

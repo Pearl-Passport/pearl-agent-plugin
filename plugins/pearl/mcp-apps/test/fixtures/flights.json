@@ -1,0 +1,32 @@
+{
+  "structuredContent": {
+    "offers": [
+      {
+        "offer_id": "offer-1",
+        "origin": "LAX",
+        "destination": "CDG",
+        "airline": "Example Air",
+        "flight_number": "EA 12",
+        "departure_time": "2026-09-11T18:10:00-07:00",
+        "arrival_time": "2026-09-12T14:05:00+02:00",
+        "stops": 0,
+        "cabin": "Premium economy",
+        "amount": 1320,
+        "currency": "USD",
+        "status": "available"
+      }
+    ],
+    "availability": {
+      "slots": [
+        {
+          "slot_id": "slot-1",
+          "origin": "LAX",
+          "destination": "CDG",
+          "departure_time": "2026-09-11T20:00:00-07:00",
+          "status": "limited",
+          "description": "Availability was returned by the tool and may change."
+        }
+      ]
+    }
+  }
+}

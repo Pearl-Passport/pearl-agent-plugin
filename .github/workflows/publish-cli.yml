@@ -1,0 +1,55 @@
+name: Publish Pearl CLI
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    if: startsWith(github.event.release.tag_name, 'cli-v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: pearl-cli-publish
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.release.tag_name }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      - name: Verify release tag and package
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(node -p "require('./cli/pearl/package.json').version")"
+          test "${{ github.event.release.tag_name }}" = "cli-v${version}"
+          test "${GITHUB_REF}" = "refs/tags/${{ github.event.release.tag_name }}"
+          test "$(git rev-parse HEAD)" = "$(git rev-parse "refs/tags/${{ github.event.release.tag_name }}^{commit}")"
+          git fetch --no-tags origin main:refs/remotes/origin/main
+          git merge-base --is-ancestor HEAD refs/remotes/origin/main
+          npm --prefix cli/pearl ci --ignore-scripts
+          npm --prefix cli/pearl run check
+          npm --prefix cli/pearl test
+          npm --prefix cli/pearl run validate
+      - name: Verify installed command
+        shell: bash
+        run: |
+          set -euo pipefail
+          pack_json="${RUNNER_TEMP}/pearl-cli-pack.json"
+          npm pack ./cli/pearl --pack-destination "${RUNNER_TEMP}" --json --ignore-scripts > "${pack_json}"
+          tarball="$(node -e "const fs=require('fs'); const p=JSON.parse(fs.readFileSync(process.argv[1])); process.stdout.write(p[0].filename)" "${pack_json}")"
+          prefix="$(mktemp -d "${RUNNER_TEMP}/pearl-cli-install.XXXXXX")"
+          npm install --global --prefix "${prefix}" "${RUNNER_TEMP}/${tarball}"
+          "${prefix}/bin/pearl" --version
+          test "$("${prefix}/bin/pearl" mcp-url)" = "https://agent.joinpearl.co/mcp"
+      - name: Publish with npm Trusted Publishing
+        run: npm publish ./cli/pearl --access public --provenance
