@@ -7,12 +7,17 @@ import { buildHtml, digestHtml } from "../scripts/build.mjs";
 import { buildFixtureHarness } from "../scripts/render-fixture.mjs";
 import {
   createPearlMcpAppResource,
+  PEARL_MCP_APP_COMPATIBILITY_RESOURCE_URIS,
+  PEARL_MCP_APP_DOMAIN,
   PEARL_MCP_APP_MAX_RESPONSE_BYTES,
   PEARL_MCP_APP_CSP,
   PEARL_MCP_APP_MIME_TYPE,
   PEARL_MCP_APP_RESOURCE,
+  PEARL_MCP_APP_RESOURCES,
   PEARL_MCP_APP_RESOURCE_URI,
   PEARL_MCP_APP_TOOL_NAMES,
+  PEARL_MCP_APP_VERSION,
+  PEARL_MCP_APP_VISIBILITY,
   pearlMcpAppSupportsTool,
   withPearlMcpAppMeta,
 } from "../src/integration.mjs";
@@ -43,11 +48,13 @@ test("portable UI metadata is primary and ChatGPT alias is optional", () => {
   const original = { title: "Render", _meta: { existing: true } };
   const portable = withPearlMcpAppMeta(original, { chatgptCompatibility: false });
   assert.equal(portable._meta.ui.resourceUri, PEARL_MCP_APP_RESOURCE_URI);
+  assert.deepEqual(portable._meta.ui.visibility, PEARL_MCP_APP_VISIBILITY);
   assert.equal(portable._meta["openai/outputTemplate"], undefined);
   assert.deepEqual(original, { title: "Render", _meta: { existing: true } });
 
   const compatible = withPearlMcpAppMeta(original);
   assert.equal(compatible._meta.ui.resourceUri, PEARL_MCP_APP_RESOURCE_URI);
+  assert.deepEqual(compatible._meta.ui.visibility, ["model", "app"]);
   assert.equal(compatible._meta["openai/outputTemplate"], PEARL_MCP_APP_RESOURCE_URI);
 });
 
@@ -56,7 +63,8 @@ test("resource response is versioned, correctly typed, and deny-by-default", asy
   const response = createPearlMcpAppResource();
   assert.equal(response.contents.length, 1);
   const content = response.contents[0];
-  assert.equal(content.uri, "ui://pearl/concierge/v1/index.html");
+  assert.equal(PEARL_MCP_APP_VERSION, "1.2.2");
+  assert.equal(content.uri, "ui://pearl/concierge/v4/index.html");
   assert.equal(content.mimeType, PEARL_MCP_APP_MIME_TYPE);
   assert.equal(content.text, html);
   assert.equal(content.text, PEARL_MCP_APP_ARTIFACT_HTML);
@@ -72,8 +80,34 @@ test("resource response is versioned, correctly typed, and deny-by-default", asy
     frameDomains: [],
     baseUriDomains: [],
   });
+  assert.equal(PEARL_MCP_APP_DOMAIN, "https://agent.joinpearl.co");
+  assert.equal(content._meta.ui.domain, PEARL_MCP_APP_DOMAIN);
+  assert.equal(content._meta["openai/widgetDomain"], PEARL_MCP_APP_DOMAIN);
   assert.ok(Buffer.byteLength(JSON.stringify(response)) < PEARL_MCP_APP_MAX_RESPONSE_BYTES);
   assert.notEqual(createPearlMcpAppResource(), response);
+});
+
+test("bounded previous card URIs serve the current reviewed artifact", () => {
+  assert.deepEqual(PEARL_MCP_APP_COMPATIBILITY_RESOURCE_URIS, [
+    "ui://pearl/concierge/v3/index.html",
+    "ui://pearl/concierge/v2/index.html",
+  ]);
+  assert.deepEqual(
+    PEARL_MCP_APP_RESOURCES.map((resource) => resource.descriptor.uri),
+    [PEARL_MCP_APP_RESOURCE_URI, ...PEARL_MCP_APP_COMPATIBILITY_RESOURCE_URIS],
+  );
+  for (const uri of PEARL_MCP_APP_COMPATIBILITY_RESOURCE_URIS) {
+    const compatibility = createPearlMcpAppResource(uri);
+    assert.equal(compatibility.contents[0].uri, uri);
+    assert.equal(compatibility.contents[0].text, PEARL_MCP_APP_ARTIFACT_HTML);
+    assert.equal(compatibility.contents[0]._meta["pearl/artifactSha256"], PEARL_MCP_APP_ARTIFACT_SHA256);
+    assert.equal(compatibility.contents[0]._meta.ui.domain, PEARL_MCP_APP_DOMAIN);
+    assert.equal(compatibility.contents[0]._meta["openai/widgetDomain"], PEARL_MCP_APP_DOMAIN);
+  }
+  assert.throws(
+    () => createPearlMcpAppResource("ui://pearl/concierge/v999/index.html"),
+    /Unsupported Pearl MCP App resource URI/,
+  );
 });
 
 test("only reviewed read result shapes opt into the UI", () => {
@@ -81,12 +115,14 @@ test("only reviewed read result shapes opt into the UI", () => {
     "venues_search",
     "venues_recommend",
     "venues_new_openings",
+    "profile_get",
+    "trips_list",
     "trip_get",
     "reservations_list",
   ]);
   for (const name of PEARL_MCP_APP_TOOL_NAMES) assert.equal(pearlMcpAppSupportsTool(name), true);
   const writeTool = ["saves", "change", "prepare"].join("_");
-  for (const name of ["places_match", "trips_list", "reservation_get", writeTool, "venue_get"]) {
+  for (const name of ["places_match", "reservation_get", writeTool, "venue_get"]) {
     assert.equal(pearlMcpAppSupportsTool(name), false);
   }
 });
@@ -100,15 +136,38 @@ test("fixture harness simulates the standard parent bridge", async () => {
   assert.match(harness, /button\.result-card/);
 });
 
+test("fixture harness can simulate a retained ChatGPT compatibility result", async () => {
+  const harness = buildFixtureHarness(
+    await buildHtml(),
+    { structuredContent: { venues: [{ name: "One" }] } },
+    "light",
+    { compatibilityFallback: true },
+  );
+  assert.match(harness, /compatibilityFallback/);
+  assert.match(harness, /event\.source\.openai = \{ toolOutput:/);
+});
+
 test("inline comparison uses system type and has no nested horizontal scroll", async () => {
   const [app, css] = await Promise.all([
     readFile(path.join(PACKAGE_ROOT, "src", "app.mjs"), "utf8"),
     readFile(path.join(PACKAGE_ROOT, "src", "styles.css"), "utf8"),
   ]);
   assert.match(app, /comparison-grid/);
+  assert.match(app, /grid\.dataset\.count = String\(picked\.length\)/);
   assert.doesNotMatch(app, /comparison-scroll|Scrollable venue comparison/);
   assert.match(css, /-apple-system/);
   assert.match(css, /BlinkMacSystemFont/);
+  assert.match(css, /\.comparison-grid\[data-count="3"\]/);
+  assert.doesNotMatch(css, /@media \(min-width: 860px\)[\s\S]*?\.comparison-grid\s*\{[^}]*repeat\(3,/);
   assert.doesNotMatch(css, /overflow-x\s*:\s*(?:auto|scroll)/i);
   assert.doesNotMatch(css, /Geist|Iowan Old Style/);
+});
+
+test("taste profile UI uses fixed host questions and member-scoped statistics", async () => {
+  const app = await readFile(path.join(PACKAGE_ROOT, "src", "app.mjs"), "utf8");
+  assert.match(app, /Pearl profile statistics/);
+  assert.match(app, /Ask Pearl about your taste/);
+  assert.match(app, /What are the strongest patterns in my Pearl taste profile\?/);
+  assert.match(app, /Each question stays scoped to your own Pearl profile\./);
+  assert.doesNotMatch(app, /action_handle|access_token|refresh_token/);
 });

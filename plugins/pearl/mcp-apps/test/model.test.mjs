@@ -39,6 +39,47 @@ test("normalizes trips and reservations without changing their status", async ()
   assert.equal(model.items[1].status, "pending");
 });
 
+test("normalizes the actual trips_list collections envelope", () => {
+  const model = normalizeToolResult({
+    structuredContent: {
+      collections: [{
+        id: "collection-1",
+        name: "Kyoto spring",
+        collection_type: "trip",
+        trip_start_date: "2027-03-12",
+        trip_end_date: "2027-03-18",
+        item_count: 6,
+      }],
+    },
+  });
+  assert.equal(model.kind, "journeys");
+  assert.equal(model.title, "Your trip or collection");
+  assert.equal(model.items[0].id, "collection-1");
+  assert.equal(model.items[0].category, "Trip");
+  assert.equal(model.items[0].group, "6 stops");
+  assert.match(model.items[0].meta, /Mar 12, 2027 → Mar 18, 2027/);
+});
+
+test("normalizes member-scoped taste statistics and profile facets", async () => {
+  const model = normalizeToolResult(await fixture("profile"));
+  assert.equal(model.state, "ready");
+  assert.equal(model.kind, "profile");
+  assert.equal(model.title, "Austin's taste profile");
+  assert.deepEqual(model.metrics, [
+    { label: "Visits", value: "72" },
+    { label: "Cities", value: "14" },
+    { label: "Saved places", value: "41" },
+  ]);
+  assert.deepEqual(model.facets[0], {
+    label: "Favorite cuisines",
+    values: ["Japanese", "Italian", "Mexican"],
+  });
+  assert.deepEqual(model.topCities[0], { city: "New York", count: "18" });
+  assert.equal(model.items[0].name, "Kikunoi");
+  assert.deepEqual(model.allergies, ["shellfish"]);
+  assert.equal(model.lens, "overview");
+});
+
 test("normalizes flight offers and availability slots", async () => {
   const model = normalizeToolResult(await fixture("flights"));
   assert.equal(model.kind, "flights");
@@ -169,7 +210,7 @@ test("bounds adversarial strings before scans and explicit view arrays before tr
 test("marks warning-bearing results partial and unsupported results empty", () => {
   const partial = normalizeToolResult({ structuredContent: { venues: [{ name: "One" }], warnings: ["second source unavailable"] } });
   assert.equal(partial.partial, true);
-  const empty = normalizeToolResult({ structuredContent: { profile: { name: "Member" } } });
+  const empty = normalizeToolResult({ structuredContent: { unsupported: { name: "Member" } } });
   assert.equal(empty.state, "empty");
   assert.equal(empty.kind, "generic");
 });

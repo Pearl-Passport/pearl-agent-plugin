@@ -72,6 +72,21 @@ function button(label, onClick, variant = "primary") {
   return node;
 }
 
+async function sendFixedHostMessage(text, actionButton) {
+  actionButton.disabled = true;
+  try {
+    await request("ui/message", {
+      role: "user",
+      content: [{ type: "text", text }],
+    });
+    actionButton.textContent = "Question sent";
+    announce("Sent your taste question to the host.");
+  } catch {
+    actionButton.disabled = false;
+    announce("The host could not start that question. Continue in the conversation.");
+  }
+}
+
 function header(model) {
   const node = element("header", "panel-header");
   const copy = element("div", "header-copy");
@@ -79,7 +94,11 @@ function header(model) {
   copy.append(element("h1", "", model.title));
   copy.append(element("p", "subtitle", model.subtitle));
   node.append(copy);
-  if (model.state === "ready") node.append(element("span", "count-pill", `${model.items.length} result${model.items.length === 1 ? "" : "s"}`));
+  if (model.state === "ready" && model.kind === "profile" && model.lens) {
+    node.append(element("span", "count-pill", model.lens));
+  } else if (model.state === "ready") {
+    node.append(element("span", "count-pill", `${model.items.length} result${model.items.length === 1 ? "" : "s"}`));
+  }
   return node;
 }
 
@@ -145,6 +164,7 @@ function comparison(items) {
   section.append(title);
   const grid = element("div", "comparison-grid");
   grid.setAttribute("role", "list");
+  grid.dataset.count = String(picked.length);
   const fields = [
     ["Location", (item) => item.meta || "Not provided"],
     ["Category", (item) => item.category || "Not provided"],
@@ -167,6 +187,82 @@ function comparison(items) {
   }
   section.append(grid);
   return section;
+}
+
+function profileContent(model) {
+  const container = element("div", "profile-layout");
+  if (model.metrics.length) {
+    const metrics = element("section", "metrics-grid");
+    metrics.setAttribute("aria-label", "Pearl profile statistics");
+    for (const metric of model.metrics) {
+      const card = element("article", "metric-card");
+      card.append(element("strong", "metric-value", metric.value));
+      card.append(element("span", "metric-label", metric.label));
+      metrics.append(card);
+    }
+    container.append(metrics);
+  }
+
+  if (model.facets.length) {
+    const facets = element("section", "facet-grid");
+    facets.setAttribute("aria-label", "Pearl taste signals");
+    for (const facet of model.facets) {
+      const group = element("article", "facet-card");
+      group.append(element("h2", "section-title", facet.label));
+      const row = element("div", "chip-row");
+      facet.values.forEach((value, index) => row.append(chip(value, index === 0)));
+      group.append(row);
+      facets.append(group);
+    }
+    container.append(facets);
+  }
+
+  if (model.topCities.length) {
+    const cities = element("section", "profile-section");
+    cities.append(element("h2", "section-title", "Most visited cities"));
+    const list = element("div", "rank-list");
+    for (const city of model.topCities) {
+      const row = element("div", "rank-row");
+      row.append(element("span", "rank-name", city.city));
+      if (city.count) row.append(element("span", "rank-value", `${city.count} visit${city.count === "1" ? "" : "s"}`));
+      list.append(row);
+    }
+    cities.append(list);
+    container.append(cities);
+  }
+
+  if (model.items.length) {
+    const favorites = element("section", "profile-section");
+    favorites.append(element("h2", "section-title", "Top-rated visits"));
+    const grid = element("div", "results-grid");
+    grid.dataset.density = model.items.length >= 3 ? "wide" : "regular";
+    model.items.forEach((item, index) => grid.append(itemCard(item, index, false)));
+    favorites.append(grid);
+    container.append(favorites);
+  }
+
+  if (model.allergies.length) {
+    const allergyCopy = `Allergies on file: ${model.allergies.join(", ")}.`;
+    container.append(banner(allergyCopy));
+  }
+
+  const questions = element("section", "profile-questions");
+  questions.append(element("h2", "section-title", "Ask Pearl about your taste"));
+  questions.append(element("p", "toolbar-copy", "Each question stays scoped to your own Pearl profile."));
+  const actions = element("div", "question-actions");
+  const prompts = [
+    ["Strongest patterns", "What are the strongest patterns in my Pearl taste profile?"],
+    ["Cuisines and dishes", "What cuisines and dishes define my Pearl taste?"],
+    ["Travel footprint", "What does my Pearl travel footprint say about my taste?"],
+    ["Stretch my taste", "Use my Pearl taste profile to recommend something that would stretch my preferences."],
+  ];
+  for (const [label, prompt] of prompts) {
+    const action = button(label, () => sendFixedHostMessage(prompt, action), "secondary");
+    actions.append(action);
+  }
+  questions.append(actions);
+  container.append(questions);
+  return container;
 }
 
 function loadingPanel() {
@@ -212,7 +308,6 @@ async function recover(model, actionButton) {
 
 function errorContent(model) {
   const node = element("div", "error-state");
-  node.append(element("h2", "", model.title));
   node.append(element("p", "", model.subtitle));
   if (model.error.requiredScope) {
     node.append(element("p", "scope-note", `Required access: ${model.error.requiredScope}`));
@@ -257,6 +352,8 @@ function renderCurrent() {
     content.append(errorContent(model));
   } else if (model.state === "empty") {
     content.append(emptyContent(model));
+  } else if (model.kind === "profile") {
+    content.append(profileContent(model));
   } else {
     if (model.kind === "venues") {
       const toolbar = element("div", "toolbar");
@@ -296,7 +393,9 @@ function receiveResult(result) {
   renderCurrent();
   announce(currentModel.state === "error"
     ? currentModel.title
-    : `${currentModel.items.length} Pearl result${currentModel.items.length === 1 ? "" : "s"} ready.`);
+    : currentModel.kind === "profile"
+      ? "Your Pearl taste profile is ready."
+      : `${currentModel.items.length} Pearl result${currentModel.items.length === 1 ? "" : "s"} ready.`);
 }
 
 const allowedHostStyleKeys = new Set([
@@ -392,11 +491,29 @@ function observeSize() {
   sizeObserver.observe(document.body);
 }
 
+function receiveCompatibilityToolOutput() {
+  if (hostState.toolResultReceived) return true;
+  const output = typeof window.openai === "object" ? window.openai?.toolOutput : undefined;
+  if (!output || typeof output !== "object") return false;
+  receiveResult({ structuredContent: output });
+  return true;
+}
+
+function pollCompatibilityToolOutput() {
+  let remainingChecks = 20;
+  const check = () => {
+    if (receiveCompatibilityToolOutput() || remainingChecks <= 0) return;
+    remainingChecks -= 1;
+    window.setTimeout(check, 250);
+  };
+  window.setTimeout(check, 0);
+}
+
 async function connect() {
   showLoading();
   try {
     const initialized = await request("ui/initialize", {
-      appInfo: { name: "Pearl Concierge", version: "1.0.0" },
+      appInfo: { name: "Pearl Concierge", version: "1.2.2" },
       appCapabilities: { availableDisplayModes: ["inline"] },
       protocolVersion: "2026-01-26",
     }, 5_000);
@@ -407,14 +524,14 @@ async function connect() {
     hostState.connected = true;
     notify("ui/notifications/initialized");
     observeSize();
+    // ChatGPT can finish an early parallel tool call before the MCP Apps
+    // notification listener is ready. Its compatibility bridge retains that
+    // result, so consume it only when the standard notification has not won.
+    pollCompatibilityToolOutput();
   } catch {
     window.setTimeout(() => {
       if (hostState.toolResultReceived) return;
-      const legacy = typeof window.openai === "object" ? window.openai?.toolOutput : undefined;
-      if (legacy && typeof legacy === "object") {
-        receiveResult({ structuredContent: legacy });
-        return;
-      }
+      if (receiveCompatibilityToolOutput()) return;
       receiveResult({
         isError: true,
         structuredContent: {

@@ -70,6 +70,21 @@ function arrayAt(source, key) {
   return Array.isArray(source?.[key]) ? source[key].slice(0, MAX_ITEMS) : [];
 }
 
+function stringListAt(source, key, limit = 8) {
+  if (!Array.isArray(source?.[key])) return [];
+  const values = [];
+  const seen = new Set();
+  for (const raw of source[key].slice(0, Math.min(MAX_ITEMS, limit * 2))) {
+    const value = cleanText(raw, 80);
+    const identity = value.toLocaleLowerCase();
+    if (!value || seen.has(identity)) continue;
+    seen.add(identity);
+    values.push(value);
+    if (values.length >= limit) break;
+  }
+  return values;
+}
+
 function formatNumber(value, maximumFractionDigits = 1) {
   if (!Number.isFinite(value)) return "";
   return new Intl.NumberFormat(undefined, { maximumFractionDigits }).format(value);
@@ -163,7 +178,7 @@ function uniqueEntries(entries) {
   for (const entry of entries.slice(0, MAX_ITEMS)) {
     const value = isRecord(entry?.value) ? entry.value : undefined;
     if (!isRecord(value)) continue;
-    const key = firstText(value, ["id", "location_id", "venue_id", "reservation_id", "trip_id", "offer_id"], 120)
+    const key = firstText(value, ["id", "location_id", "venue_id", "reservation_id", "trip_id", "collection_id", "offer_id"], 120)
       || `${firstText(value, ["name", "title", "venue_name"], 120)}|${firstText(value, ["city", "destination"], 80)}`;
     if (!key || seen.has(key)) continue;
     seen.add(key);
@@ -212,24 +227,81 @@ function normalizeJourney(value, index, kindHint) {
   const sources = [value, nested];
   const reservation = kindHint === "reservation" || Boolean(firstText(sources, ["reservation_id"], 120));
   const place = firstText(sources, ["venue_name", "location_name", "name", "title", "destination"], 120);
-  const rawDate = firstScalar(sources, ["date", "start_date", "reservation_date", "starts_at", "check_in"], 80);
+  const rawDate = firstScalar(sources, ["date", "start_date", "trip_start_date", "reservation_date", "starts_at", "check_in"], 80);
   const temporal = parseTemporal(rawDate);
   const date = temporal.display;
+  const endDate = formatTemporal(firstScalar(sources, ["end_date", "trip_end_date", "ends_at", "check_out"], 80));
   const time = temporal.hasTime ? "" : formatClock(firstScalar(sources, ["time", "reservation_time", "start_time"], 40));
   const city = firstText(sources, ["city", "destination", "locality"], 80);
   const people = firstNumber(sources, ["party_size", "guests", "travellers", "travelers"]);
   const status = firstText(sources, ["status", "reservation_status", "state"], 40).toLowerCase();
-  const title = place || (reservation ? `Reservation ${index + 1}` : `Trip ${index + 1}`);
+  const collectionType = firstText(sources, ["collection_type"], 40).toLowerCase();
+  const category = reservation ? "Reservation" : collectionType === "trip" || kindHint === "trip" ? "Trip" : "Collection";
+  const title = place || (reservation ? `Reservation ${index + 1}` : `${category} ${index + 1}`);
   const detail = firstText(sources, ["description", "notes", "summary", "confirmation_name"], 180);
+  const stopCount = firstNumber(sources, ["stop_count", "item_count", "venue_count", "count"]);
   return {
-    id: firstText(sources, ["id", "reservation_id", "trip_id"], 120) || `journey-${index}`,
+    id: firstText(sources, ["id", "reservation_id", "trip_id", "collection_id"], 120) || `journey-${index}`,
     name: title,
-    meta: [[date, time].filter(Boolean).join(" · "), city].filter(Boolean).join(" · "),
+    meta: [[date, endDate && endDate !== date ? endDate : ""].filter(Boolean).join(" → "), time, city].filter(Boolean).join(" · "),
     detail,
-    category: reservation ? "Reservation" : "Trip",
-    group: people === undefined ? "" : `${formatNumber(people, 0)} ${people === 1 ? "guest" : "guests"}`,
+    category,
+    group: people !== undefined
+      ? `${formatNumber(people, 0)} ${people === 1 ? "guest" : "guests"}`
+      : stopCount === undefined ? "" : `${formatNumber(stopCount, 0)} ${stopCount === 1 ? "stop" : "stops"}`,
     score: "",
     status,
+  };
+}
+
+function normalizeProfile(data) {
+  if (!isRecord(data.taste_profile)) return undefined;
+  const taste = data.taste_profile;
+  const account = isRecord(data.profile) ? data.profile : {};
+  const name = firstText([taste, account], ["name", "full_name", "username"], 100);
+  const metricDefinitions = [
+    ["Visits", firstNumber(taste, ["total_visits"])],
+    ["Cities", firstNumber(taste, ["cities_visited"])],
+    ["Saved places", firstNumber(taste, ["saved_count"])],
+  ];
+  const metrics = metricDefinitions
+    .filter(([, value]) => value !== undefined)
+    .map(([label, value]) => ({ label, value: formatNumber(value, 0) }));
+  const facets = [
+    ["Favorite cuisines", stringListAt(taste, "cuisines")],
+    ["Favorite dishes", stringListAt(taste, "dishes")],
+    ["Favorite drinks", stringListAt(taste, "beverages")],
+    ["Venue types", stringListAt(taste, "favorite_types", 6)],
+    ["Rarely chosen", stringListAt(taste, "avoided_types", 6)],
+  ].filter(([, values]) => values.length).map(([label, values]) => ({ label, values }));
+  const topCities = arrayAt(taste, "top_cities").map((item) => {
+    if (!isRecord(item)) return undefined;
+    const city = firstText(item, ["city", "name"], 80);
+    if (!city) return undefined;
+    const count = firstNumber(item, ["count", "visits"]);
+    return { city, count: count === undefined ? "" : formatNumber(count, 0) };
+  }).filter(Boolean).slice(0, 5);
+  const topRated = arrayAt(taste, "top_rated").map((item, index) => {
+    if (!isRecord(item)) return undefined;
+    const venue = normalizeVenue(item, index);
+    return venue.name ? venue : undefined;
+  }).filter(Boolean).slice(0, 6);
+  const allergies = stringListAt(taste, "allergies", 10);
+  const lens = firstText(data, ["taste_lens"], 40).replaceAll("_", " ");
+  const hasContent = metrics.length || facets.length || topCities.length || topRated.length || allergies.length || name;
+  return {
+    state: hasContent ? "ready" : "empty",
+    kind: "profile",
+    title: name ? `${name}'s taste profile` : "Your taste profile",
+    subtitle: firstText(data, ["message", "summary"], 200)
+      || "Taste signals and account activity from your Pearl profile.",
+    items: topRated,
+    metrics,
+    facets,
+    topCities,
+    allergies,
+    lens,
+    partial: data.partial === true || arrayAt(data, "warnings").length > 0,
   };
 }
 
@@ -310,7 +382,7 @@ function inferCollection(data) {
   }
 
   const reservations = arrayAt(data, "reservations");
-  const trips = arrayAt(data, "trips");
+  const trips = [...arrayAt(data, "trips"), ...arrayAt(data, "collections")];
   const singleTrip = isRecord(data.trip) ? [data.trip] : [];
   const singleReservation = isRecord(data.reservation) ? [data.reservation] : [];
   if (reservations.length || trips.length || singleTrip.length || singleReservation.length) {
@@ -340,7 +412,13 @@ function titleFor(kind, count, data, view) {
   const explicit = firstText(view, ["title"], 100) || firstText(data, ["title", "heading"], 100);
   if (explicit) return explicit;
   if (kind === "venues") return count === 1 ? "A place worth considering" : "Places picked for you";
-  if (kind === "journeys") return count === 1 ? "Your plan" : "Trips and reservations";
+  if (kind === "journeys") {
+    const hasReservations = arrayAt(data, "reservations").length > 0 || isRecord(data.reservation);
+    const hasTrips = arrayAt(data, "trips").length > 0 || arrayAt(data, "collections").length > 0 || isRecord(data.trip);
+    if (hasTrips && !hasReservations) return count === 1 ? "Your trip or collection" : "Your trips and collections";
+    if (hasReservations && !hasTrips) return count === 1 ? "Your reservation" : "Your reservations";
+    return count === 1 ? "Your plan" : "Trips and reservations";
+  }
   if (kind === "flights") return count === 1 ? "One travel option" : "Flight and availability options";
   return "Pearl results";
 }
@@ -364,6 +442,9 @@ export function normalizeToolResult(envelope) {
       partial: false,
     };
   }
+
+  const profile = normalizeProfile(data);
+  if (profile) return profile;
 
   const collection = inferCollection(data);
   const view = explicitView(data)?.view || {};

@@ -1,0 +1,31 @@
+{
+  "structuredContent": {
+    "taste_profile": {
+      "name": "Austin",
+      "cuisines": ["Japanese", "Italian", "Mexican"],
+      "dishes": ["omakase", "pasta", "tacos"],
+      "beverages": ["natural wine", "mezcal"],
+      "favorite_types": ["restaurant", "bar"],
+      "avoided_types": ["club"],
+      "top_cities": [
+        { "city": "New York", "count": 18 },
+        { "city": "Los Angeles", "count": 12 },
+        { "city": "Paris", "count": 7 }
+      ],
+      "top_rated": [
+        { "name": "Kikunoi", "city": "Kyoto", "score": 9.8 },
+        { "name": "Le Jardin", "city": "Paris", "score": 9.4 }
+      ],
+      "saved_count": 41,
+      "total_visits": 72,
+      "cities_visited": 14,
+      "allergies": ["shellfish"]
+    },
+    "taste_lens": "overview",
+    "message": "Your profile leans Japanese and Italian, with New York as your strongest city signal.",
+    "profile": {
+      "username": "austin",
+      "full_name": "Austin"
+    }
+  }
+}
