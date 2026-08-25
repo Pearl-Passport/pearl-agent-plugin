@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: Existing reviewed host-package tag, for example v0.8.7
+        description: Existing reviewed host-package tag, for example v0.8.8
         required: true
         type: string
       confirmation:

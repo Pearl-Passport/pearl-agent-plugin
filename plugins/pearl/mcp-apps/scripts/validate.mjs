@@ -7,8 +7,11 @@ import { fileURLToPath } from "node:url";
 import { buildArtifactModule, buildHtml, digestHtml } from "./build.mjs";
 import {
   createPearlMcpAppResource,
+  PEARL_MCP_APP_DOMAIN,
   PEARL_MCP_APP_MIME_TYPE,
   PEARL_MCP_APP_RESOURCE_URI,
+  PEARL_MCP_APP_VERSION,
+  PEARL_MCP_APP_VISIBILITY,
   withPearlMcpAppMeta,
 } from "../src/integration.mjs";
 import {
@@ -21,6 +24,7 @@ import { normalizeToolResult, PEARL_MODEL_LIMITS, recoveryPrompt } from "../src/
 const PACKAGE_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const REPOSITORY_ROOT = path.resolve(PACKAGE_ROOT, "..", "..", "..");
 const EXPECTED_FILES = [
+  "HOST-TESTING.md",
   "README.md",
   "package.json",
   "scripts/build.mjs",
@@ -33,6 +37,7 @@ const EXPECTED_FILES = [
   "src/styles.css",
   "test/fixtures/flights.json",
   "test/fixtures/journeys.json",
+  "test/fixtures/profile.json",
   "test/fixtures/venues.json",
   "test/integration.test.mjs",
   "test/model.test.mjs",
@@ -75,7 +80,7 @@ async function validate() {
     `MCP Apps package inventory mismatch. Expected ${EXPECTED_FILES.join(", ")}; received ${inventory.join(", ")}`, errors);
 
   const manifest = JSON.parse(await readFile(path.join(PACKAGE_ROOT, "package.json"), "utf8"));
-  check(manifest.name === "@pearl/mcp-apps-ui" && manifest.version === "1.0.0" && manifest.private === true,
+  check(manifest.name === "@pearl/mcp-apps-ui" && manifest.version === PEARL_MCP_APP_VERSION && manifest.private === true,
     "MCP Apps package identity/version/private flag changed", errors);
   check(manifest.type === "module" && manifest.engines?.node === ">=22", "MCP Apps package must remain Node 22 ESM", errors);
   check(Object.keys(manifest).every((key) => !["dependencies", "devDependencies", "peerDependencies"].includes(key)),
@@ -161,6 +166,7 @@ async function validate() {
   for (const stateCopy of [
     "Pearl is gathering the details", "No matching results yet", "Some results could not be loaded",
     "Reconnect Pearl", "More access is needed", "Pearl needs another try",
+    "Ask Pearl about your taste", "Pearl profile statistics",
   ]) check(first.includes(stateCopy), `MCP Apps UI is missing state copy: ${stateCopy}`, errors);
 
   const css = await readFile(path.join(PACKAGE_ROOT, "src", "styles.css"), "utf8");
@@ -171,6 +177,8 @@ async function validate() {
     "Structural MCP Apps UI must inherit a platform system sans-serif stack", errors);
   check(css.includes(".comparison-grid") && !/overflow-x\s*:\s*(?:auto|scroll)/i.test(css),
     "Comparison cards must stack without nested horizontal scrolling", errors);
+  check(css.includes(".metrics-grid") && css.includes(".facet-grid") && css.includes(".question-actions"),
+    "Taste profile UI must include statistics, facets, and follow-up controls", errors);
   check(css.includes("prefers-reduced-motion: reduce"), "MCP Apps UI must honor reduced motion", errors);
   check(css.includes("data-theme=\"dark\""), "MCP Apps UI must include an explicit dark theme", errors);
   check(css.includes("forced-colors: active"), "MCP Apps UI must preserve controls in forced colors", errors);
@@ -178,10 +186,16 @@ async function validate() {
 
   const tagged = withPearlMcpAppMeta({ title: "Render" }, { chatgptCompatibility: false });
   check(tagged._meta?.ui?.resourceUri === PEARL_MCP_APP_RESOURCE_URI, "Tool integration must use _meta.ui.resourceUri", errors);
+  check(JSON.stringify(tagged._meta?.ui?.visibility) === JSON.stringify(PEARL_MCP_APP_VISIBILITY),
+    "Tool integration must explicitly allow both model and app visibility", errors);
   check(tagged._meta?.["openai/outputTemplate"] === undefined, "ChatGPT alias must be optional", errors);
   const resource = createPearlMcpAppResource().contents[0];
   check(resource.mimeType === PEARL_MCP_APP_MIME_TYPE, "MCP App resource MIME type changed", errors);
   check(/^ui:\/\/pearl\/concierge\/v\d+\/index\.html$/.test(resource.uri), "MCP App resource URI must be versioned", errors);
+  check(resource._meta.ui.domain === PEARL_MCP_APP_DOMAIN && PEARL_MCP_APP_DOMAIN === "https://agent.joinpearl.co",
+    "MCP App resource must declare Pearl's dedicated verified component origin", errors);
+  check(resource._meta["openai/widgetDomain"] === PEARL_MCP_APP_DOMAIN,
+    "ChatGPT component-domain alias must match the standard UI domain", errors);
   check(Object.values(resource._meta.ui.csp).every((domains) => Array.isArray(domains) && domains.length === 0),
     "MCP App resource metadata CSP must allow no origins", errors);
 

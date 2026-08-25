@@ -4,11 +4,11 @@ Pearl's installable package connects Codex, Claude, Cursor, and Grok Bot to one 
 
 `https://agent.joinpearl.co/mcp`
 
-The package contains host manifests, the Pearl Concierge skill, public setup documentation, brand assets, a presentation-only MCP Apps resource, and validation code. The resource is deployed and source-wired to five reviewed read tools, but final real-host rendering verification is still pending, so the package does not claim that any host renders it successfully. The package contains no application, database, OAuth server, MCP executor, deployment configuration, access token, or client secret.
+The package contains host manifests, the Pearl Concierge skill, public setup documentation, brand assets, a presentation-only MCP Apps resource, and validation code. This candidate source-wires the resource to seven reviewed read tools, including member-scoped profile statistics and trip listings, but final real-host rendering verification is still pending, so the package does not claim that any host renders it successfully. The package contains no application, database, OAuth server, MCP executor, deployment configuration, access token, or client secret.
 
 ## Current release
 
-Package `0.8.7` is read-only. The live MCP `tools/list` response is authoritative; manifests do not pin tools. The documented public set contains 13 reads for venue search, recommendations, new openings, place matching, profile, visits, saves, friends and requests, trips, and reservations.
+Package `0.8.8` is read-only. The live MCP `tools/list` response is authoritative; manifests do not pin tools. The documented public set contains 13 reads for venue search, recommendations, new openings, place matching, profile, visits, saves, friends and requests, trips, and reservations.
 
 See the [capability snapshot](skills/pearl-concierge/references/capabilities.md) for exact current tools and honest unavailable-workflow labels. The package does not claim that a host has approved or listed Pearl.
 

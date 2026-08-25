@@ -6,11 +6,12 @@ import { fileURLToPath } from "node:url";
 import { buildHtml } from "./build.mjs";
 
 const PACKAGE_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const FIXTURES = new Set(["venues", "journeys", "flights"]);
+const FIXTURES = new Set(["venues", "profile", "journeys", "flights"]);
 const THEMES = new Set(["light", "dark"]);
 
-export function buildFixtureHarness(appHtml, fixture, theme, { compare = false } = {}) {
-  if (typeof appHtml !== "string" || !fixture || typeof fixture !== "object" || !THEMES.has(theme) || typeof compare !== "boolean") {
+export function buildFixtureHarness(appHtml, fixture, theme, { compare = false, compatibilityFallback = false } = {}) {
+  if (typeof appHtml !== "string" || !fixture || typeof fixture !== "object" || !THEMES.has(theme)
+    || typeof compare !== "boolean" || typeof compatibilityFallback !== "boolean") {
     throw new TypeError("A built app, fixture object, and light/dark theme are required");
   }
   const appLiteral = JSON.stringify(appHtml).replace(/<\//g, "<\\/");
@@ -33,7 +34,9 @@ export function buildFixtureHarness(appHtml, fixture, theme, { compare = false }
     const fixture = ${fixtureLiteral};
     const theme = ${JSON.stringify(theme)};
     const compare = ${JSON.stringify(compare)};
+    const compatibilityFallback = ${JSON.stringify(compatibilityFallback)};
     const frame = document.getElementById("preview");
+    window.__pearlFixtureMessages = [];
     window.addEventListener("message", (event) => {
       if (event.source !== frame.contentWindow || event.data?.jsonrpc !== "2.0") return;
       const message = event.data;
@@ -61,7 +64,11 @@ export function buildFixtureHarness(appHtml, fixture, theme, { compare = false }
         }, "*");
       } else if (message.method === "ui/notifications/initialized") {
         event.source.postMessage({ jsonrpc: "2.0", method: "ui/notifications/tool-input", params: { arguments: {} } }, "*");
-        event.source.postMessage({ jsonrpc: "2.0", method: "ui/notifications/tool-result", params: fixture }, "*");
+        if (compatibilityFallback) {
+          event.source.openai = { toolOutput: fixture.structuredContent || fixture };
+        } else {
+          event.source.postMessage({ jsonrpc: "2.0", method: "ui/notifications/tool-result", params: fixture }, "*");
+        }
         if (compare) {
           window.setTimeout(() => {
             const cards = Array.from(frame.contentDocument?.querySelectorAll("button.result-card") || []).slice(0, 2);
@@ -71,6 +78,9 @@ export function buildFixtureHarness(appHtml, fixture, theme, { compare = false }
       } else if (message.method === "ui/notifications/size-changed") {
         const height = Math.max(320, Math.min(2400, Number(message.params?.height) || 0));
         frame.style.height = height + "px";
+      } else if (message.method === "ui/message") {
+        window.__pearlFixtureMessages.push(message.params);
+        event.source.postMessage({ jsonrpc: "2.0", id: message.id, result: {} }, "*");
       }
     });
     frame.srcdoc = appHtml;
@@ -91,7 +101,7 @@ async function main() {
   const output = value("--out");
   const compare = args.includes("--compare");
   if (!FIXTURES.has(fixtureName) || !THEMES.has(theme) || !output) {
-    throw new Error("Usage: node scripts/render-fixture.mjs --fixture venues|journeys|flights --theme light|dark [--compare] --out /absolute/file.html");
+    throw new Error("Usage: node scripts/render-fixture.mjs --fixture venues|profile|journeys|flights --theme light|dark [--compare] --out /absolute/file.html");
   }
   const fixture = JSON.parse(await readFile(path.join(PACKAGE_ROOT, "test", "fixtures", `${fixtureName}.json`), "utf8"));
   const harness = buildFixtureHarness(await buildHtml(), fixture, theme, { compare });

@@ -5,16 +5,19 @@ Apps hosts. It can render venue recommendations and comparisons, trip stops and
 reservations, and flight or availability result shapes without owning
 authentication, storage, network access, or Pearl business logic. The canonical
 source now wires one versioned resource into both production MCP protocol paths
-for five reviewed read tools. Final real-host rendering verification is still
-pending, so this package does not claim that any host renders the UI
-successfully.
+for seven reviewed read tools. Venue and profile cards have rendered
+successfully in ChatGPT developer mode; public directory availability still
+depends on OpenAI review and publication.
 
 The primary integration is the open MCP Apps contract:
 
 - tool metadata uses `_meta.ui.resourceUri`;
+- tool metadata explicitly declares `ui.visibility: ["model", "app"]`;
 - the resource uses `text/html;profile=mcp-app`;
 - the iframe uses the `ui/*` JSON-RPC bridge over `postMessage`;
 - the resource CSP allows no network, nested frame, or external asset origin;
+- the resource declares Pearl's verified MCP origin as its unique submitted
+  component domain without widening that deny-by-default CSP;
 - every tool must still return useful `content` and `structuredContent` for
   hosts that do not render UI.
 
@@ -47,11 +50,13 @@ helpers. Both protocol implementations register that same definition and return
 fresh copies of its same read payload.
 
 The current source allowlist is exactly `venues_search`, `venues_recommend`,
-`venues_new_openings`, `trip_get`, and `reservations_list`. They are current,
-public, read-only tools whose output collections the renderer handles. Place
-matching, profile, visits, saves, friends, trip-list, exact-reservation, every
-write, and every dark tool remain data-only. The optional OpenAI compatibility
-alias is emitted only on those five tools for an authenticated OpenAI client
+`venues_new_openings`, `profile_get`, `trips_list`, `trip_get`, and
+`reservations_list`. They are current, public, read-only tools whose output
+shapes the renderer handles. Profile results render member-scoped activity
+counts, taste facets, top cities, and fixed follow-up questions without adding
+a profile mutation. Place matching, visits, saves, friends, exact-reservation,
+every write, and every dark tool remain data-only. The optional OpenAI compatibility
+alias is emitted only on those seven tools for an authenticated OpenAI client
 source; other hosts receive only the portable field.
 
 Keep search and read tools data-first. A render tool should receive final,
@@ -62,8 +67,9 @@ or enable any tool itself.
 
 The resource uses the existing authenticated, stateless MCP endpoint. It adds no
 second HTTP endpoint, session, subscription, OAuth flow, scope, executor, or
-business-logic branch. Host-specific rendering verification remains a release
-gate.
+business-logic branch. Host-specific rendering remains a release gate for every
+new reviewed metadata version; successful developer-mode canaries do not imply
+OpenAI approval.
 
 ## Result contract
 
@@ -91,6 +97,13 @@ The UI includes visible focus, native keyboard controls, 44-pixel targets,
 status announcements, and loading, empty, partial, reconnect, missing-scope,
 retry, and generic error states. Structural UI inherits the host/platform system
 font, and comparison cards stack without nested scrolling.
+
+Canonical source CI also exercises the built iframe in Chromium at 1000px and
+390px. It checks two- and three-place comparison layouts, keyboard selection,
+minimum target sizes, reduced motion, light/dark rendering, horizontal overflow,
+and safe partial, empty, missing-scope, and injected-scope states. See
+[HOST-TESTING.md](HOST-TESTING.md) for the separate real-host release canary;
+browser fixtures do not substitute for ChatGPT rendering evidence.
 
 This package is not an endorsement or approval by OpenAI, Anthropic, Cursor, or
 any other host.

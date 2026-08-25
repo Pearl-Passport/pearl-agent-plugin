@@ -4,16 +4,32 @@ import {
   PEARL_MCP_APP_ARTIFACT_SHA256,
 } from "./artifact.generated.mjs";
 
-export const PEARL_MCP_APP_VERSION = "1.0.0";
-export const PEARL_MCP_APP_RESOURCE_URI = "ui://pearl/concierge/v1/index.html";
+export const PEARL_MCP_APP_VERSION = "1.2.2";
+// Hosts cache UI resources by URI. Change this URI whenever the bundled HTML,
+// JavaScript, or CSS changes so clients cannot reuse an obsolete card bundle.
+export const PEARL_MCP_APP_RESOURCE_URI = "ui://pearl/concierge/v4/index.html";
+// ChatGPT can retain tools/list metadata for an already-open conversation.
+// Keep the bounded reviewed resource history readable so those conversations
+// load the current artifact instead of silently dropping the card.
+export const PEARL_MCP_APP_COMPATIBILITY_RESOURCE_URIS = Object.freeze([
+  "ui://pearl/concierge/v3/index.html",
+  "ui://pearl/concierge/v2/index.html",
+]);
 export const PEARL_MCP_APP_MIME_TYPE = "text/html;profile=mcp-app";
 export const PEARL_MCP_APP_MAX_RESOURCE_BYTES = 256 * 1024;
 export const PEARL_MCP_APP_MAX_RESPONSE_BYTES = 320 * 1024;
+export const PEARL_MCP_APP_VISIBILITY = Object.freeze(["model", "app"]);
+// OpenAI requires one dedicated HTTPS component origin for each submitted UI
+// plugin. Reuse Pearl's verified MCP origin without granting the iframe any
+// network access; the deny-by-default CSP below remains authoritative.
+export const PEARL_MCP_APP_DOMAIN = "https://agent.joinpearl.co";
 
 export const PEARL_MCP_APP_TOOL_NAMES = Object.freeze([
   "venues_search",
   "venues_recommend",
   "venues_new_openings",
+  "profile_get",
+  "trips_list",
   "trip_get",
   "reservations_list",
 ]);
@@ -50,7 +66,11 @@ export function withPearlMcpAppMeta(toolDefinition, { chatgptCompatibility = tru
     ...definition,
     _meta: {
       ...currentMeta,
-      ui: { ...currentUi, resourceUri: PEARL_MCP_APP_RESOURCE_URI },
+      ui: {
+        ...currentUi,
+        resourceUri: PEARL_MCP_APP_RESOURCE_URI,
+        visibility: [...PEARL_MCP_APP_VISIBILITY],
+      },
       ...(chatgptCompatibility
         ? { "openai/outputTemplate": PEARL_MCP_APP_RESOURCE_URI }
         : {}),
@@ -67,36 +87,54 @@ const artifactMeta = {
   "pearl/artifactBytes": PEARL_MCP_APP_ARTIFACT_BYTES,
 };
 
-/** The one static resource definition registered by every MCP protocol path. */
-export const PEARL_MCP_APP_RESOURCE = deepFreeze({
-  descriptor: {
-    uri: PEARL_MCP_APP_RESOURCE_URI,
-    name: "Pearl Concierge",
-    description: "A read-only presentation for supported Pearl venue, trip-stop, and reservation results.",
-    mimeType: PEARL_MCP_APP_MIME_TYPE,
-    _meta: artifactMeta,
-  },
-  readResult: {
-    contents: [{
-      uri: PEARL_MCP_APP_RESOURCE_URI,
+function createResourceDefinition(uri, compatibility = false) {
+  return {
+    descriptor: {
+      uri,
+      name: compatibility ? "Pearl Concierge (compatibility)" : "Pearl Concierge",
+      description: "A read-only presentation for supported Pearl venue, taste-profile, trip, and reservation results.",
       mimeType: PEARL_MCP_APP_MIME_TYPE,
-      text: PEARL_MCP_APP_ARTIFACT_HTML,
-      _meta: {
-        ...artifactMeta,
-        ui: {
-          prefersBorder: true,
-          csp: PEARL_MCP_APP_CSP,
+      _meta: artifactMeta,
+    },
+    readResult: {
+      contents: [{
+        uri,
+        mimeType: PEARL_MCP_APP_MIME_TYPE,
+        text: PEARL_MCP_APP_ARTIFACT_HTML,
+        _meta: {
+          ...artifactMeta,
+          ui: {
+            prefersBorder: true,
+            csp: PEARL_MCP_APP_CSP,
+            domain: PEARL_MCP_APP_DOMAIN,
+          },
+          "openai/widgetPrefersBorder": true,
+          "openai/widgetDomain": PEARL_MCP_APP_DOMAIN,
+          "openai/widgetCSP": {
+            connect_domains: [],
+            resource_domains: [],
+            frame_domains: [],
+          },
         },
-        "openai/widgetPrefersBorder": true,
-        "openai/widgetCSP": {
-          connect_domains: [],
-          resource_domains: [],
-          frame_domains: [],
-        },
-      },
-    }],
-  },
-});
+      }],
+    },
+  };
+}
+
+/** Canonical resource advertised by current tools/list responses. */
+export const PEARL_MCP_APP_RESOURCE = deepFreeze(
+  createResourceDefinition(PEARL_MCP_APP_RESOURCE_URI),
+);
+
+/** Canonical resource plus bounded compatibility aliases for stale hosts. */
+export const PEARL_MCP_APP_RESOURCES = deepFreeze([
+  PEARL_MCP_APP_RESOURCE,
+  ...PEARL_MCP_APP_COMPATIBILITY_RESOURCE_URIS.map((uri) => createResourceDefinition(uri, true)),
+]);
+
+const pearlMcpAppResourceByUri = new Map(
+  PEARL_MCP_APP_RESOURCES.map((resource) => [resource.descriptor.uri, resource]),
+);
 
 const actualArtifactBytes = new TextEncoder().encode(PEARL_MCP_APP_ARTIFACT_HTML).byteLength;
 if (actualArtifactBytes !== PEARL_MCP_APP_ARTIFACT_BYTES) {
@@ -108,12 +146,16 @@ if (actualArtifactBytes < 512 || actualArtifactBytes > PEARL_MCP_APP_MAX_RESOURC
 if (!/^<!doctype html>/i.test(PEARL_MCP_APP_ARTIFACT_HTML.trimStart())) {
   throw new Error("Generated Pearl MCP App resource is not a complete HTML document");
 }
-const responseBytes = new TextEncoder().encode(JSON.stringify(PEARL_MCP_APP_RESOURCE.readResult)).byteLength;
-if (responseBytes > PEARL_MCP_APP_MAX_RESPONSE_BYTES) {
-  throw new Error("Generated Pearl MCP App response is outside its byte budget");
+for (const resource of PEARL_MCP_APP_RESOURCES) {
+  const responseBytes = new TextEncoder().encode(JSON.stringify(resource.readResult)).byteLength;
+  if (responseBytes > PEARL_MCP_APP_MAX_RESPONSE_BYTES) {
+    throw new Error("Generated Pearl MCP App response is outside its byte budget");
+  }
 }
 
 /** Return a fresh response so request handling remains stateless. */
-export function createPearlMcpAppResource() {
-  return structuredClone(PEARL_MCP_APP_RESOURCE.readResult);
+export function createPearlMcpAppResource(uri = PEARL_MCP_APP_RESOURCE_URI) {
+  const resource = pearlMcpAppResourceByUri.get(uri);
+  if (!resource) throw new RangeError(`Unsupported Pearl MCP App resource URI: ${uri}`);
+  return structuredClone(resource.readResult);
 }
