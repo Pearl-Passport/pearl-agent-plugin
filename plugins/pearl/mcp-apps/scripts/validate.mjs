@@ -1,12 +1,14 @@
 #!/usr/bin/env node
 
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { lstat, readFile, readdir, stat } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildArtifactModule, buildHtml, digestHtml } from "./build.mjs";
 import {
   createPearlMcpAppResource,
+  PEARL_CLAUDE_MCP_APP_DOMAIN,
   PEARL_MCP_APP_DOMAIN,
   PEARL_MCP_APP_MIME_TYPE,
   PEARL_MCP_APP_RESOURCE_URI,
@@ -196,6 +198,19 @@ async function validate() {
     "MCP App resource must declare Pearl's dedicated verified component origin", errors);
   check(resource._meta["openai/widgetDomain"] === PEARL_MCP_APP_DOMAIN,
     "ChatGPT component-domain alias must match the standard UI domain", errors);
+  const expectedClaudeDomain = `${createHash("sha256")
+    .update("https://agent.joinpearl.co/mcp")
+    .digest("hex")
+    .slice(0, 32)}.claudemcpcontent.com`;
+  const claudeResource = createPearlMcpAppResource(
+    PEARL_MCP_APP_RESOURCE_URI,
+    { uiDomain: PEARL_CLAUDE_MCP_APP_DOMAIN },
+  ).contents[0];
+  check(PEARL_CLAUDE_MCP_APP_DOMAIN === expectedClaudeDomain &&
+    claudeResource._meta.ui.domain === expectedClaudeDomain,
+    "Claude UI domain must match the deterministic sandbox host for Pearl's exact MCP URL", errors);
+  check(claudeResource._meta["openai/widgetDomain"] === PEARL_MCP_APP_DOMAIN,
+    "Claude resource projection must preserve the independent ChatGPT component-domain alias", errors);
   check(Object.values(resource._meta.ui.csp).every((domains) => Array.isArray(domains) && domains.length === 0),
     "MCP App resource metadata CSP must allow no origins", errors);
 
