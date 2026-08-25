@@ -105,6 +105,16 @@ test("Claude receives its connector-derived sandbox domain without changing the 
     () => createPearlMcpAppResource(PEARL_MCP_APP_RESOURCE_URI, { uiDomain: "untrusted.example" }),
     /Unsupported Pearl MCP App UI domain/,
   );
+  for (const lookalike of [
+    `attacker.example/${PEARL_MCP_APP_DOMAIN}`,
+    `${PEARL_MCP_APP_DOMAIN}.attacker.example`,
+    `attacker.${PEARL_CLAUDE_MCP_APP_DOMAIN}`,
+  ]) {
+    assert.throws(
+      () => createPearlMcpAppResource(PEARL_MCP_APP_RESOURCE_URI, { uiDomain: lookalike }),
+      /Unsupported Pearl MCP App UI domain/,
+    );
+  }
 });
 
 test("bounded previous card URIs serve the current reviewed artifact", () => {

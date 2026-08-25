@@ -162,7 +162,7 @@ export function createPearlMcpAppResource(
 ) {
   const resource = pearlMcpAppResourceByUri.get(uri);
   if (!resource) throw new RangeError(`Unsupported Pearl MCP App resource URI: ${uri}`);
-  if (![PEARL_MCP_APP_DOMAIN, PEARL_CLAUDE_MCP_APP_DOMAIN].includes(uiDomain)) {
+  if (uiDomain !== PEARL_MCP_APP_DOMAIN && uiDomain !== PEARL_CLAUDE_MCP_APP_DOMAIN) {
     throw new RangeError(`Unsupported Pearl MCP App UI domain: ${uiDomain}`);
   }
   const response = structuredClone(resource.readResult);
