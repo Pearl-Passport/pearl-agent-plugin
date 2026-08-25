@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
@@ -7,6 +8,7 @@ import { buildHtml, digestHtml } from "../scripts/build.mjs";
 import { buildFixtureHarness } from "../scripts/render-fixture.mjs";
 import {
   createPearlMcpAppResource,
+  PEARL_CLAUDE_MCP_APP_DOMAIN,
   PEARL_MCP_APP_COMPATIBILITY_RESOURCE_URIS,
   PEARL_MCP_APP_DOMAIN,
   PEARL_MCP_APP_MAX_RESPONSE_BYTES,
@@ -63,8 +65,8 @@ test("resource response is versioned, correctly typed, and deny-by-default", asy
   const response = createPearlMcpAppResource();
   assert.equal(response.contents.length, 1);
   const content = response.contents[0];
-  assert.equal(PEARL_MCP_APP_VERSION, "1.2.2");
-  assert.equal(content.uri, "ui://pearl/concierge/v4/index.html");
+  assert.equal(PEARL_MCP_APP_VERSION, "1.2.3");
+  assert.equal(content.uri, "ui://pearl/concierge/v5/index.html");
   assert.equal(content.mimeType, PEARL_MCP_APP_MIME_TYPE);
   assert.equal(content.text, html);
   assert.equal(content.text, PEARL_MCP_APP_ARTIFACT_HTML);
@@ -87,10 +89,28 @@ test("resource response is versioned, correctly typed, and deny-by-default", asy
   assert.notEqual(createPearlMcpAppResource(), response);
 });
 
+test("Claude receives its connector-derived sandbox domain without changing the OpenAI alias", () => {
+  const expectedClaudeDomain = `${createHash("sha256")
+    .update("https://agent.joinpearl.co/mcp")
+    .digest("hex")
+    .slice(0, 32)}.claudemcpcontent.com`;
+  assert.equal(PEARL_CLAUDE_MCP_APP_DOMAIN, expectedClaudeDomain);
+  const content = createPearlMcpAppResource(
+    PEARL_MCP_APP_RESOURCE_URI,
+    { uiDomain: PEARL_CLAUDE_MCP_APP_DOMAIN },
+  ).contents[0];
+  assert.equal(content._meta.ui.domain, expectedClaudeDomain);
+  assert.equal(content._meta["openai/widgetDomain"], PEARL_MCP_APP_DOMAIN);
+  assert.throws(
+    () => createPearlMcpAppResource(PEARL_MCP_APP_RESOURCE_URI, { uiDomain: "untrusted.example" }),
+    /Unsupported Pearl MCP App UI domain/,
+  );
+});
+
 test("bounded previous card URIs serve the current reviewed artifact", () => {
   assert.deepEqual(PEARL_MCP_APP_COMPATIBILITY_RESOURCE_URIS, [
+    "ui://pearl/concierge/v4/index.html",
     "ui://pearl/concierge/v3/index.html",
-    "ui://pearl/concierge/v2/index.html",
   ]);
   assert.deepEqual(
     PEARL_MCP_APP_RESOURCES.map((resource) => resource.descriptor.uri),

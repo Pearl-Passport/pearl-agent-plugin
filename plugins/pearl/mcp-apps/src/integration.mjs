@@ -4,25 +4,27 @@ import {
   PEARL_MCP_APP_ARTIFACT_SHA256,
 } from "./artifact.generated.mjs";
 
-export const PEARL_MCP_APP_VERSION = "1.2.2";
+export const PEARL_MCP_APP_VERSION = "1.2.3";
 // Hosts cache UI resources by URI. Change this URI whenever the bundled HTML,
 // JavaScript, or CSS changes so clients cannot reuse an obsolete card bundle.
-export const PEARL_MCP_APP_RESOURCE_URI = "ui://pearl/concierge/v4/index.html";
+export const PEARL_MCP_APP_RESOURCE_URI = "ui://pearl/concierge/v5/index.html";
 // ChatGPT can retain tools/list metadata for an already-open conversation.
 // Keep the bounded reviewed resource history readable so those conversations
 // load the current artifact instead of silently dropping the card.
 export const PEARL_MCP_APP_COMPATIBILITY_RESOURCE_URIS = Object.freeze([
+  "ui://pearl/concierge/v4/index.html",
   "ui://pearl/concierge/v3/index.html",
-  "ui://pearl/concierge/v2/index.html",
 ]);
 export const PEARL_MCP_APP_MIME_TYPE = "text/html;profile=mcp-app";
 export const PEARL_MCP_APP_MAX_RESOURCE_BYTES = 256 * 1024;
 export const PEARL_MCP_APP_MAX_RESPONSE_BYTES = 320 * 1024;
 export const PEARL_MCP_APP_VISIBILITY = Object.freeze(["model", "app"]);
-// OpenAI requires one dedicated HTTPS component origin for each submitted UI
-// plugin. Reuse Pearl's verified MCP origin without granting the iframe any
-// network access; the deny-by-default CSP below remains authoritative.
+// OpenAI and Claude intentionally use different formats for the same portable
+// ui.domain field. OpenAI receives Pearl's verified HTTPS component origin.
+// Claude receives the deterministic sandbox host derived from the exact MCP
+// connector URL. The deny-by-default CSP below remains authoritative in both.
 export const PEARL_MCP_APP_DOMAIN = "https://agent.joinpearl.co";
+export const PEARL_CLAUDE_MCP_APP_DOMAIN = "61326a67f094099d1f34519381c01e4a.claudemcpcontent.com";
 
 export const PEARL_MCP_APP_TOOL_NAMES = Object.freeze([
   "venues_search",
@@ -154,8 +156,16 @@ for (const resource of PEARL_MCP_APP_RESOURCES) {
 }
 
 /** Return a fresh response so request handling remains stateless. */
-export function createPearlMcpAppResource(uri = PEARL_MCP_APP_RESOURCE_URI) {
+export function createPearlMcpAppResource(
+  uri = PEARL_MCP_APP_RESOURCE_URI,
+  { uiDomain = PEARL_MCP_APP_DOMAIN } = {},
+) {
   const resource = pearlMcpAppResourceByUri.get(uri);
   if (!resource) throw new RangeError(`Unsupported Pearl MCP App resource URI: ${uri}`);
-  return structuredClone(resource.readResult);
+  if (![PEARL_MCP_APP_DOMAIN, PEARL_CLAUDE_MCP_APP_DOMAIN].includes(uiDomain)) {
+    throw new RangeError(`Unsupported Pearl MCP App UI domain: ${uiDomain}`);
+  }
+  const response = structuredClone(resource.readResult);
+  response.contents[0]._meta.ui.domain = uiDomain;
+  return response;
 }

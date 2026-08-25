@@ -4,7 +4,7 @@ Pearl's installable package connects Codex, Claude, Cursor, and Grok Bot to Pear
 
 Pearl Agent access currently requires active Pearl Elite membership. The server enforces eligibility and OAuth scopes; installing this package cannot widen access.
 
-Package `0.8.8` is read-only. Runtime MCP `tools/list` is authoritative. The public package contains thin host manifests, current workflow guidance, public documentation, approved brand assets, a presentation-only MCP Apps resource, and zero-dependency validation. The resource is source-wired to seven reviewed read tools, including member-scoped profile statistics and trip listings. ChatGPT has rendered the venue and profile cards successfully; every other host remains subject to its own real-host canary. The package contains no application, OAuth server, database, executor, environment, deployment configuration, or credential.
+Package `0.8.9` is read-only. Runtime MCP `tools/list` is authoritative. The public package contains thin host manifests, current workflow guidance, public documentation, approved brand assets, a presentation-only MCP Apps resource, and zero-dependency validation. The resource is source-wired to seven reviewed read tools, including member-scoped profile statistics and trip listings. ChatGPT has rendered the venue and profile cards successfully; every other host remains subject to its own real-host canary. The package contains no application, OAuth server, database, executor, environment, deployment configuration, or credential.
 
 Repository availability does not mean Anthropic, Cursor, or OpenAI has approved, endorsed, or listed Pearl.
 
@@ -13,7 +13,7 @@ Repository availability does not mean Anthropic, Cursor, or OpenAI has approved,
 ### Codex Desktop and CLI
 
 ```bash
-git clone --branch v0.8.8 --depth 1 https://github.com/Pearl-Passport/pearl-agent-plugin.git
+git clone --branch v0.8.9 --depth 1 https://github.com/Pearl-Passport/pearl-agent-plugin.git
 cd pearl-agent-plugin
 codex plugin marketplace add .
 codex plugin add pearl@pearl-integrations
@@ -23,7 +23,7 @@ codex mcp login pearl
 ### Claude Code
 
 ```bash
-git clone --branch v0.8.8 --depth 1 https://github.com/Pearl-Passport/pearl-agent-plugin.git
+git clone --branch v0.8.9 --depth 1 https://github.com/Pearl-Passport/pearl-agent-plugin.git
 cd pearl-agent-plugin
 claude plugin marketplace add .
 claude plugin install pearl@pearl-integrations
@@ -35,7 +35,7 @@ For Claude web/desktop Chat, add `https://agent.joinpearl.co/mcp` as a custom co
 ### Cursor IDE, Cloud Agents, and Grok Bot
 
 ```bash
-git clone --branch v0.8.8 --depth 1 https://github.com/Pearl-Passport/pearl-agent-plugin.git
+git clone --branch v0.8.9 --depth 1 https://github.com/Pearl-Passport/pearl-agent-plugin.git
 cd pearl-agent-plugin
 mkdir -p ~/.cursor/plugins/local
 test ! -e ~/.cursor/plugins/local/pearl-cursor
@@ -80,7 +80,7 @@ the CLI README. Do not install an unverified package with a similar name.
 
 [`server.json`](server.json) is Pearl's remote-only metadata for the preview MCP Registry. It declares `io.github.Pearl-Passport/pearl-agent-plugin`, matching the case-sensitive public GitHub owner, and the same one Streamable HTTP endpoint used by every host wrapper. It contains no header, token, client secret, package runtime, or tool allowlist.
 
-Registry publication is intentionally separate from source availability. It requires a reviewed `v0.8.8` release, a protected `mcp-registry-publish` GitHub environment with a required reviewer and release-tag restriction, and secretless GitHub OIDC. Until that protected workflow completes and the exact version is verified in the Registry, do not describe Pearl as listed there. The Registry is itself in preview.
+Registry publication is intentionally separate from source availability. It requires a reviewed `v0.8.9` release, a protected `mcp-registry-publish` GitHub environment with a required reviewer and release-tag restriction, and secretless GitHub OIDC. Until that protected workflow completes and the exact version is verified in the Registry, do not describe Pearl as listed there. The Registry is itself in preview.
 
 See [cross-host setup](plugins/pearl/docs/setup.md), the [capability snapshot](plugins/pearl/skills/pearl-concierge/references/capabilities.md), and [source provenance](SOURCE.md).
 

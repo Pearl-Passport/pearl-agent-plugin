@@ -513,7 +513,7 @@ async function connect() {
   showLoading();
   try {
     const initialized = await request("ui/initialize", {
-      appInfo: { name: "Pearl Concierge", version: "1.2.2" },
+      appInfo: { name: "Pearl Concierge", version: "1.2.3" },
       appCapabilities: { availableDisplayModes: ["inline"] },
       protocolVersion: "2026-01-26",
     }, 5_000);
