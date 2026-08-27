@@ -11,8 +11,8 @@
     {
       "name": "pearl-cursor",
       "source": "plugins/pearl/cursor",
-      "version": "0.8.9",
-      "description": "Read-only Pearl place discovery, recommendations, and private travel context for active Pearl Elite members",
+      "version": "0.8.10",
+      "description": "Read-only Pearl place discovery, recommendations, and private travel context for eligible Pearl Access members",
       "author": {
         "name": "Pearl LLC",
         "email": "hello@joinpearl.co"

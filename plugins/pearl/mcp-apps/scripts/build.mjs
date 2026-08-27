@@ -7,6 +7,10 @@ import { fileURLToPath } from "node:url";
 
 const PACKAGE_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const GENERATED_ARTIFACT = path.join(PACKAGE_ROOT, "src", "artifact.generated.mjs");
+// The only network origin in the document CSP. Kept as a literal
+// (not imported from integration.mjs, which asserts against the artifact this
+// script regenerates); scripts/validate.mjs cross-checks all three copies.
+const PEARL_IMAGE_ORIGIN = "https://agent.joinpearl.co";
 
 function inlineModel(source) {
   return source
@@ -40,7 +44,7 @@ export async function buildHtml() {
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="color-scheme" content="light dark">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; font-src 'none'; media-src 'none'; frame-src 'none'; object-src 'none'; worker-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: ${PEARL_IMAGE_ORIGIN}; connect-src 'none'; font-src 'none'; media-src 'none'; frame-src 'none'; object-src 'none'; worker-src 'none'; base-uri 'none'; form-action 'none'">
   <title>Pearl Concierge</title>
   <style>${styles}</style>
 </head>

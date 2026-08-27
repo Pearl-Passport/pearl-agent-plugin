@@ -1,6 +1,6 @@
 # Pearl capability snapshot
 
-This public documentation snapshot is dated **2026-08-25** for package `0.8.9`. It is not a tool allowlist. The authenticated MCP `tools/list` response is authoritative and may vary by host, member, OAuth grant, or rollout.
+This public documentation snapshot is dated **2026-08-26** for package `0.8.10`. It is not a tool allowlist. The authenticated MCP `tools/list` response is authoritative and may vary by host, member, OAuth grant, or rollout.
 
 ## Current public read set
 
@@ -10,14 +10,14 @@ This public documentation snapshot is dated **2026-08-25** for package `0.8.9`. 
 | `venues_recommend` | Get profile-aware venue recommendations | Recommendation is not a reservation or guarantee |
 | `venues_new_openings` | Find coming-soon and newly opened venues | Established fallbacks must not be described as openings |
 | `places_match` | Reconcile up to 20 supplied names with canonical venues | Returns review states and writes nothing |
-| `profile_get` | Read the authenticated member's taste profile, visit/city/save counts, ranked cities, top-rated visits, and focus the answer by a supported taste lens | Does not edit profile or account settings; counts are not demographic percentiles, and a lens never changes member scope |
-| `visits_list` | List committed visits, including score-ranked favorites and city, cuisine/category, trip, or score filters | Cursor pagination is limited to compatible recent-history pages; it does not import, edit, or delete visits |
-| `saves_list` | List saved venues | Does not save or remove a venue |
+| `profile_get` | Read the authenticated member's taste profile, visit/city/save counts, ranked cities, top-rated visits, and focus the answer by a supported taste lens | Check history coverage before calling counts authoritative; counts are not demographic percentiles, and a lens never changes member scope |
+| `visits_list` | List committed visits, including complete recent-history pagination plus score-ranked favorites and city, cuisine/category, trip, or score filters | Filtered discovery can be explicitly partial; it does not import, edit, or delete visits |
+| `saves_list` | List active canonical saved venues with complete-history pagination | Does not save or remove a venue |
 | `friends_search` | Search Pearl's privacy-filtered member directory | Does not expose hidden data or send a request |
 | `friends_list` | List accepted friends and pending request states | Does not change friendship state |
-| `trips_list` | List owned trips and collections | Does not create, share, or edit a trip |
+| `trips_list` | List owned trips and collections with exact-total pagination and exact stop counts | Does not create, share, or edit a trip |
 | `trip_get` | Read stops from one owned trip or collection | Does not mutate stops or make bookings |
-| `reservations_list` | List reservations recorded in Pearl | Does not book, change, or cancel a reservation |
+| `reservations_list` | List reservations recorded in Pearl with exact-total pagination | Does not book, change, or cancel a reservation |
 | `reservation_get` | Read one selected reservation by returned source and ID | Does not expose booking credentials or provider actions |
 
 ## Workflow availability matrix

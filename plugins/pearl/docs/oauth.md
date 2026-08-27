@@ -4,7 +4,7 @@ Pearl's MCP server is an OAuth 2.1 protected resource. It uses Authorization Cod
 
 No OAuth client secret belongs in this package. Public client IDs may be documented because they are identifiers, not credentials. Access tokens, refresh tokens, authorization codes, passwords, and private keys belong only in host-managed secure storage.
 
-Pearl Agent access currently requires active Pearl Elite membership. The server enforces eligibility and granted scopes independently of this package.
+Pearl Agent access currently requires an eligible Pearl Access member. The server independently enforces admission, live Access eligibility, and granted scopes; a package or cached token cannot bypass those checks.
 
 ## Current host configuration
 

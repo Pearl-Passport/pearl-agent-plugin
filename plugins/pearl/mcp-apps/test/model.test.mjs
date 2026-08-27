@@ -25,7 +25,38 @@ test("normalizes venue results for selection and comparison", async () => {
     group: "",
     score: "9.2",
     status: "available",
+    image: {
+      src: "https://agent.joinpearl.co/media/venues/le-jardin/hero-1200x800.jpg",
+      attribution: "Le Jardin",
+    },
   });
+  // The attacker-origin image in the fixture must fail closed to fallback art.
+  assert.equal(model.items[1].image, undefined);
+  assert.equal(model.items[2].image, undefined);
+});
+
+test("accepts venue imagery only from the approved Pearl origin", () => {
+  const origin = PEARL_MODEL_LIMITS.imageOriginPrefix;
+  assert.equal(origin, "https://agent.joinpearl.co/");
+  const model = normalizeToolResult({
+    structuredContent: {
+      venues: [
+        { name: "String form", image: `${origin}media/a.jpg` },
+        { name: "Gallery form", photos: [{ url: `${origin}media/b.webp`, credit: "House" }] },
+        { name: "Lookalike host", hero_image: { url: "https://agent.joinpearl.co.attacker.example/x.jpg" } },
+        { name: "Signed query", hero_image: { url: `${origin}x.jpg?X-Amz-Signature=abc` } },
+        { name: "Fragment", hero_image: { url: `${origin}x.jpg#frag` } },
+        { name: "Credentials", hero_image: { url: ["https://user:pass", "agent.joinpearl.co/x.jpg"].join("@") } },
+        { name: "Insecure", hero_image: { url: "http://agent.joinpearl.co/x.jpg" } },
+        { name: "Scheme", hero_image: { url: "javascript:alert(1)" } },
+        { name: "Oversized", hero_image: { url: `${origin}${"a".repeat(600)}.jpg` } },
+      ],
+    },
+  });
+  assert.equal(model.items[0].image.src, `${origin}media/a.jpg`);
+  assert.equal(model.items[0].image.attribution, "");
+  assert.deepEqual(model.items[1].image, { src: `${origin}media/b.webp`, attribution: "House" });
+  for (const item of model.items.slice(2)) assert.equal(item.image, undefined);
 });
 
 test("normalizes trips and reservations without changing their status", async () => {

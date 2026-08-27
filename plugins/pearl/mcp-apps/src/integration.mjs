@@ -4,16 +4,16 @@ import {
   PEARL_MCP_APP_ARTIFACT_SHA256,
 } from "./artifact.generated.mjs";
 
-export const PEARL_MCP_APP_VERSION = "1.2.3";
+export const PEARL_MCP_APP_VERSION = "1.3.0";
 // Hosts cache UI resources by URI. Change this URI whenever the bundled HTML,
 // JavaScript, or CSS changes so clients cannot reuse an obsolete card bundle.
-export const PEARL_MCP_APP_RESOURCE_URI = "ui://pearl/concierge/v5/index.html";
+export const PEARL_MCP_APP_RESOURCE_URI = "ui://pearl/concierge/v6/index.html";
 // ChatGPT can retain tools/list metadata for an already-open conversation.
 // Keep the bounded reviewed resource history readable so those conversations
 // load the current artifact instead of silently dropping the card.
 export const PEARL_MCP_APP_COMPATIBILITY_RESOURCE_URIS = Object.freeze([
+  "ui://pearl/concierge/v5/index.html",
   "ui://pearl/concierge/v4/index.html",
-  "ui://pearl/concierge/v3/index.html",
 ]);
 export const PEARL_MCP_APP_MIME_TYPE = "text/html;profile=mcp-app";
 export const PEARL_MCP_APP_MAX_RESOURCE_BYTES = 256 * 1024;
@@ -25,6 +25,10 @@ export const PEARL_MCP_APP_VISIBILITY = Object.freeze(["model", "app"]);
 // connector URL. The deny-by-default CSP below remains authoritative in both.
 export const PEARL_MCP_APP_DOMAIN = "https://agent.joinpearl.co";
 export const PEARL_CLAUDE_MCP_APP_DOMAIN = "61326a67f094099d1f34519381c01e4a.claudemcpcontent.com";
+// The single reviewed origin venue imagery may load from. It backs
+// the resource-metadata CSP below, the document CSP img-src (scripts/
+// build.mjs), and the model image allowlist (model.mjs IMAGE_ORIGIN_PREFIX).
+export const PEARL_MCP_APP_IMAGE_ORIGIN = PEARL_MCP_APP_DOMAIN;
 
 export const PEARL_MCP_APP_TOOL_NAMES = Object.freeze([
   "venues_search",
@@ -38,7 +42,8 @@ export const PEARL_MCP_APP_TOOL_NAMES = Object.freeze([
 
 export const PEARL_MCP_APP_CSP = Object.freeze({
   connectDomains: Object.freeze([]),
-  resourceDomains: Object.freeze([]),
+  // Static resources (venue imagery) only, from Pearl's reviewed origin.
+  resourceDomains: Object.freeze([PEARL_MCP_APP_IMAGE_ORIGIN]),
   frameDomains: Object.freeze([]),
   baseUriDomains: Object.freeze([]),
 });
@@ -114,7 +119,7 @@ function createResourceDefinition(uri, compatibility = false) {
           "openai/widgetDomain": PEARL_MCP_APP_DOMAIN,
           "openai/widgetCSP": {
             connect_domains: [],
-            resource_domains: [],
+            resource_domains: [PEARL_MCP_APP_IMAGE_ORIGIN],
             frame_domains: [],
           },
         },

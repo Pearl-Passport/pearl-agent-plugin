@@ -6,7 +6,10 @@ import { fileURLToPath } from "node:url";
 import { buildHtml } from "./build.mjs";
 
 const PACKAGE_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const FIXTURES = new Set(["venues", "profile", "journeys", "flights"]);
+const FIXTURES = new Set([
+  "venues", "profile", "journeys", "flights",
+  "states-empty", "states-denied", "states-expired", "states-partial",
+]);
 const THEMES = new Set(["light", "dark"]);
 
 export function buildFixtureHarness(appHtml, fixture, theme, { compare = false, compatibilityFallback = false } = {}) {
@@ -101,7 +104,7 @@ async function main() {
   const output = value("--out");
   const compare = args.includes("--compare");
   if (!FIXTURES.has(fixtureName) || !THEMES.has(theme) || !output) {
-    throw new Error("Usage: node scripts/render-fixture.mjs --fixture venues|profile|journeys|flights --theme light|dark [--compare] --out /absolute/file.html");
+    throw new Error(`Usage: node scripts/render-fixture.mjs --fixture ${[...FIXTURES].join("|")} --theme light|dark [--compare] --out /absolute/file.html`);
   }
   const fixture = JSON.parse(await readFile(path.join(PACKAGE_ROOT, "test", "fixtures", `${fixtureName}.json`), "utf8"));
   const harness = buildFixtureHarness(await buildHtml(), fixture, theme, { compare });

@@ -10,6 +10,7 @@ import {
   createPearlMcpAppResource,
   PEARL_CLAUDE_MCP_APP_DOMAIN,
   PEARL_MCP_APP_DOMAIN,
+  PEARL_MCP_APP_IMAGE_ORIGIN,
   PEARL_MCP_APP_MIME_TYPE,
   PEARL_MCP_APP_RESOURCE_URI,
   PEARL_MCP_APP_VERSION,
@@ -28,6 +29,7 @@ const REPOSITORY_ROOT = path.resolve(PACKAGE_ROOT, "..", "..", "..");
 const EXPECTED_FILES = [
   "HOST-TESTING.md",
   "README.md",
+  "TOKENS.md",
   "package.json",
   "scripts/build.mjs",
   "scripts/render-fixture.mjs",
@@ -40,6 +42,10 @@ const EXPECTED_FILES = [
   "test/fixtures/flights.json",
   "test/fixtures/journeys.json",
   "test/fixtures/profile.json",
+  "test/fixtures/states-denied.json",
+  "test/fixtures/states-empty.json",
+  "test/fixtures/states-expired.json",
+  "test/fixtures/states-partial.json",
   "test/fixtures/venues.json",
   "test/integration.test.mjs",
   "test/model.test.mjs",
@@ -123,7 +129,14 @@ async function validate() {
   check((first.match(/<style>/g) || []).length === 1 && (first.match(/<script type="module">/g) || []).length === 1,
     "MCP Apps resource must contain exactly one inline style and script", errors);
   check(!/<(?:link|iframe|form|object|embed)\b/i.test(first), "MCP Apps resource contains a forbidden external/interactive element", errors);
-  check(!/https?:\/\//i.test(first), "MCP Apps resource must not contain network URLs", errors);
+  // The approved image origin is the only permitted network URL, and
+  // it must be pinned in the document CSP img-src directive. The W3C SVG
+  // namespace identifier is inert (required by createElementNS, never fetched).
+  check(!/https?:\/\//i.test(
+    first.replaceAll(PEARL_MCP_APP_IMAGE_ORIGIN, "").replaceAll("http://www.w3.org/2000/svg", ""),
+  ), "MCP Apps resource must not contain network URLs beyond the approved image origin", errors);
+  check(first.includes(`img-src data: ${PEARL_MCP_APP_IMAGE_ORIGIN};`),
+    "MCP Apps document CSP img-src must pin the approved image origin", errors);
   check(/default-src 'none'/.test(first) && /connect-src 'none'/.test(first) && /frame-src 'none'/.test(first)
     && /base-uri 'none'/.test(first) && /form-action 'none'/.test(first),
     "MCP Apps document CSP must remain deny-by-default", errors);
@@ -165,6 +178,27 @@ async function validate() {
   check(JSON.stringify(PEARL_MODEL_LIMITS.publicReadScopes) === JSON.stringify([
     "venues:read", "profile:read", "visits:read", "saves:read", "friends:read", "trips:read", "reservations:read",
   ]), "Displayed scope allowlist must remain the exact finite public read set", errors);
+
+  // Unapproved image URLs must fail closed to the fallback artwork.
+  check(PEARL_MODEL_LIMITS.imageOriginPrefix === `${PEARL_MCP_APP_IMAGE_ORIGIN}/`,
+    "Model image origin must match the integration image origin", errors);
+  const imageProbe = normalizeToolResult({
+    structuredContent: {
+      venues: [
+        { name: "Approved", hero_image: { url: `${PEARL_MCP_APP_IMAGE_ORIGIN}/media/venues/a/hero.jpg`, attribution: "Pearl" } },
+        { name: "Foreign", hero_image: { url: "https://attacker.example/steal.jpg" } },
+        { name: "Lookalike", hero_image: { url: `${PEARL_MCP_APP_IMAGE_ORIGIN}.attacker.example/x.jpg` } },
+        { name: "Signed", hero_image: { url: `${PEARL_MCP_APP_IMAGE_ORIGIN}/x.jpg?signature=mutable` } },
+        { name: "Credential", hero_image: { url: ["https://user:pass", "agent.joinpearl.co/x.jpg"].join("@") } },
+        { name: "Scheme", hero_image: { url: "javascript:alert(1)" } },
+      ],
+    },
+  });
+  check(imageProbe.items[0].image?.src === `${PEARL_MCP_APP_IMAGE_ORIGIN}/media/venues/a/hero.jpg`
+    && imageProbe.items[0].image?.attribution === "Pearl",
+    "Approved venue imagery must normalize with attribution", errors);
+  check(imageProbe.items.slice(1).every((item) => item.image === undefined),
+    "Unapproved, lookalike, signed-query, credentialed, or non-https image URLs must fail closed", errors);
   for (const stateCopy of [
     "Pearl is gathering the details", "No matching results yet", "Some results could not be loaded",
     "Reconnect Pearl", "More access is needed", "Pearl needs another try",
@@ -185,6 +219,39 @@ async function validate() {
   check(css.includes("data-theme=\"dark\""), "MCP Apps UI must include an explicit dark theme", errors);
   check(css.includes("forced-colors: active"), "MCP Apps UI must preserve controls in forced colors", errors);
   check(!/url\s*\(/i.test(css), "MCP Apps CSS must not load external assets", errors);
+  // Glass is progressive enhancement with accessible fallbacks.
+  check(css.includes("@supports") && css.includes("backdrop-filter"),
+    "Glass surfaces must be progressive enhancement behind @supports", errors);
+  check(css.includes("prefers-reduced-transparency: reduce"),
+    "Glass surfaces must fall back to opaque under reduced transparency", errors);
+  check(css.includes("prefers-contrast: more"),
+    "Glass surfaces must fall back to opaque under increased contrast", errors);
+  check(css.includes(".media-fallback") && css.includes(".media-credit") && css.includes(".media-image"),
+    "Venue media needs deterministic fallback, image, and attribution primitives", errors);
+  check(css.includes("--pearl-ui-canvas") && /Canonical Pearl/i.test(css),
+    "MCP UI tokens must document their canonical Pearl bridge", errors);
+
+  // The reviewed state fixtures must keep normalizing to the states
+  // they document (loading is exercised by the harness before tool-result).
+  for (const [fixtureName, expectation] of [
+    ["states-empty", { state: "empty" }],
+    ["states-denied", { state: "error", userAction: "grant_scope", requiredScope: "trips:read" }],
+    ["states-expired", { state: "error", userAction: "reconnect" }],
+    ["states-partial", { state: "ready", partial: true }],
+  ]) {
+    const fixture = JSON.parse(await readFile(path.join(PACKAGE_ROOT, "test", "fixtures", `${fixtureName}.json`), "utf8"));
+    const normalized = normalizeToolResult(fixture);
+    check(normalized.state === expectation.state, `${fixtureName} fixture must normalize to a ${expectation.state} state`, errors);
+    if (expectation.userAction) {
+      check(normalized.error?.userAction === expectation.userAction, `${fixtureName} fixture must keep its ${expectation.userAction} recovery`, errors);
+    }
+    if (expectation.requiredScope) {
+      check(normalized.error?.requiredScope === expectation.requiredScope, `${fixtureName} fixture must surface its required scope`, errors);
+    }
+    if (expectation.partial) {
+      check(normalized.partial === true, `${fixtureName} fixture must remain partial`, errors);
+    }
+  }
 
   const tagged = withPearlMcpAppMeta({ title: "Render" }, { chatgptCompatibility: false });
   check(tagged._meta?.ui?.resourceUri === PEARL_MCP_APP_RESOURCE_URI, "Tool integration must use _meta.ui.resourceUri", errors);
@@ -211,8 +278,17 @@ async function validate() {
     "Claude UI domain must match the deterministic sandbox host for Pearl's exact MCP URL", errors);
   check(claudeResource._meta["openai/widgetDomain"] === PEARL_MCP_APP_DOMAIN,
     "Claude resource projection must preserve the independent ChatGPT component-domain alias", errors);
-  check(Object.values(resource._meta.ui.csp).every((domains) => Array.isArray(domains) && domains.length === 0),
-    "MCP App resource metadata CSP must allow no origins", errors);
+  check(JSON.stringify(resource._meta.ui.csp) === JSON.stringify({
+    connectDomains: [],
+    resourceDomains: [PEARL_MCP_APP_IMAGE_ORIGIN],
+    frameDomains: [],
+    baseUriDomains: [],
+  }), "MCP App resource metadata CSP must allow only the approved image origin for static resources", errors);
+  check(JSON.stringify(resource._meta["openai/widgetCSP"]) === JSON.stringify({
+    connect_domains: [],
+    resource_domains: [PEARL_MCP_APP_IMAGE_ORIGIN],
+    frame_domains: [],
+  }), "ChatGPT widget CSP alias must match the standard metadata CSP", errors);
 
   return { errors, digest: digestHtml(first), bytes: Buffer.byteLength(first) };
 }

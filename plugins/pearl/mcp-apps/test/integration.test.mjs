@@ -11,6 +11,7 @@ import {
   PEARL_CLAUDE_MCP_APP_DOMAIN,
   PEARL_MCP_APP_COMPATIBILITY_RESOURCE_URIS,
   PEARL_MCP_APP_DOMAIN,
+  PEARL_MCP_APP_IMAGE_ORIGIN,
   PEARL_MCP_APP_MAX_RESPONSE_BYTES,
   PEARL_MCP_APP_CSP,
   PEARL_MCP_APP_MIME_TYPE,
@@ -42,7 +43,13 @@ test("build is deterministic and self-contained", async () => {
   assert.match(first, /ui\/notifications\/tool-result/);
   assert.match(first, /ui\/notifications\/size-changed/);
   assert.doesNotMatch(first, /<link\b|<iframe\b|<form\b/i);
-  assert.doesNotMatch(first, /https?:\/\//i);
+  // The approved image origin is the only permitted network URL reference;
+  // the W3C SVG namespace identifier is inert (createElementNS, never fetched).
+  assert.doesNotMatch(
+    first.replaceAll(PEARL_MCP_APP_IMAGE_ORIGIN, "").replaceAll("http://www.w3.org/2000/svg", ""),
+    /https?:\/\//i,
+  );
+  assert.match(first, /img-src data: https:\/\/agent\.joinpearl\.co;/);
   assert.ok(Buffer.byteLength(first) < 256 * 1024);
 });
 
@@ -65,8 +72,8 @@ test("resource response is versioned, correctly typed, and deny-by-default", asy
   const response = createPearlMcpAppResource();
   assert.equal(response.contents.length, 1);
   const content = response.contents[0];
-  assert.equal(PEARL_MCP_APP_VERSION, "1.2.3");
-  assert.equal(content.uri, "ui://pearl/concierge/v5/index.html");
+  assert.equal(PEARL_MCP_APP_VERSION, "1.3.0");
+  assert.equal(content.uri, "ui://pearl/concierge/v6/index.html");
   assert.equal(content.mimeType, PEARL_MCP_APP_MIME_TYPE);
   assert.equal(content.text, html);
   assert.equal(content.text, PEARL_MCP_APP_ARTIFACT_HTML);
@@ -78,9 +85,15 @@ test("resource response is versioned, correctly typed, and deny-by-default", asy
   assert.deepEqual(content._meta.ui.csp, PEARL_MCP_APP_CSP);
   assert.deepEqual(content._meta.ui.csp, {
     connectDomains: [],
-    resourceDomains: [],
+    resourceDomains: [PEARL_MCP_APP_IMAGE_ORIGIN],
     frameDomains: [],
     baseUriDomains: [],
+  });
+  assert.equal(PEARL_MCP_APP_IMAGE_ORIGIN, "https://agent.joinpearl.co");
+  assert.deepEqual(content._meta["openai/widgetCSP"], {
+    connect_domains: [],
+    resource_domains: [PEARL_MCP_APP_IMAGE_ORIGIN],
+    frame_domains: [],
   });
   assert.equal(PEARL_MCP_APP_DOMAIN, "https://agent.joinpearl.co");
   assert.equal(content._meta.ui.domain, PEARL_MCP_APP_DOMAIN);
@@ -119,8 +132,8 @@ test("Claude receives its connector-derived sandbox domain without changing the 
 
 test("bounded previous card URIs serve the current reviewed artifact", () => {
   assert.deepEqual(PEARL_MCP_APP_COMPATIBILITY_RESOURCE_URIS, [
+    "ui://pearl/concierge/v5/index.html",
     "ui://pearl/concierge/v4/index.html",
-    "ui://pearl/concierge/v3/index.html",
   ]);
   assert.deepEqual(
     PEARL_MCP_APP_RESOURCES.map((resource) => resource.descriptor.uri),

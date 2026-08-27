@@ -1,0 +1,10 @@
+{
+  "isError": true,
+  "structuredContent": {
+    "error": {
+      "code": "token_expired",
+      "message": "Your Pearl authorization expired.",
+      "user_action": "reconnect"
+    }
+  }
+}

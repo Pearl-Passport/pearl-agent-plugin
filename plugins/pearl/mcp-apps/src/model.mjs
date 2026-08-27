@@ -1,5 +1,14 @@
 const MAX_ITEMS = 18;
 const MAX_TEXT = 240;
+// Venue imagery is accepted only from Pearl's reviewed origin.
+// Everything else — other origins, lookalike hosts, query strings, fragments,
+// credentials, unexpected characters — fails closed to the deterministic
+// brand-safe fallback artwork. Keep in sync with PEARL_MCP_APP_IMAGE_ORIGIN
+// (integration.mjs) and the document CSP img-src (scripts/build.mjs).
+const IMAGE_ORIGIN_PREFIX = "https://agent.joinpearl.co/";
+const IMAGE_PATH_PATTERN = /^[A-Za-z0-9/_\-.]{1,400}$/;
+const IMAGE_KEYS = ["image", "hero_image", "photo", "thumbnail", "primary_photo"];
+const IMAGE_LIST_KEYS = ["photos", "images", "gallery"];
 const PUBLIC_READ_SCOPES = new Set([
   "venues:read",
   "profile:read",
@@ -201,6 +210,34 @@ function flattenGroups(groups) {
   return values;
 }
 
+function normalizeImage(source) {
+  const sources = Array.isArray(source) ? source.slice(0, 3) : [source];
+  const candidates = [];
+  for (const record of sources) {
+    if (!isRecord(record)) continue;
+    for (const key of IMAGE_KEYS) {
+      if (record[key] !== undefined) candidates.push(record[key]);
+    }
+    for (const key of IMAGE_LIST_KEYS) {
+      if (Array.isArray(record[key]) && record[key].length) candidates.push(record[key][0]);
+    }
+  }
+  for (const candidate of candidates.slice(0, 6)) {
+    const value = typeof candidate === "string" ? { url: candidate } : isRecord(candidate) ? candidate : undefined;
+    if (!value) continue;
+    const url = typeof value.url === "string" ? value.url : typeof value.src === "string" ? value.src : "";
+    if (!url || url.length > 500 || !url.startsWith(IMAGE_ORIGIN_PREFIX)) continue;
+    // The path allowlist excludes "?", "#", "@", ":", "\\", and whitespace, so
+    // mutable signed query material and credential tricks fail closed.
+    if (!IMAGE_PATH_PATTERN.test(url.slice(IMAGE_ORIGIN_PREFIX.length))) continue;
+    return {
+      src: url,
+      attribution: cleanText(value.attribution ?? value.credit ?? value.source, 80),
+    };
+  }
+  return undefined;
+}
+
 function normalizeVenue(value, index, groupHint = "") {
   const nested = isRecord(value.venue) ? value.venue : isRecord(value.location) ? value.location : {};
   const sources = [value, nested];
@@ -219,6 +256,7 @@ function normalizeVenue(value, index, groupHint = "") {
     group: firstText(sources, ["group_label"], 80) || groupHint,
     score: score === undefined ? "" : `${formatNumber(score)}${score <= 1 ? " match" : ""}`,
     status: firstText(sources, ["status", "opening_status", "availability"], 40).toLowerCase(),
+    image: normalizeImage(sources),
   };
 }
 
@@ -490,4 +528,5 @@ export const PEARL_MODEL_LIMITS = Object.freeze({
   maxItems: MAX_ITEMS,
   maxText: MAX_TEXT,
   publicReadScopes: Object.freeze([...PUBLIC_READ_SCOPES]),
+  imageOriginPrefix: IMAGE_ORIGIN_PREFIX,
 });
