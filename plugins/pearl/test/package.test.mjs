@@ -215,7 +215,7 @@ test("hosted Claude documents the fixed public client and exact read-only scopes
   const setup = await readFile(path.join(ROOT, "docs", "setup.md"), "utf8");
   const oauth = await readFile(path.join(ROOT, "docs", "oauth.md"), "utf8");
   const liveValidator = await readFile(path.join(ROOT, "scripts", "validate-live.mjs"), "utf8");
-  assert.match(claude.description, /Active Pearl Elite members/);
+  assert.match(claude.description, /Eligible Pearl Access members/);
   for (const document of [setup, oauth]) {
     assert.match(document, /pearl-claude-hosted/);
     assert.match(document, /OAuth Client Secret[^\n]*(?:Leave|leave)[^\n]*empty/);

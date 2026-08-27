@@ -2,9 +2,9 @@
 
 Pearl uses one authenticated Streamable HTTP MCP endpoint: `https://agent.joinpearl.co/mcp`. The host manifests are thin adapters over that connection and the shared Pearl Concierge skill.
 
-Before setup, sign in to a Pearl account with active Pearl Elite membership. The server enforces eligibility and OAuth scopes; installing this package cannot widen access.
+Before setup, sign in to a Pearl account that is eligible for Pearl Access. The server independently enforces admission, live Access eligibility, and OAuth scopes; installing this package cannot widen access.
 
-The live MCP `tools/list` response decides what the authenticated connection can use. Package `0.8.9` documents a read-only public release. Missing workflows must be reported as unavailable.
+The live MCP `tools/list` response decides what the authenticated connection can use. Package `0.8.10` documents a read-only public release. Missing workflows must be reported as unavailable.
 
 ## Codex Desktop and CLI
 

@@ -1,0 +1,11 @@
+{
+  "isError": true,
+  "structuredContent": {
+    "error": {
+      "code": "insufficient_scope",
+      "message": "Read access to your Pearl trips is required to show this.",
+      "user_action": "grant_scope",
+      "details": { "required_scope": "trips:read" }
+    }
+  }
+}

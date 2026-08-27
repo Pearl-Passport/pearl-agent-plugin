@@ -65,6 +65,118 @@ function element(tag, className, text) {
   return node;
 }
 
+// Inline SVG icon set (see TOKENS.md). Decorative only: every icon is
+// aria-hidden, stroked with currentColor, and built through safe DOM APIs.
+const SVG_NS = "http://www.w3.org/2000/svg";
+const ICON_PATHS = {
+  info: "M8 7.4v4.2M8 4.2v.2",
+  alert: "M8 4.6v4.4M8 11.4v.2",
+  check: "M3.6 8.5l2.9 2.9 6-6.8",
+  compass: "M8 1.8a6.2 6.2 0 1 1 0 12.4A6.2 6.2 0 0 1 8 1.8Zm2.7 3.5-1.9 3.5-3.5 1.9 1.9-3.5Z",
+};
+
+function svgCircle(cx, cy, r, opacity) {
+  const node = document.createElementNS(SVG_NS, "circle");
+  node.setAttribute("cx", String(cx));
+  node.setAttribute("cy", String(cy));
+  node.setAttribute("r", String(r));
+  node.setAttribute("fill", "currentColor");
+  if (opacity) node.setAttribute("opacity", opacity);
+  return node;
+}
+
+function icon(name) {
+  const svg = document.createElementNS(SVG_NS, "svg");
+  svg.setAttribute("viewBox", "0 0 16 16");
+  svg.setAttribute("aria-hidden", "true");
+  svg.setAttribute("focusable", "false");
+  svg.classList.add("icon");
+  if (name === "pearl") {
+    const glint = document.createElementNS(SVG_NS, "circle");
+    glint.setAttribute("cx", "6.7");
+    glint.setAttribute("cy", "6.5");
+    glint.setAttribute("r", "1.1");
+    glint.setAttribute("fill", "#fff");
+    glint.setAttribute("opacity", "0.75");
+    svg.append(svgCircle(8, 8, 6.4, "0.22"), svgCircle(8, 8, 3.7), glint);
+    return svg;
+  }
+  const path = document.createElementNS(SVG_NS, "path");
+  path.setAttribute("d", ICON_PATHS[name] || ICON_PATHS.info);
+  path.setAttribute("fill", "none");
+  path.setAttribute("stroke", "currentColor");
+  path.setAttribute("stroke-width", "1.8");
+  path.setAttribute("stroke-linecap", "round");
+  path.setAttribute("stroke-linejoin", "round");
+  svg.append(path);
+  return svg;
+}
+
+function stateIcon(name) {
+  const badge = element("span", "state-icon");
+  badge.setAttribute("aria-hidden", "true");
+  badge.append(icon(name));
+  return badge;
+}
+
+// Deterministic brand-safe fallback artwork: a category-tinted
+// gradient tile with the venue initial. Categories map to the canonical Pearl
+// category palette; unknown categories hash the name to a stable palette slot.
+const CATEGORY_PALETTES = [
+  ["restaurant", "dining", "bistro", "brasserie", "steak", "sushi", "omakase"],
+  ["bar", "cocktail", "pub", "lounge", "speakeasy"],
+  ["hotel", "stay", "resort", "inn"],
+  ["winery", "wine", "vineyard"],
+  ["cafe", "coffee", "bakery", "patisserie"],
+  ["spa", "wellness", "club"],
+];
+
+function paletteIndex(item) {
+  const category = String(item.category || "").toLowerCase();
+  for (const [index, keywords] of CATEGORY_PALETTES.entries()) {
+    if (keywords.some((keyword) => category.includes(keyword))) return index;
+  }
+  const name = String(item.name || "");
+  let hash = 0;
+  for (let index = 0; index < Math.min(name.length, 24); index += 1) {
+    hash = (hash * 31 + name.charCodeAt(index)) % 6;
+  }
+  return hash;
+}
+
+function mediaFigure(item, compact = false) {
+  const figure = element("figure", compact ? "media compact" : "media");
+  const fallback = element("div", "media-fallback");
+  fallback.setAttribute("aria-hidden", "true");
+  fallback.dataset.palette = String(paletteIndex(item));
+  const initial = String(item.name || "").trim().charAt(0);
+  fallback.append(element("span", "media-initial", initial ? initial.toUpperCase() : "·"));
+  figure.append(fallback);
+  if (item.image && item.image.src) {
+    const image = document.createElement("img");
+    image.className = "media-image";
+    // The card title carries the venue name; the photo itself is decorative.
+    image.alt = "";
+    image.loading = "lazy";
+    image.decoding = "async";
+    image.referrerPolicy = "no-referrer";
+    const credit = item.image.attribution
+      ? element("figcaption", "media-credit", `Photo: ${item.image.attribution}`)
+      : undefined;
+    // A missing/broken/oversized/redirected image never delays the card: the
+    // fallback tile is already painted and the failed image (plus its
+    // attribution) simply drops out.
+    image.addEventListener("error", () => {
+      image.remove();
+      if (credit) credit.remove();
+    }, { once: true });
+    image.src = item.image.src;
+    figure.append(image);
+    if (credit) figure.append(credit);
+  }
+  return figure;
+}
+
 function button(label, onClick, variant = "primary") {
   const node = element("button", `button${variant === "secondary" ? " secondary" : ""}`, label);
   node.type = "button";
@@ -90,7 +202,9 @@ async function sendFixedHostMessage(text, actionButton) {
 function header(model) {
   const node = element("header", "panel-header");
   const copy = element("div", "header-copy");
-  copy.append(element("p", "eyebrow", "Pearl concierge"));
+  const eyebrow = element("p", "eyebrow");
+  eyebrow.append(icon("pearl"), element("span", "", "Pearl concierge"));
+  copy.append(eyebrow);
   copy.append(element("h1", "", model.title));
   copy.append(element("p", "subtitle", model.subtitle));
   node.append(copy);
@@ -106,7 +220,10 @@ function banner(message, tone = "warning") {
   const node = element("div", "status-banner");
   node.dataset.tone = tone;
   node.setAttribute("role", tone === "danger" ? "alert" : "status");
-  node.append(element("span", "status-mark", tone === "danger" ? "!" : tone === "success" ? "✓" : "i"));
+  const mark = element("span", "status-mark");
+  mark.setAttribute("aria-hidden", "true");
+  mark.append(icon(tone === "danger" ? "alert" : tone === "success" ? "check" : "info"));
+  node.append(mark);
   node.append(element("p", "status-copy", message));
   return node;
 }
@@ -115,9 +232,10 @@ function chip(label, accent = false) {
   return element("span", `chip${accent ? " accent" : ""}`, label);
 }
 
-function itemCard(item, index, selectable) {
+function itemCard(item, index, selectable, showMedia = false) {
   const node = element(selectable ? "button" : "article", "result-card");
   const titleId = `result-title-${index}`;
+  if (showMedia) node.append(mediaFigure(item));
   if (selectable) {
     node.type = "button";
     node.setAttribute("aria-pressed", selected.has(item.id) ? "true" : "false");
@@ -174,6 +292,7 @@ function comparison(items) {
   for (const item of picked) {
     const card = element("article", "comparison-card");
     card.setAttribute("role", "listitem");
+    if (item.image && item.image.src) card.append(mediaFigure(item, true));
     card.append(element("h3", "", item.name));
     const details = element("dl", "comparison-details");
     for (const [label, valueFor] of fields) {
@@ -308,6 +427,7 @@ async function recover(model, actionButton) {
 
 function errorContent(model) {
   const node = element("div", "error-state");
+  node.append(stateIcon("alert"));
   node.append(element("p", "", model.subtitle));
   if (model.error.requiredScope) {
     node.append(element("p", "scope-note", `Required access: ${model.error.requiredScope}`));
@@ -322,6 +442,7 @@ function errorContent(model) {
 
 function emptyContent(model) {
   const node = element("div", "empty-state");
+  node.append(stateIcon("compass"));
   node.append(element("h2", "", "No matching results yet"));
   node.append(element("p", "", model.subtitle));
   const action = button("Refine in chat", async () => {
@@ -371,7 +492,7 @@ function renderCurrent() {
     }
     const grid = element("div", "results-grid");
     grid.dataset.density = model.items.length >= 3 ? "wide" : "regular";
-    model.items.forEach((item, index) => grid.append(itemCard(item, index, model.kind === "venues")));
+    model.items.forEach((item, index) => grid.append(itemCard(item, index, model.kind === "venues", model.kind === "venues")));
     content.append(grid);
     const compare = model.kind === "venues" ? comparison(model.items) : undefined;
     if (compare) content.append(compare);
@@ -513,7 +634,7 @@ async function connect() {
   showLoading();
   try {
     const initialized = await request("ui/initialize", {
-      appInfo: { name: "Pearl Concierge", version: "1.2.3" },
+      appInfo: { name: "Pearl Concierge", version: "1.3.0" },
       appCapabilities: { availableDisplayModes: ["inline"] },
       protocolVersion: "2026-01-26",
     }, 5_000);

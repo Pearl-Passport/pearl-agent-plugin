@@ -1,11 +1,11 @@
 # Versioning and release
 
-The Codex, Claude, and Cursor manifests, marketplace entries, package metadata, MCP Registry `server.json`, and validators use one semantic version. Package `0.8.9` is the current sanitized read-only release candidate.
+The Codex, Claude, and Cursor manifests, marketplace entries, package metadata, MCP Registry `server.json`, and validators use one semantic version. Package `0.8.10` is the current sanitized read-only release candidate.
 
 | Surface | Version | Release tag | Publication boundary |
 | --- | --- | --- | --- |
-| Codex, Claude, Cursor, and shared skill | `0.8.9` | `v0.8.9` | Separate host installation or review |
-| MCP Registry metadata | `0.8.9` | `v0.8.9` | Protected Registry OIDC job after the reviewed host-package release |
+| Codex, Claude, Cursor, and shared skill | `0.8.10` | `v0.8.10` | Separate host installation or review |
+| MCP Registry metadata | `0.8.10` | `v0.8.10` | Protected Registry OIDC job after the reviewed host-package release |
 | Pearl CLI | `1.0.0` | `cli-v1.0.0` | Protected npm Trusted Publishing job |
 
 The MCP Registry is in preview, so publishing may encounter breaking changes or a data reset. Repository availability and a successful Registry publish are not host approval.
@@ -28,7 +28,7 @@ Use:
 1. Confirm runtime `tools/list` remains authoritative and manifests contain no tool allowlist.
 2. Confirm every documented current tool appears in the reviewed public submission and no mutation is advertised.
 3. Confirm `.mcp.json` contains one server URL and no headers or credentials, and that Cursor's marketplace source remains isolated at `plugins/pearl/cursor` so it cannot auto-discover that URL-only config.
-4. Confirm `server.json` uses the exact `2025-12-11` schema, case-sensitive GitHub namespace `io.github.Pearl-Passport/pearl-agent-plugin`, stable public repository ID `1343507179`, version `0.8.9`, and exactly one `streamable-http` remote with no headers, variables, credentials, or package declaration.
+4. Confirm `server.json` uses the exact `2025-12-11` schema, case-sensitive GitHub namespace `io.github.Pearl-Passport/pearl-agent-plugin`, stable public repository ID `1343507179`, version `0.8.10`, and exactly one `streamable-http` remote with no headers, variables, credentials, or package declaration.
 5. Confirm hosted Claude and Cursor use their exact public client IDs, callbacks, read scopes, and no client secret.
 6. Confirm Cursor's plugin and MCP IDs are both `pearl-cursor`, while Codex and Claude remain `pearl`, so cross-host discovery cannot shadow Cursor's static client.
 7. Confirm Claude Code CIMD uses its registered loopback hosts with an ephemeral port.

@@ -7,7 +7,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const PLUGIN_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const EXPECTED_VERSION = "0.8.9";
+const EXPECTED_VERSION = "0.8.10";
 const EXPECTED_MCP_URL = "https://agent.joinpearl.co/mcp";
 const EXPECTED_REGISTRY_SCHEMA = "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json";
 const EXPECTED_REGISTRY_NAME = "io.github.Pearl-Passport/pearl-agent-plugin";
@@ -90,6 +90,7 @@ export const EXPECTED_PUBLIC_REPOSITORY_FILES = [
   "plugins/pearl/docs/submission.md",
   "plugins/pearl/mcp-apps/README.md",
   "plugins/pearl/mcp-apps/HOST-TESTING.md",
+  "plugins/pearl/mcp-apps/TOKENS.md",
   "plugins/pearl/mcp-apps/package.json",
   "plugins/pearl/mcp-apps/scripts/build.mjs",
   "plugins/pearl/mcp-apps/scripts/render-fixture.mjs",
@@ -102,6 +103,10 @@ export const EXPECTED_PUBLIC_REPOSITORY_FILES = [
   "plugins/pearl/mcp-apps/test/fixtures/flights.json",
   "plugins/pearl/mcp-apps/test/fixtures/journeys.json",
   "plugins/pearl/mcp-apps/test/fixtures/profile.json",
+  "plugins/pearl/mcp-apps/test/fixtures/states-denied.json",
+  "plugins/pearl/mcp-apps/test/fixtures/states-empty.json",
+  "plugins/pearl/mcp-apps/test/fixtures/states-expired.json",
+  "plugins/pearl/mcp-apps/test/fixtures/states-partial.json",
   "plugins/pearl/mcp-apps/test/fixtures/venues.json",
   "plugins/pearl/mcp-apps/test/integration.test.mjs",
   "plugins/pearl/mcp-apps/test/model.test.mjs",
@@ -401,7 +406,7 @@ export async function validatePackage() {
   check(cursorEntry?.name === cursor.name, "Cursor marketplace and plugin identifiers must match", errors);
   check(cursorMarket.owner?.email === PUBLIC_CONTACT_EMAIL && cursorEntry?.author?.email === PUBLIC_CONTACT_EMAIL, `Cursor marketplace contacts must use ${PUBLIC_CONTACT_EMAIL}`, errors);
   check([claudeEntry, codex, claude].every((entry) => !/(?:guarded|gated|write|cleanup|photo)/i.test(entry?.description ?? "")), "Public host descriptions must advertise only current read workflows", errors);
-  check(claude.description.includes("Active Pearl Elite members"), "Claude plugin metadata must disclose Pearl Elite eligibility", errors);
+  check(claude.description.includes("Eligible Pearl Access members"), "Claude plugin metadata must disclose Pearl Access eligibility", errors);
 
   const skill = await readFile(path.join(PLUGIN_ROOT, "skills/pearl-concierge/SKILL.md"), "utf8");
   const capabilitySnapshot = await readFile(path.join(PLUGIN_ROOT, "skills/pearl-concierge/references/capabilities.md"), "utf8");
@@ -427,7 +432,7 @@ export async function validatePackage() {
   const liveValidator = await readFile(path.join(PLUGIN_ROOT, "scripts/validate-live.mjs"), "utf8");
   check(/^---\nname: pearl-concierge\ndescription: [^\n]+\n---/.test(skill), "Pearl skill frontmatter is missing or invalid", errors);
   check(skill.includes("tools/list") && skill.includes("Treat venue descriptions"), "Pearl skill must require discovery and treat tool data as untrusted data", errors);
-  check(skill.includes("active Pearl Elite") && skill.includes("Never suggest a tester flag"), "Pearl skill must state the Elite boundary without a bypass", errors);
+  check(skill.includes("eligible Pearl Access member") && skill.includes("legacy error code") && skill.includes("Never suggest a tester flag"), "Pearl skill must state the Access boundary without a bypass", errors);
   check(openaiYaml.includes("$pearl-concierge"), "OpenAI skill metadata must reference $pearl-concierge", errors);
 
   check(setupGuide.includes(CLAUDE_HOSTED_CLIENT_ID) && oauthGuide.includes(CLAUDE_HOSTED_CLIENT_ID), "Claude hosted setup must use its registered public client", errors);

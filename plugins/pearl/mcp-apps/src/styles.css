@@ -1,31 +1,79 @@
+/* Pearl MCP Apps design-system foundation.
+ *
+ * TOKEN BRIDGE — every --pearl-ui-* token below maps to a canonical Pearl
+ * design-system token defined in src/index.css ([data-ui="pearl"] scope).
+ * The full documented bridge lives in TOKENS.md next to this file. Hosts may
+ * override the structural tokens through the allowlisted
+ * hostContext.styles.variables keys (see app.mjs); Pearl brand accents stay
+ * fixed so cards remain unmistakably Pearl inside a host-native shell.
+ *
+ * GLASS LAYER — the panel paints a soft Pearl ambient wash (cream/terracotta/
+ * honey/navy) and every inner primitive is a translucent "glass" surface with
+ * backdrop blur and a warm iridescent hairline. Every glass treatment has an
+ * opaque fallback for hosts without backdrop-filter, and is disabled under
+ * prefers-reduced-transparency, prefers-contrast: more, and forced colors.
+ */
+
 :root {
   color-scheme: light dark;
-  /* Reviewed standalone subset. V1 values are used where accessible; the
-     secondary text fallback is Pearl's AA-qualified body-copy token. */
-  --pearl-ui-canvas: var(--color-background-primary, #f8f6f4);
-  --pearl-ui-surface: var(--color-background-secondary, #ffffff);
-  --pearl-ui-subtle: var(--color-background-tertiary, #eeeae7);
-  --pearl-ui-text: var(--color-text-primary, #3a3a39);
-  --pearl-ui-text-secondary: var(--color-text-secondary, #6b6b6b);
-  --pearl-ui-border: var(--color-border-primary, #d2d2d0);
-  --pearl-ui-border-soft: var(--color-border-secondary, #e6e6e5);
-  --pearl-ui-action: #20201f;
-  --pearl-ui-action-hover: #3a3a39;
-  --pearl-ui-action-fg: #fbfbfa;
-  --pearl-ui-focus: var(--color-ring-primary, #8a4f36);
-  --pearl-ui-danger: var(--color-text-danger, #843e3e);
-  --pearl-ui-danger-bg: var(--color-background-danger, #fbf2f1);
-  --pearl-ui-success: var(--color-text-success, #2a5c54);
-  --pearl-ui-success-bg: var(--color-background-success, #edf6f3);
-  --pearl-ui-warning: var(--color-text-warning, #8a5a12);
-  --pearl-ui-warning-bg: var(--color-background-warning, #fdf9ef);
-  --pearl-ui-accent: #8a4f36;
-  --pearl-ui-accent-bg: rgba(168, 103, 75, 0.12);
+  /* Structural bridge (host-overridable) — canonical Pearl light values. */
+  --pearl-ui-canvas: var(--color-background-primary, #fbfaf7);          /* ← --pearl-bg */
+  --pearl-ui-surface: var(--color-background-secondary, #ffffff);       /* ← --pearl-paper */
+  --pearl-ui-subtle: var(--color-background-tertiary, #f3efe9);         /* ← --pearl-subtle */
+  --pearl-ui-text: var(--color-text-primary, #17212a);                  /* ← --pearl-ink */
+  --pearl-ui-text-secondary: var(--color-text-secondary, #6b6b6b);      /* ← --pearl-ink-3 (AA body) */
+  --pearl-ui-border: var(--color-border-primary, rgba(85, 85, 85, 0.30));      /* ← --pearl-ink-4 */
+  --pearl-ui-border-soft: var(--color-border-secondary, rgba(85, 85, 85, 0.16)); /* ← --pearl-ink-4 soft */
+  --pearl-ui-focus: var(--color-ring-primary, #8a4f36);                 /* ← --pearl-accent-on-tint */
+  --pearl-ui-danger: var(--color-text-danger, #843e3e);                 /* ← --pearl-danger-on-tint */
+  --pearl-ui-danger-bg: var(--color-background-danger, rgba(159, 79, 79, 0.14));   /* ← --pearl-danger-tint */
+  --pearl-ui-success: var(--color-text-success, #2a5c54);               /* ← --pearl-success-on-tint */
+  --pearl-ui-success-bg: var(--color-background-success, rgba(60, 120, 112, 0.14)); /* ← --pearl-success-tint */
+  --pearl-ui-warning: var(--color-text-warning, #8a5a12);               /* ← --pearl-warning-on-tint */
+  --pearl-ui-warning-bg: var(--color-background-warning, rgba(220, 176, 111, 0.18)); /* ← --pearl-warning-tint */
   --pearl-ui-font: var(--font-sans, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif);
   --pearl-ui-radius-sm: var(--border-radius-sm, 8px);
   --pearl-ui-radius-md: var(--border-radius-md, 12px);
   --pearl-ui-radius-lg: var(--border-radius-lg, 16px);
-  --pearl-ui-shadow: var(--shadow-sm, 0 3px 6px -2px rgba(0, 0, 0, 0.12));
+  --pearl-ui-shadow: var(--shadow-sm, 0 8px 24px -12px rgba(23, 33, 42, 0.18));
+
+  /* Pearl brand accents (fixed) — canonical sources noted per token. */
+  --pearl-ui-accent: #8a4f36;                       /* ← --pearl-accent-on-tint */
+  --pearl-ui-accent-strong: #a8674b;                /* ← --pearl-accent */
+  --pearl-ui-accent-bg: rgba(168, 103, 75, 0.12);   /* ← --pearl-accent-tint */
+  --pearl-ui-saved: #8a5a12;                        /* ← --pearl-warning-on-tint (AA on saved tint) */
+  --pearl-ui-saved-bg: rgba(184, 137, 60, 0.14);    /* ← --pearl-saved-tint */
+  --pearl-ui-navy: #212f52;                         /* ← --pearl-navy */
+  --pearl-ui-action: #8a4f36;                       /* ← --pearl-accent-on-tint */
+  --pearl-ui-action-hover: #a8674b;                 /* ← --pearl-accent */
+  --pearl-ui-action-fg: #ffffff;                    /* ← --pearl-paper */
+
+  /* Editorial display stack — system serif echo of Pearl's Playfair display. */
+  --pearl-ui-font-display: ui-serif, "New York", Georgia, "Times New Roman", var(--pearl-ui-font);
+
+  /* Glass layer — translucent projections of --pearl-paper / --pearl-bg. */
+  --pearl-ui-glass: rgba(255, 255, 255, 0.60);
+  --pearl-ui-glass-strong: rgba(255, 255, 255, 0.78);
+  --pearl-ui-glass-border: rgba(255, 255, 255, 0.65);
+  --pearl-ui-glass-blur: 16px;
+  /* Ambient wash stops ← --pearl-accent-tint, --pearl-saved-tint, navy tint. */
+  --pearl-ui-wash-a: rgba(168, 103, 75, 0.10);
+  --pearl-ui-wash-b: rgba(184, 137, 60, 0.08);
+  --pearl-ui-wash-c: rgba(33, 47, 82, 0.06);
+  /* Iridescent hairline stops — warmed Pearl variant of the app's card-glass. */
+  --pearl-ui-irid-1: rgba(255, 255, 255, 0.70);
+  --pearl-ui-irid-2: rgba(168, 103, 75, 0.38);
+  --pearl-ui-irid-3: rgba(184, 137, 60, 0.30);
+  --pearl-ui-irid-4: rgba(33, 47, 82, 0.24);
+
+  /* Category artwork palette ← canonical --pearl-cat-* colors. */
+  --pearl-ui-cat-0: #9f4f4f; --pearl-ui-cat-0-deep: #6e3535;  /* restaurant */
+  --pearl-ui-cat-1: #b8862e; --pearl-ui-cat-1-deep: #7d5a1e;  /* bar */
+  --pearl-ui-cat-2: #3e5c76; --pearl-ui-cat-2-deep: #293e50;  /* hotel */
+  --pearl-ui-cat-3: #8e5c7a; --pearl-ui-cat-3-deep: #613e53;  /* winery */
+  --pearl-ui-cat-4: #855a42; --pearl-ui-cat-4-deep: #5a3c2c;  /* cafe */
+  --pearl-ui-cat-5: #3f7368; --pearl-ui-cat-5-deep: #2a4e46;  /* spa / other */
+
   --safe-top: 0px;
   --safe-right: 0px;
   --safe-bottom: 0px;
@@ -35,25 +83,42 @@
 }
 
 :root[data-theme="dark"] {
-  --pearl-ui-canvas: var(--color-background-primary, #15171b);
-  --pearl-ui-surface: var(--color-background-secondary, #1f2228);
-  --pearl-ui-subtle: var(--color-background-tertiary, #23262c);
-  --pearl-ui-text: var(--color-text-primary, #f4f1eb);
-  --pearl-ui-text-secondary: var(--color-text-secondary, #b8b4ab);
-  --pearl-ui-border: var(--color-border-primary, rgba(255, 255, 255, 0.22));
-  --pearl-ui-border-soft: var(--color-border-secondary, rgba(255, 255, 255, 0.14));
-  --pearl-ui-action: #f4f1eb;
-  --pearl-ui-action-hover: #d8d4cc;
-  --pearl-ui-action-fg: #15171b;
-  --pearl-ui-focus: var(--color-ring-primary, #d89c7e);
+  --pearl-ui-canvas: var(--color-background-primary, #15171b);          /* ← --pearl-bg dark */
+  --pearl-ui-surface: var(--color-background-secondary, #1f2228);       /* ← --pearl-paper dark */
+  --pearl-ui-subtle: var(--color-background-tertiary, #23262c);         /* ← --pearl-subtle dark */
+  --pearl-ui-text: var(--color-text-primary, #f4f1eb);                  /* ← --pearl-ink dark */
+  --pearl-ui-text-secondary: var(--color-text-secondary, #b8b4ab);      /* ← --pearl-ink-2 dark */
+  --pearl-ui-border: var(--color-border-primary, rgba(244, 241, 235, 0.28));      /* ← --pearl-ink-4 dark */
+  --pearl-ui-border-soft: var(--color-border-secondary, rgba(244, 241, 235, 0.14));
+  --pearl-ui-focus: var(--color-ring-primary, #d89c7e);                 /* ← --pearl-accent-on-tint dark */
   --pearl-ui-danger: var(--color-text-danger, #de9393);
   --pearl-ui-danger-bg: var(--color-background-danger, rgba(159, 79, 79, 0.22));
   --pearl-ui-success: var(--color-text-success, #82c6b9);
   --pearl-ui-success-bg: var(--color-background-success, rgba(60, 120, 112, 0.22));
   --pearl-ui-warning: var(--color-text-warning, #e5c48f);
   --pearl-ui-warning-bg: var(--color-background-warning, rgba(220, 176, 111, 0.22));
-  --pearl-ui-accent: #d89c7e;
-  --pearl-ui-accent-bg: rgba(194, 131, 104, 0.18);
+
+  --pearl-ui-accent: #d89c7e;                       /* ← --pearl-accent-on-tint dark */
+  --pearl-ui-accent-strong: #c28368;                /* ← --pearl-accent dark */
+  --pearl-ui-accent-bg: rgba(194, 131, 104, 0.18);  /* ← --pearl-accent-tint dark */
+  --pearl-ui-saved: #e5c48f;                        /* ← --pearl-warning-on-tint dark */
+  --pearl-ui-saved-bg: rgba(210, 160, 78, 0.20);    /* ← --pearl-saved-tint dark */
+  --pearl-ui-navy: #f4f1eb;                         /* ← --pearl-navy dark (inverts to ink) */
+  --pearl-ui-action: #d89c7e;                       /* ← --pearl-accent-soft dark */
+  --pearl-ui-action-hover: #e2b09a;
+  --pearl-ui-action-fg: #15171b;                    /* ← --pearl-bg dark */
+
+  --pearl-ui-glass: rgba(31, 34, 40, 0.55);
+  --pearl-ui-glass-strong: rgba(35, 38, 44, 0.74);
+  --pearl-ui-glass-border: rgba(255, 255, 255, 0.14);
+  --pearl-ui-wash-a: rgba(194, 131, 104, 0.14);
+  --pearl-ui-wash-b: rgba(210, 160, 78, 0.10);
+  --pearl-ui-wash-c: rgba(96, 118, 178, 0.10);
+  --pearl-ui-irid-1: rgba(255, 255, 255, 0.34);
+  --pearl-ui-irid-2: rgba(216, 156, 126, 0.40);
+  --pearl-ui-irid-3: rgba(210, 160, 78, 0.30);
+  --pearl-ui-irid-4: rgba(120, 140, 196, 0.26);
+  --pearl-ui-shadow: var(--shadow-sm, 0 10px 28px -12px rgba(0, 0, 0, 0.55));
 }
 
 @media (prefers-color-scheme: dark) {
@@ -63,11 +128,8 @@
     --pearl-ui-subtle: #23262c;
     --pearl-ui-text: #f4f1eb;
     --pearl-ui-text-secondary: #b8b4ab;
-    --pearl-ui-border: rgba(255, 255, 255, 0.22);
-    --pearl-ui-border-soft: rgba(255, 255, 255, 0.14);
-    --pearl-ui-action: #f4f1eb;
-    --pearl-ui-action-hover: #d8d4cc;
-    --pearl-ui-action-fg: #15171b;
+    --pearl-ui-border: rgba(244, 241, 235, 0.28);
+    --pearl-ui-border-soft: rgba(244, 241, 235, 0.14);
     --pearl-ui-focus: #d89c7e;
     --pearl-ui-danger: #de9393;
     --pearl-ui-danger-bg: rgba(159, 79, 79, 0.22);
@@ -76,7 +138,25 @@
     --pearl-ui-warning: #e5c48f;
     --pearl-ui-warning-bg: rgba(220, 176, 111, 0.22);
     --pearl-ui-accent: #d89c7e;
+    --pearl-ui-accent-strong: #c28368;
     --pearl-ui-accent-bg: rgba(194, 131, 104, 0.18);
+    --pearl-ui-saved: #e5c48f;
+    --pearl-ui-saved-bg: rgba(210, 160, 78, 0.20);
+    --pearl-ui-navy: #f4f1eb;
+    --pearl-ui-action: #d89c7e;
+    --pearl-ui-action-hover: #e2b09a;
+    --pearl-ui-action-fg: #15171b;
+    --pearl-ui-glass: rgba(31, 34, 40, 0.55);
+    --pearl-ui-glass-strong: rgba(35, 38, 44, 0.74);
+    --pearl-ui-glass-border: rgba(255, 255, 255, 0.14);
+    --pearl-ui-wash-a: rgba(194, 131, 104, 0.14);
+    --pearl-ui-wash-b: rgba(210, 160, 78, 0.10);
+    --pearl-ui-wash-c: rgba(96, 118, 178, 0.10);
+    --pearl-ui-irid-1: rgba(255, 255, 255, 0.34);
+    --pearl-ui-irid-2: rgba(216, 156, 126, 0.40);
+    --pearl-ui-irid-3: rgba(210, 160, 78, 0.30);
+    --pearl-ui-irid-4: rgba(120, 140, 196, 0.26);
+    --pearl-ui-shadow: 0 10px 28px -12px rgba(0, 0, 0, 0.55);
   }
 }
 
@@ -111,14 +191,40 @@ button:focus-visible,
   padding: max(12px, var(--safe-top)) max(12px, var(--safe-right)) max(12px, var(--safe-bottom)) max(12px, var(--safe-left));
 }
 
+/* ---------------------------------------------------------------- panel */
+
 .panel {
+  position: relative;
   width: 100%;
   min-width: 0;
   overflow: hidden;
-  border: 1px solid var(--pearl-ui-border-soft);
+  border: 1px solid var(--pearl-ui-glass-border);
   border-radius: var(--pearl-ui-radius-lg);
-  background: var(--pearl-ui-canvas);
+  background:
+    radial-gradient(130% 90% at 12% -10%, var(--pearl-ui-wash-a), transparent 55%),
+    radial-gradient(110% 80% at 100% 0%, var(--pearl-ui-wash-b), transparent 50%),
+    radial-gradient(120% 100% at 85% 110%, var(--pearl-ui-wash-c), transparent 55%),
+    var(--pearl-ui-canvas);
   box-shadow: var(--pearl-ui-shadow);
+}
+
+/* Warm iridescent hairline (Pearl variant of the app's .card-glass border). */
+.panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg,
+      var(--pearl-ui-irid-1) 0%,
+      var(--pearl-ui-irid-2) 28%,
+      var(--pearl-ui-irid-3) 55%,
+      var(--pearl-ui-irid-4) 80%,
+      var(--pearl-ui-irid-1) 100%);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
 }
 
 .panel-header {
@@ -133,11 +239,14 @@ button:focus-visible,
 .header-copy { min-width: 0; }
 
 .eyebrow {
-  margin: 0 0 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 5px;
   color: var(--pearl-ui-accent);
   font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
@@ -145,8 +254,8 @@ h1, h2, h3, p { margin-top: 0; }
 
 h1 {
   margin-bottom: 4px;
-  font: 600 clamp(20px, 5vw, 26px)/1.18 var(--pearl-ui-font);
-  letter-spacing: -0.02em;
+  font: 600 clamp(20px, 5vw, 27px)/1.16 var(--pearl-ui-font-display);
+  letter-spacing: -0.01em;
 }
 
 .subtitle,
@@ -158,17 +267,20 @@ h1 {
 
 .subtitle { margin: 0; max-width: 62ch; }
 
+/* --------------------------------------------------------------- badges */
+
 .count-pill,
 .chip,
 .status-pill {
   display: inline-flex;
   align-items: center;
+  gap: 4px;
   min-height: 26px;
   max-width: 100%;
-  padding: 3px 9px;
-  border: 1px solid var(--pearl-ui-border-soft);
+  padding: 3px 10px;
+  border: 1px solid var(--pearl-ui-glass-border);
   border-radius: 999px;
-  background: var(--pearl-ui-surface);
+  background: var(--pearl-ui-glass-strong);
   color: var(--pearl-ui-text);
   font-size: 12px;
   font-weight: 500;
@@ -177,12 +289,54 @@ h1 {
 
 .count-pill { flex: 0 0 auto; }
 
+.chip.accent {
+  border-color: transparent;
+  background: var(--pearl-ui-accent-bg);
+  color: var(--pearl-ui-accent);
+  font-weight: 600;
+}
+
+.status-pill[data-status="confirmed"],
+.status-pill[data-status="available"] {
+  border-color: transparent;
+  background: var(--pearl-ui-success-bg);
+  color: var(--pearl-ui-success);
+}
+
+.status-pill[data-status="pending"],
+.status-pill[data-status="limited"] {
+  border-color: transparent;
+  background: var(--pearl-ui-warning-bg);
+  color: var(--pearl-ui-warning);
+}
+
+.status-pill[data-status="cancelled"],
+.status-pill[data-status="unavailable"] {
+  border-color: transparent;
+  background: var(--pearl-ui-danger-bg);
+  color: var(--pearl-ui-danger);
+}
+
+/* ---------------------------------------------------------------- icons */
+
+.icon {
+  flex: 0 0 auto;
+  width: 15px;
+  height: 15px;
+  color: inherit;
+}
+
+.eyebrow .icon { width: 12px; height: 12px; }
+
+/* --------------------------------------------------------------- states */
+
 .status-banner {
   display: flex;
   align-items: flex-start;
   gap: 10px;
   margin: 14px 18px 0;
   padding: 11px 12px;
+  border: 1px solid var(--pearl-ui-glass-border);
   border-radius: var(--pearl-ui-radius-md);
   background: var(--pearl-ui-warning-bg);
   color: var(--pearl-ui-warning);
@@ -198,10 +352,12 @@ h1 {
   background: var(--pearl-ui-success-bg);
 }
 
-.status-mark { flex: 0 0 auto; font-weight: 700; }
+.status-mark { display: inline-flex; flex: 0 0 auto; margin-top: 2px; }
 .status-copy { margin: 0; color: inherit; }
 
 .content { padding: 16px 18px 18px; }
+
+/* -------------------------------------------------------------- profile */
 
 .profile-layout {
   display: grid;
@@ -219,17 +375,18 @@ h1 {
   min-width: 0;
   gap: 2px;
   padding: 14px;
-  border: 1px solid var(--pearl-ui-border-soft);
+  border: 1px solid var(--pearl-ui-glass-border);
   border-radius: var(--pearl-ui-radius-md);
   background: var(--pearl-ui-surface);
 }
 
 .metric-value {
   color: var(--pearl-ui-text);
+  font-family: var(--pearl-ui-font-display);
   font-size: clamp(22px, 6vw, 30px);
   font-weight: 650;
   line-height: 1.1;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.02em;
 }
 
 .metric-label,
@@ -249,7 +406,7 @@ h1 {
 .profile-questions {
   min-width: 0;
   padding: 14px;
-  border: 1px solid var(--pearl-ui-border-soft);
+  border: 1px solid var(--pearl-ui-glass-border);
   border-radius: var(--pearl-ui-radius-md);
   background: var(--pearl-ui-surface);
 }
@@ -262,9 +419,7 @@ h1 {
 
 .facet-card .chip-row { margin-top: 0; }
 
-.rank-list {
-  display: grid;
-}
+.rank-list { display: grid; }
 
 .rank-row {
   display: flex;
@@ -289,6 +444,8 @@ h1 {
   gap: 8px;
 }
 
+/* -------------------------------------------------------------- toolbar */
+
 .toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -300,13 +457,15 @@ h1 {
 
 .toolbar-copy { margin: 0; color: var(--pearl-ui-text-secondary); }
 
+/* -------------------------------------------------------------- actions */
+
 .button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   min-width: 44px;
   min-height: 44px;
-  padding: 10px 14px;
+  padding: 10px 16px;
   border: 1px solid transparent;
   border-radius: var(--pearl-ui-radius-md);
   background: var(--pearl-ui-action);
@@ -314,7 +473,7 @@ h1 {
   font-weight: 600;
   line-height: 1.2;
   cursor: pointer;
-  transition: background-color 160ms ease, transform 160ms ease;
+  transition: background-color 160ms ease, transform 160ms ease, border-color 160ms ease;
 }
 
 .button:hover { background: var(--pearl-ui-action-hover); }
@@ -327,7 +486,13 @@ h1 {
   color: var(--pearl-ui-text);
 }
 
-.button.secondary:hover { background: var(--pearl-ui-subtle); }
+.button.secondary:hover {
+  border-color: var(--pearl-ui-accent-strong);
+  background: var(--pearl-ui-accent-bg);
+  color: var(--pearl-ui-accent);
+}
+
+/* ---------------------------------------------------------------- cards */
 
 .results-grid {
   display: grid;
@@ -339,9 +504,10 @@ h1 {
   position: relative;
   min-width: 0;
   padding: 14px;
-  border: 1px solid var(--pearl-ui-border-soft);
+  border: 1px solid var(--pearl-ui-glass-border);
   border-radius: var(--pearl-ui-radius-md);
   background: var(--pearl-ui-surface);
+  box-shadow: 0 2px 10px -6px rgba(23, 33, 42, 0.16);
 }
 
 button.result-card {
@@ -350,13 +516,17 @@ button.result-card {
   color: inherit;
   text-align: left;
   cursor: pointer;
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
 }
 
-button.result-card:hover { border-color: var(--pearl-ui-border); }
+button.result-card:hover {
+  border-color: var(--pearl-ui-accent-strong);
+  transform: translateY(-1px);
+}
 
 button.result-card[aria-pressed="true"] {
   border-color: var(--pearl-ui-accent);
-  box-shadow: inset 0 0 0 1px var(--pearl-ui-accent);
+  box-shadow: inset 0 0 0 1px var(--pearl-ui-accent), 0 6px 18px -8px var(--pearl-ui-accent-bg);
 }
 
 .item-heading {
@@ -386,41 +556,81 @@ button.result-card[aria-pressed="true"] {
   margin-top: 12px;
 }
 
-.chip.accent {
-  border-color: transparent;
-  background: var(--pearl-ui-accent-bg);
-  color: var(--pearl-ui-accent);
+/* ------------------------------------------------------- venue imagery */
+
+.media {
+  position: relative;
+  margin: -14px -14px 12px;
+  aspect-ratio: 21 / 9;
+  overflow: hidden;
+  border-bottom: 1px solid var(--pearl-ui-border-soft);
+  border-radius: calc(var(--pearl-ui-radius-md) - 1px) calc(var(--pearl-ui-radius-md) - 1px) 0 0;
+  background: var(--pearl-ui-subtle);
 }
 
-.status-pill[data-status="confirmed"],
-.status-pill[data-status="available"] {
-  border-color: transparent;
-  background: var(--pearl-ui-success-bg);
-  color: var(--pearl-ui-success);
+.media.compact { aspect-ratio: 4 / 1; margin: -12px -12px 10px; }
+
+/* Deterministic brand-safe fallback artwork: category-tinted gradient with a
+   pearl sheen and the venue initial. Renders instantly; never waits on the
+   network image, which layers above it only after a successful load. */
+.media-fallback {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
 }
 
-.status-pill[data-status="pending"],
-.status-pill[data-status="limited"] {
-  border-color: transparent;
-  background: var(--pearl-ui-warning-bg);
-  color: var(--pearl-ui-warning);
+.media-fallback[data-palette="0"] { background: radial-gradient(120% 90% at 18% 0%, rgba(255, 255, 255, 0.30), transparent 55%), linear-gradient(140deg, var(--pearl-ui-cat-0), var(--pearl-ui-cat-0-deep)); }
+.media-fallback[data-palette="1"] { background: radial-gradient(120% 90% at 18% 0%, rgba(255, 255, 255, 0.30), transparent 55%), linear-gradient(140deg, var(--pearl-ui-cat-1), var(--pearl-ui-cat-1-deep)); }
+.media-fallback[data-palette="2"] { background: radial-gradient(120% 90% at 18% 0%, rgba(255, 255, 255, 0.30), transparent 55%), linear-gradient(140deg, var(--pearl-ui-cat-2), var(--pearl-ui-cat-2-deep)); }
+.media-fallback[data-palette="3"] { background: radial-gradient(120% 90% at 18% 0%, rgba(255, 255, 255, 0.30), transparent 55%), linear-gradient(140deg, var(--pearl-ui-cat-3), var(--pearl-ui-cat-3-deep)); }
+.media-fallback[data-palette="4"] { background: radial-gradient(120% 90% at 18% 0%, rgba(255, 255, 255, 0.30), transparent 55%), linear-gradient(140deg, var(--pearl-ui-cat-4), var(--pearl-ui-cat-4-deep)); }
+.media-fallback[data-palette="5"] { background: radial-gradient(120% 90% at 18% 0%, rgba(255, 255, 255, 0.30), transparent 55%), linear-gradient(140deg, var(--pearl-ui-cat-5), var(--pearl-ui-cat-5-deep)); }
+
+.media-initial {
+  color: rgba(251, 250, 247, 0.92);
+  font: 600 28px/1 var(--pearl-ui-font-display);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
 }
 
-.status-pill[data-status="cancelled"],
-.status-pill[data-status="unavailable"] {
-  border-color: transparent;
-  background: var(--pearl-ui-danger-bg);
-  color: var(--pearl-ui-danger);
+.media.compact .media-initial { font-size: 18px; }
+
+.media-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
+
+.media-credit {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  max-width: calc(100% - 12px);
+  overflow: hidden;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(23, 33, 42, 0.55);
+  color: rgba(251, 250, 247, 0.92);
+  font-size: 10px;
+  line-height: 1.4;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* ----------------------------------------------------------- comparison */
 
 .comparison {
   margin-top: 14px;
-  border: 1px solid var(--pearl-ui-border-soft);
+  border: 1px solid var(--pearl-ui-glass-border);
   border-radius: var(--pearl-ui-radius-md);
   background: var(--pearl-ui-surface);
 }
 
 .comparison h2 { margin: 0; padding: 14px; font-size: 16px; }
+
 .comparison-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -439,12 +649,15 @@ button.result-card[aria-pressed="true"] {
 }
 
 .comparison-card h3 { margin: 0 0 10px; font-size: 14px; }
+.comparison-card .media { margin: -12px -12px 10px; border-radius: calc(var(--pearl-ui-radius-sm) - 1px) calc(var(--pearl-ui-radius-sm) - 1px) 0 0; }
 .comparison-details { margin: 0; }
 .comparison-row { display: grid; gap: 2px; padding: 8px 0; border-top: 1px solid var(--pearl-ui-border-soft); }
 .comparison-row:first-child { border-top: 0; padding-top: 0; }
 .comparison-row:last-child { padding-bottom: 0; }
 .comparison-row dt { color: var(--pearl-ui-text-secondary); font-size: 12px; font-weight: 600; }
 .comparison-row dd { min-width: 0; margin: 0; }
+
+/* --------------------------------------------------- empty/error states */
 
 .empty-state,
 .error-state {
@@ -459,11 +672,29 @@ button.result-card[aria-pressed="true"] {
   background: var(--pearl-ui-surface);
 }
 
+.state-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  background: var(--pearl-ui-accent-bg);
+  color: var(--pearl-ui-accent);
+}
+
+.error-state .state-icon {
+  background: var(--pearl-ui-warning-bg);
+  color: var(--pearl-ui-warning);
+}
+
 .empty-state h2,
 .error-state h2 { margin: 0; font-size: 18px; }
 .empty-state p,
 .error-state p { margin: 0 0 6px; color: var(--pearl-ui-text-secondary); }
 .error-state .scope-note { font-size: 12px; }
+
+/* -------------------------------------------------------------- loading */
 
 .skeleton-grid {
   display: grid;
@@ -473,7 +704,7 @@ button.result-card[aria-pressed="true"] {
 
 .skeleton {
   height: 112px;
-  border: 1px solid var(--pearl-ui-border-soft);
+  border: 1px solid var(--pearl-ui-glass-border);
   border-radius: var(--pearl-ui-radius-md);
   background: linear-gradient(100deg, var(--pearl-ui-surface) 30%, var(--pearl-ui-subtle) 50%, var(--pearl-ui-surface) 70%);
   background-size: 240% 100%;
@@ -495,6 +726,90 @@ button.result-card[aria-pressed="true"] {
 @keyframes shimmer {
   to { background-position-x: -240%; }
 }
+
+/* ---------------------------------------------------- glass enhancement */
+
+/* Progressive enhancement only: hosts without backdrop-filter keep the
+   opaque canonical surfaces declared above. */
+@supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .result-card,
+  .metric-card,
+  .facet-card,
+  .profile-section,
+  .profile-questions,
+  .comparison,
+  .empty-state,
+  .error-state,
+  .skeleton {
+    background-color: var(--pearl-ui-glass);
+    -webkit-backdrop-filter: blur(var(--pearl-ui-glass-blur)) saturate(1.12);
+    backdrop-filter: blur(var(--pearl-ui-glass-blur)) saturate(1.12);
+  }
+
+  .skeleton {
+    background-image: linear-gradient(100deg, transparent 30%, var(--pearl-ui-subtle) 50%, transparent 70%);
+    background-size: 240% 100%;
+  }
+
+  .button.secondary,
+  .count-pill,
+  .chip:not(.accent),
+  .status-pill:not([data-status]) {
+    background-color: var(--pearl-ui-glass-strong);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+  }
+
+  .comparison-card { background-color: var(--pearl-ui-glass-strong); }
+}
+
+/* Accessibility overrides: return to fully opaque canonical surfaces. */
+@media (prefers-reduced-transparency: reduce) {
+  .panel { background: var(--pearl-ui-canvas); }
+  .result-card,
+  .metric-card,
+  .facet-card,
+  .profile-section,
+  .profile-questions,
+  .comparison,
+  .comparison-card,
+  .empty-state,
+  .error-state,
+  .skeleton,
+  .button.secondary,
+  .count-pill,
+  .chip,
+  .status-pill {
+    background-color: var(--pearl-ui-surface);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .panel { background: var(--pearl-ui-canvas); }
+  .panel::before { display: none; }
+  .result-card,
+  .metric-card,
+  .facet-card,
+  .profile-section,
+  .profile-questions,
+  .comparison,
+  .comparison-card,
+  .empty-state,
+  .error-state,
+  .button.secondary,
+  .count-pill,
+  .chip,
+  .status-pill {
+    background-color: var(--pearl-ui-surface);
+    border-color: var(--pearl-ui-border);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+/* ------------------------------------------------------------ responsive */
 
 @media (min-width: 540px) {
   .results-grid,
@@ -525,11 +840,15 @@ button.result-card[aria-pressed="true"] {
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
   }
+
+  button.result-card:hover { transform: none; }
 }
 
 @media (forced-colors: active) {
-  .panel, .result-card, .comparison, .count-pill, .chip, .status-pill, .metric-card, .facet-card, .profile-section, .profile-questions {
+  .panel, .result-card, .comparison, .comparison-card, .count-pill, .chip, .status-pill,
+  .metric-card, .facet-card, .profile-section, .profile-questions, .media {
     border: 1px solid CanvasText;
   }
+  .panel::before, .media-fallback { display: none; }
   button.result-card[aria-pressed="true"] { outline: 3px solid Highlight; }
 }

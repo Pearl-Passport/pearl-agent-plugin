@@ -1,0 +1,16 @@
+{
+  "structuredContent": {
+    "venues": [
+      {
+        "location_id": "venue-1",
+        "name": "Le Jardin",
+        "type": "restaurant",
+        "neighborhood": "Saint-Germain",
+        "city": "Paris",
+        "recommendation_reason": "Warm service and a concise seasonal menu.",
+        "pearl_score": 9.2
+      }
+    ],
+    "warnings": ["The second venue source was unavailable."]
+  }
+}

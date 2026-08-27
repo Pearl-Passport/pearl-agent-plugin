@@ -10,7 +10,13 @@
         "city": "Paris",
         "recommendation_reason": "Warm service and a concise seasonal menu.",
         "pearl_score": 9.2,
-        "status": "available"
+        "status": "available",
+        "hero_image": {
+          "url": "https://agent.joinpearl.co/media/venues/le-jardin/hero-1200x800.jpg",
+          "width": 1200,
+          "height": 800,
+          "attribution": "Le Jardin"
+        }
       },
       {
         "location_id": "venue-2",
@@ -19,7 +25,10 @@
         "neighborhood": "Le Marais",
         "city": "Paris",
         "recommendation_reason": "A quiet room with an inventive drinks list.",
-        "pearl_score": 8.8
+        "pearl_score": 8.8,
+        "hero_image": {
+          "url": "https://attacker.example/steal.png?sig=mutable-material"
+        }
       },
       {
         "location_id": "venue-3",
