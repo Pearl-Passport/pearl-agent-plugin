@@ -21,6 +21,124 @@
       "cities_visited": 14,
       "allergies": ["shellfish"]
     },
+    "analytics": {
+      "generated_at": "2026-08-30T18:20:00Z",
+      "confidence": {
+        "label": "high",
+        "governed_visit_count": 72,
+        "governed_save_count": 41,
+        "explicit_preference_count": 9,
+        "explanation": "Pearl has broad, current first-party evidence for this taste reading."
+      },
+      "coverage": {
+        "coverage_state": "complete",
+        "history_coverage_state": "complete",
+        "exploration_history_coverage_state": "complete",
+        "authoritative_history_totals": true,
+        "taste_profile_state": "current",
+        "partial_reasons": []
+      },
+      "strongest_patterns": [
+        {
+          "key": "cuisine:japanese",
+          "kind": "cuisine",
+          "label": "Japanese",
+          "detail": "Japanese cooking is one of the strongest recurring cuisine signals.",
+          "confidence": "high",
+          "coverage_state": "complete",
+          "freshness": { "state": "current", "as_of": "2026-08-30T18:20:00Z" },
+          "evidence_sources": ["personal-taste-v1_aggregate", "canonical_committed_visit_history"],
+          "sample_size": 24
+        },
+        {
+          "key": "beverage:natural-wine",
+          "kind": "beverage",
+          "label": "Natural wine",
+          "detail": "Natural wine appears across explicit preferences and highly rated visits.",
+          "confidence": "medium",
+          "coverage_state": "complete",
+          "freshness": { "state": "current", "as_of": "2026-08-30T18:20:00Z" },
+          "evidence_sources": ["explicit_member_preferences"],
+          "sample_size": 9
+        }
+      ],
+      "travel_footprint": {
+        "cities_visited": 14,
+        "top_cities": [
+          { "city": "New York", "count": 18 },
+          { "city": "Los Angeles", "count": 12 },
+          { "city": "Paris", "count": 7 }
+        ],
+        "detail": "New York is the most represented city in the member footprint aggregate.",
+        "confidence": "high",
+        "coverage_state": "complete",
+        "freshness": { "state": "live", "as_of": "2026-08-30T18:20:00Z" },
+        "evidence_sources": ["canonical_committed_visit_history"],
+        "sample_size": 72
+      },
+      "revisit_behavior": {
+        "total_visits": 72,
+        "unique_venues": 61,
+        "repeat_visits": 11,
+        "repeat_visit_share": 0.153,
+        "detail": "Eleven covered visits return to a venue already present in the history.",
+        "confidence": "high",
+        "coverage_state": "complete",
+        "freshness": { "state": "live", "as_of": "2026-08-30T18:20:00Z" },
+        "evidence_sources": ["canonical_committed_visit_history"],
+        "sample_size": 72
+      },
+      "saves_to_visits": {
+        "saved_count": 41,
+        "total_visits": 72,
+        "ratio": 0.569,
+        "detail": "This is a descriptive balance of current saves to committed visits, not a conversion rate.",
+        "confidence": "high",
+        "coverage_state": "complete",
+        "freshness": { "state": "live", "as_of": "2026-08-30T18:20:00Z" },
+        "evidence_sources": ["canonical_committed_visit_history", "canonical_saved_place_history"],
+        "sample_size": 113
+      },
+      "exploration": {
+        "classification": "broad_explorer",
+        "unique_venue_share": 0.847,
+        "cities_visited": 14,
+        "stretch_signals": [
+          { "label": "Club", "explanation": "Pearl has little positive history for this category; treat it as a possible stretch, not a dislike." }
+        ],
+        "detail": "The covered history spans many unique venues and cities.",
+        "confidence": "high",
+        "coverage_state": "complete",
+        "freshness": { "state": "live", "as_of": "2026-08-30T18:20:00Z" },
+        "evidence_sources": ["canonical_committed_visit_history"],
+        "sample_size": 72
+      },
+      "constraints": [
+        {
+          "kind": "allergy",
+          "label": "Shellfish",
+          "detail": "A member-provided constraint to check when evaluating a relevant venue; Pearl does not guarantee accommodation.",
+          "confidence": "high",
+          "coverage_state": "complete",
+          "freshness": { "state": "live", "as_of": "2026-08-30T18:20:00Z" },
+          "evidence_sources": ["authenticated_member_profile_constraints"],
+          "sample_size": null
+        }
+      ],
+      "recommendation_rationale": {
+        "positive_signals": ["Japanese", "Italian", "Natural wine"],
+        "stretch_signals": [
+          { "label": "Club", "explanation": "Treat this as a possible stretch, not a dislike." }
+        ],
+        "constraints_considered": ["Shellfish"],
+        "detail": "Compare candidates against these signals; a match is a rationale, not a guarantee.",
+        "confidence": "high",
+        "coverage_state": "complete",
+        "freshness": { "state": "current", "as_of": "2026-08-30T18:20:00Z" },
+        "evidence_sources": ["personal-taste-v1_aggregate", "canonical_committed_visit_history"],
+        "sample_size": 81
+      }
+    },
     "taste_lens": "overview",
     "message": "Your profile leans Japanese and Italian, with New York as your strongest city signal.",
     "profile": {

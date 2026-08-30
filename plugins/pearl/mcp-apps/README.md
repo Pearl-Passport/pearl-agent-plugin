@@ -1,8 +1,9 @@
 # Pearl MCP Apps UI
 
 This package contains Pearl's portable, read-only presentation layer for MCP
-Apps hosts. It can render venue recommendations and comparisons, trip stops and
-reservations, and flight or availability result shapes without owning
+Apps hosts. It can render venue recommendations and comparisons plus a unified
+journey family for trip indexes, day-grouped trip stops, reservations, and
+flight or availability result shapes without owning
 authentication, storage, network access, or Pearl business logic. The canonical
 source now wires one versioned resource into both production MCP protocol paths
 for seven reviewed read tools. Venue and profile cards have rendered
@@ -59,6 +60,15 @@ every write, and every dark tool remain data-only. The optional OpenAI compatibi
 alias is emitted only on those seven tools for an authenticated OpenAI client
 source; other hosts receive only the portable field.
 
+Trip and reservation reads use the unified journey family today. Flight search,
+protected-flight, and reservation-availability shapes have reviewed fixtures in
+the same family so they can be host-tested before any future gate opens, but
+their dark tools do not receive card metadata and are not advertised as public.
+Flight cards repeat only an explicit returned status, source, freshness or fare
+expiry, and currency amount. They always say that the result is read-only and
+that fare and availability must be confirmed before booking; they expose no
+booking control.
+
 Keep search and read tools data-first. A render tool should receive final,
 model-checked structured data and return that same data plus concise text. This
 prevents repeated iframe mounts and keeps the tool useful without UI. The
@@ -95,8 +105,12 @@ theme variables are applied from the MCP Apps host context when provided.
 The UI includes visible focus, native keyboard controls, 44-pixel targets,
 320-pixel layouts, light and dark themes, reduced-motion support, accessible
 status announcements, and loading, empty, partial, reconnect, missing-scope,
-retry, and generic error states. Structural UI inherits the host/platform system
-font, and comparison cards stack without nested scrolling.
+retry, and generic error states. Journey cards group reservation results and
+trip stops by returned date, preserve tentative, confirmed, unavailable, and
+unknown states as labeled text rather than color alone, and adapt to inline,
+fullscreen, desktop, web, and mobile host context without horizontal scrolling.
+Structural UI inherits the host/platform system font, and comparison cards stack
+without nested scrolling.
 
 Canonical source CI also exercises the built iframe in Chromium at 1000px and
 390px. It checks two- and three-place comparison layouts, keyboard selection,

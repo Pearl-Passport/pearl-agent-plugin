@@ -12,7 +12,7 @@
     {
       "name": "pearl",
       "source": "./plugins/pearl",
-      "version": "0.8.10",
+      "version": "0.8.11",
       "description": "Read-only Pearl place discovery, recommendations, and private travel context for eligible Pearl Access members",
       "category": "productivity",
       "tags": ["pearl", "travel", "venues"]

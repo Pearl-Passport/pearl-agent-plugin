@@ -73,6 +73,11 @@ const ICON_PATHS = {
   alert: "M8 4.6v4.4M8 11.4v.2",
   check: "M3.6 8.5l2.9 2.9 6-6.8",
   compass: "M8 1.8a6.2 6.2 0 1 1 0 12.4A6.2 6.2 0 0 1 8 1.8Zm2.7 3.5-1.9 3.5-3.5 1.9 1.9-3.5Z",
+  calendar: "M3.2 3.4h9.6v9.2H3.2zM5.2 1.9v3M10.8 1.9v3M3.2 6.1h9.6",
+  plane: "M2.2 9.1 7 7.8l2.3-4.9c.3-.6 1-.9 1.6-.6.6.2.9.9.7 1.5L10.2 7l3.6-1c.7-.2 1.4.2 1.6.9.2.6-.2 1.3-.8 1.5l-4.1 1.4-1 3.3-1.3.4-.2-3-3.1 1z",
+  pin: "M8 14s4-4.5 4-8A4 4 0 1 0 4 6c0 3.5 4 8 4 8Zm0-6.1A1.9 1.9 0 1 0 8 4a1.9 1.9 0 0 0 0 3.9Z",
+  reservation: "M3 2.5h10v11H3zM5.2 5h5.6M5.2 7.7h5.6M5.2 10.4h3.3",
+  suitcase: "M2.5 5h11v8h-11zM5.5 5V3.4h5V5M2.5 8.2h11M5.2 7v2.3M10.8 7v2.3",
 };
 
 function svgCircle(cx, cy, r, opacity) {
@@ -272,6 +277,197 @@ function itemCard(item, index, selectable, showMedia = false) {
   return node;
 }
 
+function readableStatus(value) {
+  const clean = String(value || "").trim().replaceAll("_", " ").replaceAll("-", " ");
+  return clean ? clean.charAt(0).toUpperCase() + clean.slice(1) : "Status unknown";
+}
+
+function journeyKindIcon(kind) {
+  if (kind === "flight") return "plane";
+  if (kind === "reservation") return "reservation";
+  return "suitcase";
+}
+
+function journeyStatus(value) {
+  const raw = String(value || "unknown").toLowerCase();
+  const label = element("span", "status-pill", readableStatus(raw));
+  label.dataset.status = raw;
+  label.setAttribute("aria-label", `Status: ${readableStatus(raw)}`);
+  return label;
+}
+
+function journeyFacts(facts) {
+  if (!Array.isArray(facts) || !facts.length) return undefined;
+  const list = element("dl", "journey-facts");
+  for (const fact of facts.slice(0, 6)) {
+    if (!fact?.label || !fact?.value) continue;
+    const row = element("div", "journey-fact");
+    row.append(element("dt", "", fact.label));
+    row.append(element("dd", "", fact.value));
+    list.append(row);
+  }
+  return list.childElementCount ? list : undefined;
+}
+
+function routeStrip(item) {
+  const origin = item.route?.origin;
+  const destination = item.route?.destination;
+  if (!origin && !destination) return undefined;
+  const route = element("div", "route-strip");
+  route.setAttribute("aria-label", `Flight route from ${origin || "unknown origin"} to ${destination || "unknown destination"}`);
+  const endpoint = (code, label, timezone) => {
+    const node = element("div", "route-endpoint");
+    node.append(element("strong", "route-code", code || "—"));
+    node.append(element("span", "route-time", label || "Time not provided"));
+    if (timezone) node.append(element("span", "route-zone", timezone));
+    return node;
+  };
+  route.append(endpoint(origin, item.start, item.departureZone));
+  const line = element("div", "route-line");
+  line.setAttribute("aria-hidden", "true");
+  line.append(icon("plane"));
+  route.append(line);
+  route.append(endpoint(destination, item.end, item.arrivalZone));
+  return route;
+}
+
+function stopList(stops) {
+  if (!Array.isArray(stops) || !stops.length) return undefined;
+  const groups = new Map();
+  for (const stop of stops) {
+    const key = stop.day || "Date not scheduled";
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(stop);
+  }
+  const container = element("div", "journey-days");
+  for (const [day, dayStops] of groups) {
+    const section = element("section", "journey-day");
+    const heading = element("h3", "journey-day-title", day);
+    const dayId = `journey-day-${container.childElementCount}`;
+    heading.id = dayId;
+    section.setAttribute("aria-labelledby", dayId);
+    section.append(heading);
+    const list = element("ol", "journey-stops");
+    for (const stop of dayStops) {
+      const entry = element("li", "journey-stop");
+      const marker = element("span", "stop-marker");
+      marker.setAttribute("aria-hidden", "true");
+      marker.append(icon(stop.category?.toLowerCase().includes("flight") ? "plane" : "pin"));
+      const copy = element("div", "stop-copy");
+      const headingRow = element("div", "stop-heading");
+      headingRow.append(element("strong", "stop-name", stop.name));
+      if (stop.isBackup) headingRow.append(chip("Backup"));
+      copy.append(headingRow);
+      const meta = [stop.time, stop.city].filter(Boolean).join(" · ");
+      if (meta) copy.append(element("p", "stop-meta", meta));
+      if (stop.detail) copy.append(element("p", "stop-detail", stop.detail));
+      const labels = [stop.category, stop.status ? readableStatus(stop.status) : ""].filter(Boolean);
+      if (labels.length) {
+        const row = element("div", "chip-row");
+        labels.forEach((label, index) => row.append(chip(label, index === 0)));
+        copy.append(row);
+      }
+      entry.append(marker, copy);
+      list.append(entry);
+    }
+    section.append(list);
+    container.append(section);
+  }
+  return container;
+}
+
+function journeyCard(item, index) {
+  const card = element("article", "journey-card");
+  card.dataset.kind = item.journeyType || "trip";
+  const titleId = `journey-title-${index}`;
+  card.setAttribute("aria-labelledby", titleId);
+  const heading = element("div", "journey-heading");
+  const identity = element("div", "journey-identity");
+  const mark = element("span", "journey-mark");
+  mark.setAttribute("aria-hidden", "true");
+  mark.append(icon(journeyKindIcon(item.journeyType)));
+  const copy = element("div", "journey-title-copy");
+  copy.append(element("span", "journey-kicker", readableStatus(item.category || "Journey")));
+  const title = element("h2", "journey-title", item.name);
+  title.id = titleId;
+  copy.append(title);
+  identity.append(mark, copy);
+  heading.append(identity, journeyStatus(item.status));
+  card.append(heading);
+
+  if (item.journeyType === "flight") {
+    const route = routeStrip(item);
+    if (route) card.append(route);
+  } else {
+    const schedule = [item.start && item.end ? `${item.start} → ${item.end}` : item.start, item.time, item.location]
+      .filter(Boolean).join(" · ");
+    if (schedule) {
+      const row = element("p", "journey-schedule");
+      row.append(icon("calendar"), element("span", "", schedule));
+      card.append(row);
+    }
+  }
+
+  if (item.detail) card.append(element("p", "journey-detail", item.detail));
+  const facts = journeyFacts(item.facts);
+  if (facts) card.append(facts);
+  if (item.score) card.append(element("p", "journey-price", item.score));
+  const stops = stopList(item.stops);
+  if (stops) card.append(stops);
+
+  if (item.journeyType === "flight") {
+    const provenance = element("footer", "journey-provenance");
+    provenance.append(element("span", "", `Source: ${item.source || "Pearl"}`));
+    if (item.freshness) provenance.append(element("span", "", `${item.freshnessLabel || "Updated"}: ${item.freshness}`));
+    provenance.append(element("span", "", "Read only · confirm fare and availability before booking"));
+    card.append(provenance);
+  }
+  return card;
+}
+
+function journeyContent(model) {
+  const container = element("div", "journey-layout");
+  let cardIndex = 0;
+  const reservationsOnly = model.items.length > 1
+    && model.items.every((item) => item.journeyType === "reservation");
+  if (!reservationsOnly) {
+    const list = element("div", "journey-list");
+    list.setAttribute("role", "list");
+    model.items.forEach((item) => {
+      const card = journeyCard(item, cardIndex++);
+      card.setAttribute("role", "listitem");
+      list.append(card);
+    });
+    container.append(list);
+    return container;
+  }
+
+  const groups = new Map();
+  for (const item of model.items) {
+    const key = item.start || "Date not provided";
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(item);
+  }
+  for (const [day, items] of groups) {
+    const section = element("section", "journey-group");
+    const heading = element("h2", "journey-group-title", day);
+    const groupId = `journey-group-${container.childElementCount}`;
+    heading.id = groupId;
+    section.setAttribute("aria-labelledby", groupId);
+    section.append(heading);
+    const list = element("div", "journey-list");
+    list.setAttribute("role", "list");
+    items.forEach((item) => {
+      const card = journeyCard(item, cardIndex++);
+      card.setAttribute("role", "listitem");
+      list.append(card);
+    });
+    section.append(list);
+    container.append(section);
+  }
+  return container;
+}
+
 function comparison(items) {
   const picked = items.filter((item) => selected.has(item.id));
   if (picked.length < 2) return undefined;
@@ -308,6 +504,150 @@ function comparison(items) {
   return section;
 }
 
+function titleCase(value) {
+  return String(value || "").replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function percentage(value) {
+  return Number.isFinite(value)
+    ? new Intl.NumberFormat(undefined, { style: "percent", maximumFractionDigits: 0 }).format(value)
+    : "";
+}
+
+function evidenceRow(evidence, label = "Evidence") {
+  if (!evidence) return undefined;
+  const values = [
+    evidence.confidence ? `${titleCase(evidence.confidence)} confidence` : "",
+    evidence.coverage ? `${titleCase(evidence.coverage)} coverage` : "",
+    evidence.freshness ? `${titleCase(evidence.freshness)} freshness` : "",
+    evidence.asOf ? `As of ${evidence.asOf}` : "",
+    evidence.sampleSize !== undefined ? `${evidence.sampleSize} signals` : "",
+  ].filter(Boolean);
+  if (!values.length) return undefined;
+  const row = element("p", "evidence-row");
+  row.setAttribute("aria-label", label);
+  values.forEach((value, index) => {
+    if (index) row.append(element("span", "evidence-separator", "·"));
+    row.append(element("span", "", value));
+  });
+  return row;
+}
+
+function insightCard(title, insight, headline, facts = []) {
+  const card = element("article", "taste-insight-card");
+  card.append(element("h3", "insight-title", title));
+  if (headline) card.append(element("strong", "insight-value", headline));
+  if (insight?.detail) card.append(element("p", "insight-detail", insight.detail));
+  const returnedFacts = facts.filter(([, value]) => value !== "" && value !== undefined);
+  if (returnedFacts.length) {
+    const list = element("dl", "insight-facts");
+    for (const [label, value] of returnedFacts) {
+      const row = element("div", "insight-fact");
+      row.append(element("dt", "", label), element("dd", "", value));
+      list.append(row);
+    }
+    card.append(list);
+  }
+  const evidence = evidenceRow(insight?.evidence, `${title} evidence`);
+  if (evidence) card.append(evidence);
+  return card;
+}
+
+function analyticsContent(analytics) {
+  const fragment = document.createDocumentFragment();
+  const evidence = element("section", "profile-section taste-evidence");
+  evidence.append(element("h2", "section-title", "Taste evidence"));
+  const summary = element("div", "evidence-summary");
+  const summaryValues = [
+    analytics.confidence.label ? ["Confidence", titleCase(analytics.confidence.label)] : undefined,
+    analytics.coverage.state ? ["Coverage", titleCase(analytics.coverage.state)] : undefined,
+    analytics.overallEvidence?.freshness ? ["Freshness", titleCase(analytics.overallEvidence.freshness)] : undefined,
+  ].filter(Boolean);
+  for (const [label, value] of summaryValues) {
+    const item = element("div", "evidence-summary-item");
+    item.append(element("span", "evidence-label", label), element("strong", "evidence-value", value));
+    summary.append(item);
+  }
+  if (summaryValues.length) evidence.append(summary);
+  if (analytics.confidence.explanation) evidence.append(element("p", "insight-detail", analytics.confidence.explanation));
+  const overall = evidenceRow(analytics.overallEvidence, "Overall taste evidence freshness");
+  if (overall) evidence.append(overall);
+  else if (analytics.generatedAt) evidence.append(element("p", "evidence-row", `Generated ${analytics.generatedAt}`));
+  fragment.append(evidence);
+
+  if (analytics.strongestPatterns.length) {
+    const patterns = element("section", "profile-section");
+    patterns.append(element("h2", "section-title", "Strongest patterns"));
+    const grid = element("div", "taste-pattern-grid");
+    grid.setAttribute("role", "list");
+    for (const pattern of analytics.strongestPatterns) {
+      const card = element("article", "taste-pattern-card");
+      card.setAttribute("role", "listitem");
+      if (pattern.kind) card.append(element("span", "pattern-kind", pattern.kind));
+      card.append(element("h3", "insight-title", pattern.label));
+      if (pattern.detail) card.append(element("p", "insight-detail", pattern.detail));
+      const patternEvidence = evidenceRow(pattern.evidence, `${pattern.label} evidence`);
+      if (patternEvidence) card.append(patternEvidence);
+      grid.append(card);
+    }
+    patterns.append(grid);
+    fragment.append(patterns);
+  }
+
+  const insightGrid = element("section", "taste-insight-grid");
+  insightGrid.setAttribute("aria-label", "Pearl taste analytics");
+  if (analytics.travel) {
+    const headline = analytics.travel.citiesVisited === undefined
+      ? ""
+      : `${analytics.travel.citiesVisited} ${analytics.travel.citiesVisited === 1 ? "city" : "cities"}`;
+    const topCities = analytics.travel.topCities.map((city) => `${city.city} (${city.count})`).join(", ");
+    insightGrid.append(insightCard("Travel footprint", analytics.travel, headline, [["Top cities", topCities]]));
+  }
+  if (analytics.revisit) {
+    const headline = analytics.revisit.repeatVisits === undefined
+      ? ""
+      : `${analytics.revisit.repeatVisits} repeat ${analytics.revisit.repeatVisits === 1 ? "visit" : "visits"}`;
+    insightGrid.append(insightCard("Revisit behavior", analytics.revisit, headline, [
+      ["Unique venues", analytics.revisit.uniqueVenues],
+      ["Repeat share", percentage(analytics.revisit.repeatShare)],
+    ]));
+  }
+  if (analytics.exploration) {
+    insightGrid.append(insightCard("Exploration style", analytics.exploration, analytics.exploration.classification, [
+      ["Unique venue share", percentage(analytics.exploration.uniqueVenueShare)],
+      ["Cities", analytics.exploration.citiesVisited],
+    ]));
+  }
+  if (analytics.savesToVisits) {
+    const headline = analytics.savesToVisits.ratio === undefined
+      ? ""
+      : `${new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(analytics.savesToVisits.ratio)} saves per visit`;
+    insightGrid.append(insightCard("Saves to visits", analytics.savesToVisits, headline, [
+      ["Saved places", analytics.savesToVisits.savedCount],
+      ["Visits", analytics.savesToVisits.totalVisits],
+    ]));
+  }
+  if (insightGrid.childElementCount) fragment.append(insightGrid);
+
+  if (analytics.constraints.length) {
+    const constraints = element("section", "profile-section taste-constraints");
+    constraints.append(element("h2", "section-title", "Returned constraints"));
+    constraints.append(element("p", "toolbar-copy", "Use these member-provided constraints when evaluating a relevant venue; accommodation is not guaranteed."));
+    const list = element("div", "constraint-list");
+    for (const constraint of analytics.constraints) {
+      const item = element("article", "constraint-item");
+      item.append(element("strong", "", constraint.label));
+      if (constraint.detail) item.append(element("p", "insight-detail", constraint.detail));
+      const constraintEvidence = evidenceRow(constraint.evidence, `${constraint.label} constraint evidence`);
+      if (constraintEvidence) item.append(constraintEvidence);
+      list.append(item);
+    }
+    constraints.append(list);
+    fragment.append(constraints);
+  }
+  return fragment;
+}
+
 function profileContent(model) {
   const container = element("div", "profile-layout");
   if (model.metrics.length) {
@@ -321,6 +661,8 @@ function profileContent(model) {
     }
     container.append(metrics);
   }
+
+  if (model.analytics) container.append(analyticsContent(model.analytics));
 
   if (model.facets.length) {
     const facets = element("section", "facet-grid");
@@ -360,7 +702,7 @@ function profileContent(model) {
     container.append(favorites);
   }
 
-  if (model.allergies.length) {
+  if (!model.analytics && model.allergies.length) {
     const allergyCopy = `Allergies on file: ${model.allergies.join(", ")}.`;
     container.append(banner(allergyCopy));
   }
@@ -475,6 +817,8 @@ function renderCurrent() {
     content.append(emptyContent(model));
   } else if (model.kind === "profile") {
     content.append(profileContent(model));
+  } else if (model.kind === "journeys" || model.kind === "flights") {
+    content.append(journeyContent(model));
   } else {
     if (model.kind === "venues") {
       const toolbar = element("div", "toolbar");
@@ -531,6 +875,10 @@ function applyHostContext(next = {}) {
   hostState.context = { ...hostState.context, ...next };
   const theme = hostState.context.theme;
   if (theme === "light" || theme === "dark") document.documentElement.dataset.theme = theme;
+  const displayMode = hostState.context.displayMode;
+  if (["inline", "fullscreen", "pip"].includes(displayMode)) document.documentElement.dataset.displayMode = displayMode;
+  const platform = hostState.context.platform;
+  if (["web", "desktop", "mobile"].includes(platform)) document.documentElement.dataset.platform = platform;
   const variables = hostState.context.styles?.variables;
   if (variables && typeof variables === "object") {
     for (const [key, value] of Object.entries(variables)) {
@@ -634,7 +982,7 @@ async function connect() {
   showLoading();
   try {
     const initialized = await request("ui/initialize", {
-      appInfo: { name: "Pearl Concierge", version: "1.3.0" },
+      appInfo: { name: "Pearl Concierge", version: "1.4.0" },
       appCapabilities: { availableDisplayModes: ["inline"] },
       protocolVersion: "2026-01-26",
     }, 5_000);

@@ -1,16 +1,16 @@
 # Pearl capability snapshot
 
-This public documentation snapshot is dated **2026-08-26** for package `0.8.10`. It is not a tool allowlist. The authenticated MCP `tools/list` response is authoritative and may vary by host, member, OAuth grant, or rollout.
+This public documentation snapshot is dated **2026-08-30** for package `0.8.11`. It is not a tool allowlist. The authenticated MCP `tools/list` response is authoritative and may vary by host, member, OAuth grant, or rollout.
 
 ## Current public read set
 
 | Tool | Current workflow | Important boundary |
 | --- | --- | --- |
-| `venues_search` | Search Pearl restaurants, hotels, bars, or wineries | Does not prove live availability or member-added provenance |
-| `venues_recommend` | Get profile-aware venue recommendations | Recommendation is not a reservation or guarantee |
+| `venues_search` | Search Pearl restaurants, hotels, bars, or wineries and return a bounded comparison shortlist | Request, venue, profile, and social evidence remain separately labeled; search does not prove live availability or member-added provenance |
+| `venues_recommend` | Get a bounded profile-aware venue shortlist with a supported top-pick rationale | Recommendation is not a reservation, availability check, or guarantee |
 | `venues_new_openings` | Find coming-soon and newly opened venues | Established fallbacks must not be described as openings |
 | `places_match` | Reconcile up to 20 supplied names with canonical venues | Returns review states and writes nothing |
-| `profile_get` | Read the authenticated member's taste profile, visit/city/save counts, ranked cities, top-rated visits, and focus the answer by a supported taste lens | Check history coverage before calling counts authoritative; counts are not demographic percentiles, and a lens never changes member scope |
+| `profile_get` | Read the authenticated member's taste profile, authoritative available counts, and evidence-labeled patterns, travel, revisit, exploration, saves-to-visits, constraints, and recommendation rationale | Preserve coverage/freshness/confidence labels; full revisit analysis requires the exploration lens, constraints are relevance-gated, and a lens never changes member scope |
 | `visits_list` | List committed visits, including complete recent-history pagination plus score-ranked favorites and city, cuisine/category, trip, or score filters | Filtered discovery can be explicitly partial; it does not import, edit, or delete visits |
 | `saves_list` | List active canonical saved venues with complete-history pagination | Does not save or remove a venue |
 | `friends_search` | Search Pearl's privacy-filtered member directory | Does not expose hidden data or send a request |
