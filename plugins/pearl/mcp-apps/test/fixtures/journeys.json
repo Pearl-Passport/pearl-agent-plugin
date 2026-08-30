@@ -4,11 +4,19 @@
       {
         "reservation_id": "reservation-1",
         "venue_name": "Le Jardin",
-        "reservation_date": "2026-09-12",
-        "reservation_time": "19:30",
+        "reservation_at": "2026-09-12T19:30:00+02:00",
         "city": "Paris",
         "party_size": 2,
         "status": "confirmed"
+      },
+      {
+        "reservation_id": "reservation-2",
+        "venue_name": "Early June",
+        "reservation_date": "2026-09-13",
+        "reservation_time": "20:00",
+        "city": "Paris",
+        "party_size": 2,
+        "status": "tentative"
       }
     ],
     "trips": [
@@ -16,9 +24,11 @@
         "trip_id": "trip-1",
         "name": "Paris weekend",
         "start_date": "2026-09-11",
+        "end_date": "2026-09-14",
         "city": "Paris",
         "status": "pending",
-        "summary": "A short food and design weekend."
+        "summary": "A short food and design weekend.",
+        "item_count": 4
       }
     ]
   }

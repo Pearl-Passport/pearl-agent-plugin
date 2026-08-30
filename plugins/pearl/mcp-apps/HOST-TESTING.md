@@ -32,6 +32,12 @@ Test light and dark appearance once each.
 | `trip_get` | First list trips in chat, then ask to open one returned trip. | Trip-stop cards; no booking claim |
 | `reservations_list` | “Show my Pearl reservations.” | Reservation cards with date, status, and safe account details |
 
+For trips and reservations, verify the unified journey family groups returned
+stops or reservations by date, labels missing status as unknown, and never
+converts tentative or unavailable data into confirmed copy. Flight and live
+availability fixtures are pre-release coverage only while those tools are dark;
+they are not part of the seven-tool public canary.
+
 Use only trips and reservations returned by the same account. Never paste an ID
 from another member into a screenshot or review artifact.
 
@@ -54,6 +60,9 @@ from another member into a screenshot or review artifact.
 
 - No visits, saves, friends, exact-reservation, write, dark, or flight tool
   should claim a card in this release.
+- The local flight fixture must show source and freshness or fare expiry when
+  supplied, preserve overnight dates and currency, say it is read-only, and
+  offer no booking action. Passing that fixture is not a public flight claim.
 - Profile follow-up buttons may send only the reviewed fixed questions. They
   must never insert returned profile text, member IDs, or credentials into a
   host message.

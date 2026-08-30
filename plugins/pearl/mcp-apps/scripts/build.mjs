@@ -28,6 +28,10 @@ function assertEmbeddable(label, source) {
   }
 }
 
+function cspHash(source) {
+  return createHash("sha256").update(source).digest("base64");
+}
+
 export async function buildHtml() {
   const [styles, modelSource, appSource] = await Promise.all([
     readFile(path.join(PACKAGE_ROOT, "src", "styles.css"), "utf8"),
@@ -38,13 +42,15 @@ export async function buildHtml() {
   assertEmbeddable("model.mjs", modelSource);
   assertEmbeddable("app.mjs", appSource);
   const script = `${inlineModel(modelSource)}\n${inlineApp(appSource)}`;
+  const scriptHash = cspHash(script);
+  const styleHash = cspHash(styles);
   return `<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="color-scheme" content="light dark">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: ${PEARL_IMAGE_ORIGIN}; connect-src 'none'; font-src 'none'; media-src 'none'; frame-src 'none'; object-src 'none'; worker-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-${scriptHash}'; style-src 'sha256-${styleHash}'; img-src data: ${PEARL_IMAGE_ORIGIN}; connect-src 'none'; font-src 'none'; media-src 'none'; frame-src 'none'; object-src 'none'; worker-src 'none'; base-uri 'none'; form-action 'none'">
   <title>Pearl Concierge</title>
   <style>${styles}</style>
 </head>

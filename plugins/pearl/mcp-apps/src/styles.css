@@ -297,21 +297,36 @@ h1 {
 }
 
 .status-pill[data-status="confirmed"],
-.status-pill[data-status="available"] {
+.status-pill[data-status="available"],
+.status-pill[data-status="booked"],
+.status-pill[data-status="ticketed"],
+.status-pill[data-status="arrived"],
+.status-pill[data-status="completed"] {
   border-color: transparent;
   background: var(--pearl-ui-success-bg);
   color: var(--pearl-ui-success);
 }
 
 .status-pill[data-status="pending"],
-.status-pill[data-status="limited"] {
+.status-pill[data-status="limited"],
+.status-pill[data-status="planned"],
+.status-pill[data-status="tentative"],
+.status-pill[data-status="pending_provider"],
+.status-pill[data-status="reconciling"],
+.status-pill[data-status="schedule_changed"],
+.status-pill[data-status="needs_user_action"],
+.status-pill[data-status="delayed"],
+.status-pill[data-status="boarding"] {
   border-color: transparent;
   background: var(--pearl-ui-warning-bg);
   color: var(--pearl-ui-warning);
 }
 
 .status-pill[data-status="cancelled"],
-.status-pill[data-status="unavailable"] {
+.status-pill[data-status="unavailable"],
+.status-pill[data-status="failed"],
+.status-pill[data-status="refunded"],
+.status-pill[data-status="no_availability"] {
   border-color: transparent;
   background: var(--pearl-ui-danger-bg);
   color: var(--pearl-ui-danger);
@@ -438,6 +453,98 @@ h1 {
 .profile-layout > .status-banner { margin: 0; }
 .profile-questions .toolbar-copy { margin-bottom: 12px; }
 
+.evidence-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.evidence-summary-item {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+  padding: 10px;
+  border: 1px solid var(--pearl-ui-border-soft);
+  border-radius: var(--pearl-ui-radius-sm);
+  background: var(--pearl-ui-canvas);
+}
+
+.evidence-label,
+.evidence-row {
+  color: var(--pearl-ui-text-secondary);
+  font-size: 11px;
+}
+
+.evidence-value { overflow-wrap: anywhere; }
+
+.evidence-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px 6px;
+  margin: 10px 0 0;
+  line-height: 1.45;
+}
+
+.evidence-separator { color: var(--pearl-ui-border); }
+
+.taste-pattern-grid,
+.taste-insight-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+}
+
+.taste-pattern-card,
+.taste-insight-card,
+.constraint-item {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--pearl-ui-border-soft);
+  border-radius: var(--pearl-ui-radius-sm);
+  background: var(--pearl-ui-canvas);
+}
+
+.pattern-kind {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--pearl-ui-accent);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.insight-title { margin: 0; font-size: 14px; }
+
+.insight-value {
+  display: block;
+  margin-top: 7px;
+  color: var(--pearl-ui-text);
+  font-family: var(--pearl-ui-font-display);
+  font-size: 20px;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.insight-detail { margin: 7px 0 0; color: var(--pearl-ui-text-secondary); font-size: 12px; }
+.insight-facts { display: grid; gap: 5px; margin: 10px 0 0; }
+
+.insight-fact {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 5px;
+  border-top: 1px solid var(--pearl-ui-border-soft);
+  font-size: 11px;
+}
+
+.insight-fact dt { color: var(--pearl-ui-text-secondary); }
+.insight-fact dd { min-width: 0; margin: 0; text-align: right; overflow-wrap: anywhere; }
+.constraint-list { display: grid; gap: 8px; }
+.constraint-item { border-color: color-mix(in srgb, var(--pearl-ui-warning) 30%, var(--pearl-ui-border-soft)); }
+.taste-constraints .toolbar-copy { margin-bottom: 10px; }
+
 .question-actions {
   display: flex;
   flex-wrap: wrap;
@@ -554,6 +661,235 @@ button.result-card[aria-pressed="true"] {
   flex-wrap: wrap;
   gap: 6px;
   margin-top: 12px;
+}
+
+/* ----------------------------------------------------- journey card family */
+
+.journey-layout,
+.journey-list,
+.journey-group,
+.journey-days {
+  display: grid;
+  min-width: 0;
+  gap: 12px;
+}
+
+.journey-group-title,
+.journey-day-title {
+  margin: 0;
+  color: var(--pearl-ui-text-secondary);
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.journey-card {
+  min-width: 0;
+  overflow: hidden;
+  padding: 14px;
+  border: 1px solid var(--pearl-ui-glass-border);
+  border-radius: var(--pearl-ui-radius-md);
+  background: var(--pearl-ui-surface);
+  box-shadow: 0 2px 10px -6px rgba(23, 33, 42, 0.16);
+}
+
+.journey-card[data-kind="flight"] {
+  border-color: color-mix(in srgb, var(--pearl-ui-navy) 22%, var(--pearl-ui-glass-border));
+}
+
+.journey-heading,
+.journey-identity,
+.journey-schedule,
+.stop-heading,
+.journey-provenance {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+}
+
+.journey-heading { justify-content: space-between; gap: 12px; }
+.journey-identity { gap: 10px; }
+.journey-title-copy { min-width: 0; }
+
+.journey-mark {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  background: var(--pearl-ui-accent-bg);
+  color: var(--pearl-ui-accent);
+}
+
+.journey-card[data-kind="flight"] .journey-mark {
+  background: color-mix(in srgb, var(--pearl-ui-navy) 12%, transparent);
+  color: var(--pearl-ui-navy);
+}
+
+.journey-kicker {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--pearl-ui-text-secondary);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.journey-title {
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.journey-heading > .status-pill { flex: 0 0 auto; }
+
+.journey-schedule {
+  align-items: center;
+  gap: 7px;
+  margin: 12px 0 0;
+  color: var(--pearl-ui-text-secondary);
+  font-size: 13px;
+}
+
+.journey-detail { margin: 10px 0 0; color: var(--pearl-ui-text-secondary); }
+
+.journey-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 12px 0 0;
+}
+
+.journey-fact {
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid var(--pearl-ui-border-soft);
+  border-radius: var(--pearl-ui-radius-sm);
+  background: var(--pearl-ui-canvas);
+}
+
+.journey-fact dt {
+  color: var(--pearl-ui-text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.journey-fact dd { min-width: 0; margin: 2px 0 0; font-weight: 600; overflow-wrap: anywhere; }
+
+.journey-price {
+  margin: 12px 0 0;
+  color: var(--pearl-ui-text);
+  font-family: var(--pearl-ui-font-display);
+  font-size: 22px;
+  font-weight: 650;
+}
+
+.route-strip {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(54px, 0.45fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 12px;
+  border: 1px solid var(--pearl-ui-border-soft);
+  border-radius: var(--pearl-ui-radius-sm);
+  background: var(--pearl-ui-canvas);
+}
+
+.route-endpoint { display: grid; min-width: 0; gap: 2px; }
+.route-endpoint:last-child { text-align: right; }
+.route-code { font-family: var(--pearl-ui-font-display); font-size: clamp(18px, 5vw, 25px); letter-spacing: 0.04em; }
+.route-time, .route-zone { color: var(--pearl-ui-text-secondary); font-size: 11px; overflow-wrap: anywhere; }
+
+.route-line {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--pearl-ui-navy);
+}
+
+.route-line::before,
+.route-line::after {
+  content: "";
+  flex: 1 1 auto;
+  height: 1px;
+  background: var(--pearl-ui-border);
+}
+
+.route-line .icon { margin: 0 5px; }
+
+.journey-days {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--pearl-ui-border-soft);
+}
+
+.journey-day { min-width: 0; }
+.journey-day-title { margin-bottom: 6px; }
+
+.journey-stops {
+  display: grid;
+  min-width: 0;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.journey-stop {
+  position: relative;
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  gap: 9px;
+  min-width: 0;
+  padding: 8px 0;
+}
+
+.journey-stop:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  top: 37px;
+  bottom: -8px;
+  left: 14px;
+  width: 1px;
+  background: var(--pearl-ui-border-soft);
+}
+
+.stop-marker {
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--pearl-ui-border-soft);
+  border-radius: 999px;
+  background: var(--pearl-ui-surface);
+  color: var(--pearl-ui-accent);
+}
+
+.stop-copy { min-width: 0; padding-top: 3px; }
+.stop-heading { justify-content: space-between; gap: 8px; }
+.stop-name { min-width: 0; overflow-wrap: anywhere; }
+.stop-heading .chip { flex: 0 0 auto; min-height: 22px; padding: 2px 7px; }
+.stop-meta, .stop-detail { margin: 3px 0 0; color: var(--pearl-ui-text-secondary); font-size: 12px; }
+.stop-copy .chip-row { margin-top: 7px; }
+
+.journey-provenance {
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 12px -14px -14px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--pearl-ui-border-soft);
+  background: var(--pearl-ui-subtle);
+  color: var(--pearl-ui-text-secondary);
+  font-size: 11px;
 }
 
 /* ------------------------------------------------------- venue imagery */
@@ -733,8 +1069,12 @@ button.result-card[aria-pressed="true"] {
    opaque canonical surfaces declared above. */
 @supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
   .result-card,
+  .journey-card,
   .metric-card,
   .facet-card,
+  .taste-pattern-card,
+  .taste-insight-card,
+  .constraint-item,
   .profile-section,
   .profile-questions,
   .comparison,
@@ -767,8 +1107,13 @@ button.result-card[aria-pressed="true"] {
 @media (prefers-reduced-transparency: reduce) {
   .panel { background: var(--pearl-ui-canvas); }
   .result-card,
+  .journey-card,
+  .journey-fact,
   .metric-card,
   .facet-card,
+  .taste-pattern-card,
+  .taste-insight-card,
+  .constraint-item,
   .profile-section,
   .profile-questions,
   .comparison,
@@ -790,8 +1135,13 @@ button.result-card[aria-pressed="true"] {
   .panel { background: var(--pearl-ui-canvas); }
   .panel::before { display: none; }
   .result-card,
+  .journey-card,
+  .journey-fact,
   .metric-card,
   .facet-card,
+  .taste-pattern-card,
+  .taste-insight-card,
+  .constraint-item,
   .profile-section,
   .profile-questions,
   .comparison,
@@ -815,7 +1165,11 @@ button.result-card[aria-pressed="true"] {
   .results-grid,
   .skeleton-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .facet-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .taste-pattern-grid,
+  .taste-insight-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .evidence-summary { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .comparison-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .journey-group .journey-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (min-width: 860px) {
@@ -831,7 +1185,15 @@ button.result-card[aria-pressed="true"] {
   h1 { font-size: 21px; }
   .button { width: 100%; }
   .metrics-grid { grid-template-columns: minmax(0, 1fr); }
+  .journey-heading { align-items: flex-start; }
+  .journey-heading > .status-pill { max-width: 42%; }
+  .journey-facts { grid-template-columns: minmax(0, 1fr); }
+  .route-strip { grid-template-columns: minmax(0, 1fr) 38px minmax(0, 1fr); padding: 10px; }
+  .route-line .icon { margin: 0 2px; }
 }
+
+:root[data-display-mode="fullscreen"] .journey-layout { max-width: 1040px; margin-inline: auto; }
+:root[data-platform="mobile"] .journey-group .journey-list { grid-template-columns: minmax(0, 1fr); }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
@@ -845,8 +1207,9 @@ button.result-card[aria-pressed="true"] {
 }
 
 @media (forced-colors: active) {
-  .panel, .result-card, .comparison, .comparison-card, .count-pill, .chip, .status-pill,
-  .metric-card, .facet-card, .profile-section, .profile-questions, .media {
+  .panel, .result-card, .journey-card, .journey-fact, .comparison, .comparison-card, .count-pill, .chip, .status-pill,
+  .metric-card, .facet-card, .taste-pattern-card, .taste-insight-card, .constraint-item,
+  .profile-section, .profile-questions, .media {
     border: 1px solid CanvasText;
   }
   .panel::before, .media-fallback { display: none; }

@@ -140,6 +140,11 @@ async function validate() {
   check(/default-src 'none'/.test(first) && /connect-src 'none'/.test(first) && /frame-src 'none'/.test(first)
     && /base-uri 'none'/.test(first) && /form-action 'none'/.test(first),
     "MCP Apps document CSP must remain deny-by-default", errors);
+  check(/script-src 'sha256-[A-Za-z0-9+/]{43}='/.test(first)
+    && /style-src 'sha256-[A-Za-z0-9+/]{43}='/.test(first),
+    "MCP Apps document CSP must pin the exact inline script and style", errors);
+  check(!/unsafe-inline|unsafe-eval/.test(first),
+    "MCP Apps document CSP must not allow arbitrary inline or evaluated code", errors);
 
   for (const forbidden of [
     /\bfetch\s*\(/, /XMLHttpRequest/, /\bWebSocket\b/, /\bEventSource\b/,
@@ -203,6 +208,7 @@ async function validate() {
     "Pearl is gathering the details", "No matching results yet", "Some results could not be loaded",
     "Reconnect Pearl", "More access is needed", "Pearl needs another try",
     "Ask Pearl about your taste", "Pearl profile statistics",
+    "Status unknown", "Read only · confirm fare and availability before booking",
   ]) check(first.includes(stateCopy), `MCP Apps UI is missing state copy: ${stateCopy}`, errors);
 
   const css = await readFile(path.join(PACKAGE_ROOT, "src", "styles.css"), "utf8");
@@ -215,6 +221,10 @@ async function validate() {
     "Comparison cards must stack without nested horizontal scrolling", errors);
   check(css.includes(".metrics-grid") && css.includes(".facet-grid") && css.includes(".question-actions"),
     "Taste profile UI must include statistics, facets, and follow-up controls", errors);
+  check(css.includes(".journey-card") && css.includes(".journey-stops") && css.includes(".route-strip"),
+    "Journey UI must include unified trip, reservation, and flight primitives", errors);
+  check(css.includes(":root[data-display-mode=\"fullscreen\"]") && css.includes(":root[data-platform=\"mobile\"]"),
+    "Journey UI must adapt to bounded host display and platform context", errors);
   check(css.includes("prefers-reduced-motion: reduce"), "MCP Apps UI must honor reduced motion", errors);
   check(css.includes("data-theme=\"dark\""), "MCP Apps UI must include an explicit dark theme", errors);
   check(css.includes("forced-colors: active"), "MCP Apps UI must preserve controls in forced colors", errors);

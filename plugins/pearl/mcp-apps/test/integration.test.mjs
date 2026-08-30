@@ -50,6 +50,9 @@ test("build is deterministic and self-contained", async () => {
     /https?:\/\//i,
   );
   assert.match(first, /img-src data: https:\/\/agent\.joinpearl\.co;/);
+  assert.match(first, /script-src 'sha256-[A-Za-z0-9+/]{43}='/);
+  assert.match(first, /style-src 'sha256-[A-Za-z0-9+/]{43}='/);
+  assert.doesNotMatch(first, /unsafe-inline|unsafe-eval/);
   assert.ok(Buffer.byteLength(first) < 256 * 1024);
 });
 
@@ -72,8 +75,8 @@ test("resource response is versioned, correctly typed, and deny-by-default", asy
   const response = createPearlMcpAppResource();
   assert.equal(response.contents.length, 1);
   const content = response.contents[0];
-  assert.equal(PEARL_MCP_APP_VERSION, "1.3.0");
-  assert.equal(content.uri, "ui://pearl/concierge/v6/index.html");
+  assert.equal(PEARL_MCP_APP_VERSION, "1.4.0");
+  assert.equal(content.uri, "ui://pearl/concierge/v7/index.html");
   assert.equal(content.mimeType, PEARL_MCP_APP_MIME_TYPE);
   assert.equal(content.text, html);
   assert.equal(content.text, PEARL_MCP_APP_ARTIFACT_HTML);
@@ -132,8 +135,8 @@ test("Claude receives its connector-derived sandbox domain without changing the 
 
 test("bounded previous card URIs serve the current reviewed artifact", () => {
   assert.deepEqual(PEARL_MCP_APP_COMPATIBILITY_RESOURCE_URIS, [
+    "ui://pearl/concierge/v6/index.html",
     "ui://pearl/concierge/v5/index.html",
-    "ui://pearl/concierge/v4/index.html",
   ]);
   assert.deepEqual(
     PEARL_MCP_APP_RESOURCES.map((resource) => resource.descriptor.uri),
@@ -207,10 +210,80 @@ test("inline comparison uses system type and has no nested horizontal scroll", a
 });
 
 test("taste profile UI uses fixed host questions and member-scoped statistics", async () => {
-  const app = await readFile(path.join(PACKAGE_ROOT, "src", "app.mjs"), "utf8");
+  const [app, css] = await Promise.all([
+    readFile(path.join(PACKAGE_ROOT, "src", "app.mjs"), "utf8"),
+    readFile(path.join(PACKAGE_ROOT, "src", "styles.css"), "utf8"),
+  ]);
   assert.match(app, /Pearl profile statistics/);
+  assert.match(app, /Taste evidence/);
+  assert.match(app, /Strongest patterns/);
+  assert.match(app, /Travel footprint/);
+  assert.match(app, /Revisit behavior/);
+  assert.match(app, /Exploration style/);
+  assert.match(app, /Saves to visits/);
+  assert.match(app, /Returned constraints/);
+  assert.match(app, /if \(!model\.analytics && model\.allergies\.length\)/);
   assert.match(app, /Ask Pearl about your taste/);
   assert.match(app, /What are the strongest patterns in my Pearl taste profile\?/);
   assert.match(app, /Each question stays scoped to your own Pearl profile\./);
+  assert.match(app, /node\.textContent = String\(text\)/);
+  assert.doesNotMatch(app, /evidenceSources|authenticated_member_profile_constraints|canonical_committed_visit_history/);
   assert.doesNotMatch(app, /action_handle|access_token|refresh_token/);
+  assert.match(css, /\.taste-pattern-grid/);
+  assert.match(css, /\.taste-insight-grid/);
+  assert.match(css, /\.evidence-summary/);
+  assert.match(css, /@media \(min-width: 540px\)[\s\S]*?\.taste-insight-grid/);
+  assert.match(css, /@media \(prefers-reduced-transparency: reduce\)[\s\S]*?\.taste-insight-card/);
+  assert.match(css, /@media \(prefers-contrast: more\)[\s\S]*?\.taste-pattern-card/);
+  assert.match(css, /@media \(forced-colors: active\)[\s\S]*?\.constraint-item/);
+});
+
+test("profile analytics fixture supports light and dark host previews with the text fallback retained", async () => {
+  const [html, profile] = await Promise.all([
+    buildHtml(),
+    readFile(path.join(PACKAGE_ROOT, "test", "fixtures", "profile.json"), "utf8").then(JSON.parse),
+  ]);
+  profile.content = [{ type: "text", text: "A complete taste summary remains available to text-only hosts." }];
+  for (const theme of ["light", "dark"]) {
+    const harness = buildFixtureHarness(html, profile, theme);
+    assert.match(harness, new RegExp(`const theme = ${JSON.stringify(theme)}`));
+    assert.match(harness, /complete taste summary remains available to text-only hosts/);
+    assert.match(harness, /ui\/notifications\/tool-result/);
+  }
+});
+
+test("journey family is host-adaptive, read-only, and accessible", async () => {
+  const [app, css] = await Promise.all([
+    readFile(path.join(PACKAGE_ROOT, "src", "app.mjs"), "utf8"),
+    readFile(path.join(PACKAGE_ROOT, "src", "styles.css"), "utf8"),
+  ]);
+  assert.match(app, /function journeyCard\(/);
+  assert.match(app, /function stopList\(/);
+  assert.match(app, /function routeStrip\(/);
+  assert.match(app, /Status unknown/);
+  assert.match(app, /Read only · confirm fare and availability before booking/);
+  assert.match(app, /Source:/);
+  assert.match(app, /document\.documentElement\.dataset\.displayMode/);
+  assert.match(app, /document\.documentElement\.dataset\.platform/);
+  const journeyCardSource = app.slice(app.indexOf("function journeyCard("), app.indexOf("function journeyContent("));
+  assert.doesNotMatch(journeyCardSource, /button\(|tools\/call|ui\/message|checkout/i);
+  assert.match(css, /\.journey-card/);
+  assert.match(css, /\.journey-stops/);
+  assert.match(css, /\.route-strip/);
+  assert.match(css, /:root\[data-display-mode="fullscreen"\]/);
+  assert.match(css, /:root\[data-platform="mobile"\]/);
+  assert.doesNotMatch(css, /overflow-x\s*:\s*(?:auto|scroll)/i);
+});
+
+test("journey fixtures support light and dark standard bridge previews", async () => {
+  const [html, journeys, flights] = await Promise.all([
+    buildHtml(),
+    readFile(path.join(PACKAGE_ROOT, "test", "fixtures", "journeys.json"), "utf8").then(JSON.parse),
+    readFile(path.join(PACKAGE_ROOT, "test", "fixtures", "flights.json"), "utf8").then(JSON.parse),
+  ]);
+  for (const [fixture, theme] of [[journeys, "light"], [journeys, "dark"], [flights, "light"], [flights, "dark"]]) {
+    const harness = buildFixtureHarness(html, fixture, theme);
+    assert.match(harness, new RegExp(`const theme = ${JSON.stringify(theme)}`));
+    assert.match(harness, /ui\/notifications\/tool-result/);
+  }
 });
