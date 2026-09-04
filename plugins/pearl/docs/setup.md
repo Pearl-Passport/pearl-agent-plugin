@@ -4,7 +4,13 @@ Pearl uses one authenticated Streamable HTTP MCP endpoint: `https://agent.joinpe
 
 Before setup, sign in to a Pearl account that is eligible for Pearl Access. The server independently enforces admission, live Access eligibility, and OAuth scopes; installing this package cannot widen access.
 
-The live MCP `tools/list` response decides what the authenticated connection can use. Package `0.9.0` keeps Codex, Claude, ChatGPT, Registry, and CLI connections read-only while giving the exact reviewed Cursor client a separately scoped visit-action release and read-only live table availability. Missing workflows must be reported as unavailable.
+The live MCP `tools/list` response decides what the authenticated connection can use. Package `0.10.0` gives reviewed ChatGPT, Codex, Claude, and Cursor registrations read-only table availability plus separately scoped, confirmed visit import and edit actions. Unknown clients, MCP Registry-generic clients, direct grok.com connectors, and the standalone Pearl CLI remain read-only. Missing workflows must be reported as unavailable.
+
+## ChatGPT
+
+Install Pearl from its ChatGPT app listing after OpenAI approves and publishes the exact version, or use the owner/reviewer test link for a portal draft. A backend deployment does not update ChatGPT's scanned tool snapshot: adding these five tools requires a new portal scan, version test, and submission or publish step.
+
+After the `0.10.0` app version is active, disconnect and reconnect Pearl so ChatGPT can request `visits:write`; existing grants stay read-only. In a new chat, select the single Pearl app and run the host canaries below. Never keep both a legacy private Pearl connector and the reviewed Pearl app enabled in the same test chat.
 
 ## Codex Desktop and CLI
 
@@ -27,6 +33,8 @@ codex mcp list
 
 Then ask: `Use $pearl-concierge to show my saved places and recommend one for my next trip.`
 
+After package `0.10.0` is activated, run `codex mcp login pearl` again to grant `visits:write`. Current Codex uses a unique OpenAI-hosted CIMD identity shaped as `https://chatgpt.com/oauth/codex/<opaque-id>/client.json` for each installation; Pearl validates that identity and its loopback callback rather than embedding a shared Codex client ID in `.mcp.json`.
+
 ## Claude web and desktop Chat
 
 Claude Chat uses Pearl as a remote custom connector; it does not load the Claude Code skill.
@@ -42,6 +50,8 @@ Use this exact callback when registering the public client:
 `https://claude.ai/api/mcp/auth_callback`
 
 Pearl keeps Dynamic Client Registration disabled. Do not leave the client ID blank and do not paste a bearer token into the URL or settings.
+
+After package `0.10.0` is activated, reconnect Pearl so the connector can request `visits:write`; existing grants remain read-only.
 
 ## Claude Code
 
@@ -61,9 +71,11 @@ Claude Code namespaces plugin-provided servers as `plugin:<plugin>:<server>`, so
 
 Invoke `/pearl:pearl-concierge`, or ask Claude to use Pearl Concierge for venue discovery, matching, profile context, visits, saves, friends, trips, or reservations.
 
+After package `0.10.0` is activated, log in again to grant `visits:write`; existing grants remain read-only.
+
 ## Cursor IDE, Cloud Agents, and Cursor Grok Bot
 
-Package `0.9.0` supports these Cursor-hosted workflows. Read-only live availability can appear under an existing Cursor `reservations:read` grant after server activation; the visit actions require a new authorization for `visits:write`:
+Package `0.10.0` supports these workflows across reviewed ChatGPT, Codex, Claude, and Cursor registrations. Read-only live availability can appear under an existing `reservations:read` grant after coordinated activation; the visit actions require a new authorization for `visits:write`:
 
 - review committed Pearl visits with `visits_list`;
 - preview and explicitly confirm a new visit or a structured historical visit import;
@@ -75,7 +87,7 @@ Package `0.9.0` supports these Cursor-hosted workflows. Read-only live availabil
 
 It does **not** hold, book, change, cancel, or pay for reservations. Editing a Pearl visit is not editing a provider reservation, and a reservation returned by Pearl is an existing member record, not proof that Pearl or Cursor made the booking.
 
-Version `0.9.0` adds `visits:write` to Cursor only. Existing Cursor grants and tokens keep their old scope, so open the Pearl plugin, choose reconnect/authenticate, and approve the updated request before testing. Do not add a client secret.
+Existing Cursor grants and tokens keep their old scope, so open the Pearl plugin, choose reconnect/authenticate, and approve the updated request before testing. Do not add a client secret.
 
 ### Test the package locally in Cursor desktop
 
@@ -123,7 +135,7 @@ Use Pearl to change the note on visit [visit ID]. Show the before/after preview 
 Use Pearl to book the available table.
 ```
 
-The first three requests are reads. Availability must distinguish `available`, `no_availability`, `pending`, and `unknown`; unknown never means sold out. The next two must stop after preview until the member explicitly confirms that exact change, then return a durable receipt and tolerate a safe retry without duplication. The final request is a negative canary: package `0.9.0` must say provider booking is unavailable and must not imply that a table was held or booked.
+The first three requests are reads. Availability must distinguish `available`, `no_availability`, `pending`, and `unknown`; unknown never means sold out. The next two must stop after preview until the member explicitly confirms that exact change, then return a durable receipt and tolerate a safe retry without duplication. The final request is a negative canary: package `0.10.0` must say provider booking is unavailable and must not imply that a table was held or booked.
 
 ### Do not confuse Cursor Grok Bot with grok.com
 
@@ -131,7 +143,7 @@ The consumer and Business product at `grok.com` has its own custom MCP connector
 
 ## Visit and import requests
 
-Only the reviewed Cursor connection can commit an import or edit a visit in `0.9.0`; all other packaged hosts remain read-only. Calendar or email evidence must come through the host's separately authorized connector, be minimized to structured venue/date/location fields, and never include raw message bodies, attendee lists, unrelated text, or credentials. A calendar event or reservation is evidence, not attendance: the member must review the matched place and explicitly confirm which entries they actually attended. See the [Pearl Concierge skill](../skills/pearl-concierge/SKILL.md).
+Only reviewed ChatGPT, Codex, Claude, and Cursor connections can commit an import or edit a visit in `0.10.0`, and only when live discovery exposes the complete pair after fresh `visits:write` consent. Calendar or email evidence must come through the host's separately authorized connector, be minimized to structured venue/date/location fields, and never include raw message bodies, attendee lists, unrelated text, or credentials. A calendar event or reservation is evidence, not attendance: the member must review the matched place and explicitly confirm which entries they actually attended. See the [Pearl Concierge skill](../skills/pearl-concierge/SKILL.md).
 
 ## Validate
 

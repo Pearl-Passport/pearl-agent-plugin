@@ -7,7 +7,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const PLUGIN_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const EXPECTED_VERSION = "0.9.0";
+const EXPECTED_VERSION = "0.10.0";
 const EXPECTED_MCP_URL = "https://agent.joinpearl.co/mcp";
 const EXPECTED_REGISTRY_SCHEMA = "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json";
 const EXPECTED_REGISTRY_NAME = "io.github.Pearl-Passport/pearl-agent-plugin";
@@ -29,7 +29,7 @@ const PUBLIC_READ_SCOPES = [
   "reservations:read"
 ];
 const CURSOR_SCOPES = [...PUBLIC_READ_SCOPES, "visits:write"];
-const CURSOR_ACTION_TOOLS = [
+const REVIEWED_ACTION_TOOLS = [
   "visits_import_commit",
   "visits_import_prepare",
   "visits_update_commit",
@@ -49,6 +49,14 @@ const PUBLIC_READ_TOOLS = [
   "trip_get",
   "reservations_list",
   "reservation_get"
+];
+const PUBLIC_SUBMISSION_TOOLS = [
+  ...PUBLIC_READ_TOOLS,
+  "reservations_availability",
+  "visits_import_prepare",
+  "visits_import_commit",
+  "visits_update_prepare",
+  "visits_update_commit"
 ];
 const EXPECTED_ASSETS = new Map([
   ["assets/icon.png", "77069494537eb1148d68a2c312f66579db895d4d3dacaaa1cdc89706606e0a07"],
@@ -277,7 +285,7 @@ export function validatePublicText(relative, contents) {
   for (const [kind, pattern] of SECRET_PATTERNS) check(!pattern.test(contents), `${relative} appears to contain a ${kind}`, errors);
   for (const [kind, pattern] of PRIVATE_METADATA_PATTERNS) {
     const reviewedContents = kind === "unreleased tool contract"
-      ? CURSOR_ACTION_TOOLS.reduce((text, name) => text.replaceAll(name, ""), contents)
+      ? REVIEWED_ACTION_TOOLS.reduce((text, name) => text.replaceAll(name, ""), contents)
       : kind === "unreleased OAuth scope"
         ? contents.replaceAll("visits:write", "")
         : contents;
@@ -452,8 +460,10 @@ export async function validatePackage() {
   check(setupGuide.includes(CLAUDE_HOSTED_CLIENT_ID) && oauthGuide.includes(CLAUDE_HOSTED_CLIENT_ID), "Claude hosted setup must use its registered public client", errors);
   check(hasExactHttpUrl(oauthGuide, CLAUDE_HOSTED_CALLBACK), "Claude hosted setup must use the exact hosted callback", errors);
   check(/OAuth Client Secret[^\n]*(?:Leave|leave)[^\n]*empty/.test(setupGuide) && /OAuth Client Secret[^\n]*(?:Leave|leave)[^\n]*empty/.test(oauthGuide), "Claude hosted setup must explicitly leave the secret empty", errors);
-  const documentedScopes = [...oauthGuide.matchAll(/`([a-z-]+:(?:read|write))`/g)].map((match) => match[1]);
-  check(JSON.stringify(documentedScopes) === JSON.stringify(CURSOR_SCOPES), "OAuth docs must list the seven common reads plus only Cursor's visits:write", errors);
+  const documentedScopes = [...new Set(
+    [...oauthGuide.matchAll(/`([a-z-]+:(?:read|write))`/g)].map((match) => match[1]),
+  )];
+  check(JSON.stringify(documentedScopes) === JSON.stringify(CURSOR_SCOPES), "OAuth docs must list the seven common reads plus only visits:write for reviewed hosts", errors);
   const documentedWriteScopes = [...`${setupGuide}\n${oauthGuide}`.matchAll(/\b([a-z-]+:write)\b/g)].map((match) => match[1]);
   check(documentedWriteScopes.length > 0 && documentedWriteScopes.every((scope) => scope === "visits:write"), "Public setup may advertise only visits:write", errors);
   check(oauthGuide.includes("DCR endpoint remains disabled") && liveValidator.includes("register.status === 404"), "Documentation and live validation must keep DCR disabled", errors);
@@ -490,19 +500,23 @@ export async function validatePackage() {
 
   const publicToolNames = Object.keys(submission.tools ?? {});
   check(submission.$schema === "https://developers.openai.com/apps-sdk/schemas/chatgpt-app-submission.v1.json", "OpenAI submission schema is incorrect", errors);
-  check(JSON.stringify(publicToolNames) === JSON.stringify(PUBLIC_READ_TOOLS), `Public submission must contain the exact 13 read tools: ${publicToolNames.join(", ")}`, errors);
-  check(publicToolNames.every((name) => capabilitySnapshot.includes(`\`${name}\``)), "The capability snapshot must describe every public read", errors);
-  check(Object.values(submission.tools ?? {}).every((tool) => tool.annotations?.readOnlyHint === true && tool.annotations?.destructiveHint === false), "Every submitted tool must be annotated read-only and non-destructive", errors);
+  check(JSON.stringify(publicToolNames) === JSON.stringify(PUBLIC_SUBMISSION_TOOLS), `Public submission must contain the exact 18 reviewed tools: ${publicToolNames.join(", ")}`, errors);
+  check(publicToolNames.every((name) => capabilitySnapshot.includes(`\`${name}\``)), "The capability snapshot must describe every submitted tool", errors);
+  check(PUBLIC_READ_TOOLS.every((name) => submission.tools?.[name]?.annotations?.readOnlyHint === true && submission.tools?.[name]?.annotations?.destructiveHint === false), "The 13 common reads must remain read-only and non-destructive", errors);
+  check(submission.tools?.reservations_availability?.annotations?.readOnlyHint === true && submission.tools?.reservations_availability?.annotations?.destructiveHint === false, "Reservation availability must remain read-only and non-destructive", errors);
+  check(REVIEWED_ACTION_TOOLS.every((name) => submission.tools?.[name]?.annotations?.readOnlyHint === false), "Every submitted visit action must be annotated as a write", errors);
+  check(submission.tools?.visits_update_commit?.annotations?.destructiveHint === true, "Visit update commit must be annotated destructive", errors);
+  check(["visits_import_prepare", "visits_import_commit", "visits_update_prepare"].every((name) => submission.tools?.[name]?.annotations?.destructiveHint === false), "Preview tools and visit import commit must remain non-destructive", errors);
   const documentedActionTools = [...new Set(
     [...`${skill}\n${capabilitySnapshot}\n${setupGuide}\n${oauthGuide}`.matchAll(/\b([A-Za-z0-9]+(?:_[A-Za-z0-9]+)*_(?:prepare|commit))\b/g)]
       .map((match) => match[1]),
   )].sort();
-  check(JSON.stringify(documentedActionTools) === JSON.stringify(CURSOR_ACTION_TOOLS), "Public docs must expose exactly the four reviewed Cursor visit tools", errors);
+  check(JSON.stringify(documentedActionTools) === JSON.stringify(REVIEWED_ACTION_TOOLS), "Public docs must expose exactly the four reviewed visit tools", errors);
   const publicWriteScopes = [...new Set(
     [...`${skill}\n${capabilitySnapshot}\n${setupGuide}\n${oauthGuide}`.matchAll(/\b([a-z-]+:write)\b/g)]
       .map((match) => match[1]),
   )];
-  check(publicWriteScopes.length === 1 && publicWriteScopes[0] === "visits:write", "Public docs must expose only Cursor's visits:write scope", errors);
+  check(publicWriteScopes.length === 1 && publicWriteScopes[0] === "visits:write", "Public docs must expose only the reviewed visits:write scope", errors);
 
   for (const [relative, expectedHash] of EXPECTED_ASSETS) {
     const contents = await readFile(path.join(PLUGIN_ROOT, relative));
