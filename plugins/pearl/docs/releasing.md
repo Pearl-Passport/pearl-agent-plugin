@@ -52,7 +52,7 @@ Use:
    claude plugin validate . --strict
    ```
 
-   After coordinated activation, also run `npm --prefix plugins/pearl run validate:cross-host-actions-live` and `node --test scripts/validate-pearl-openai-plugin-live.mjs --require-cross-host-actions`.
+   After coordinated activation, also run `npm --prefix plugins/pearl run validate:cross-host-actions-live` and `node scripts/validate-pearl-openai-plugin-live.mjs --require-cross-host-actions`. Invoke the latter directly so Node forwards its rollout flag to the test module.
 
    Pearl maintainers with Codex's bundled `plugin-creator` and `skill-creator` skills installed must also run those skills' validators against the package and both packaged Pearl Concierge skill directories. Do not present local Codex system-skill paths as public package dependencies.
 

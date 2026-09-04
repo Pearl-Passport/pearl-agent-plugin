@@ -199,6 +199,10 @@ test("the dated skill snapshot covers the 18 reviewed cross-host tools", async (
   const submission = JSON.parse(await readFile(path.join(REPOSITORY_ROOT, "chatgpt-app-submission.json"), "utf8"));
   const snapshot = await readFile(path.join(ROOT, "skills", "pearl-concierge", "references", "capabilities.md"), "utf8");
   const publicTools = Object.keys(submission.tools);
+  assert.equal(submission.test_cases.length, 5, "OpenAI portal requires exactly five positive cases");
+  assert.equal(submission.negative_test_cases.length, 3);
+  const coveredTools = new Set(submission.test_cases.flatMap((item) => item.tools_triggered.split(",").map((name) => name.trim())));
+  assert.deepEqual([...coveredTools].sort(), [...publicTools].sort());
   assert.equal(publicTools.length, 18);
   assert.deepEqual(
     ["venues_new_openings", "places_match", "friends_search", "friends_list"].filter((name) => publicTools.includes(name)),

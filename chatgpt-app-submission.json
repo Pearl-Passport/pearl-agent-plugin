@@ -227,43 +227,19 @@
   },
   "test_cases": [
     {
-      "description": "Match supplied place names, then search Pearl's venue catalog with a specific destination and occasion.",
-      "user_prompt": "Match L'Effervescence and Narisawa in Pearl, then find more Pearl restaurants in Tokyo for a quiet anniversary dinner.",
+      "description": "Plan a taste-aware Tokyo dinner using venue discovery and privacy-filtered friend context.",
+      "user_prompt": "Use my Pearl taste profile to plan a quiet anniversary dinner in Tokyo. Match L'Effervescence and Narisawa, search for alternatives, show new openings, and recommend options. Also find Maya and show my accepted friends and pending requests without changing them.",
       "file_attachment_urls": null,
-      "tools_triggered": "places_match, venues_search",
-      "expected_output": "Returns canonical match review results for the supplied names and relevant Pearl restaurants in Tokyo with enough detail to compare the options.",
+      "tools_triggered": "profile_get, places_match, venues_search, venues_new_openings, venues_recommend, friends_search, friends_list",
+      "expected_output": "Uses only the authenticated member's available taste signals, returns canonical venue matches and evidence-based recommendations, labels sparse opening results, and shows privacy-filtered member matches and friendship state without sending a request.",
       "expected_output_url": null
     },
     {
-      "description": "Discover new openings and get personalized venue recommendations constrained by city and venue type.",
-      "user_prompt": "Show me what is newly opened or coming soon in Paris, then recommend Pearl hotels there based on my taste profile.",
+      "description": "Review the authenticated member's travel activity, owned trip detail, and exact reservation detail.",
+      "user_prompt": "Show my recent Pearl visits, saved places, trips and upcoming reservations. Open one of my existing trips and show the exact details for my next reservation. Do not change anything.",
       "file_attachment_urls": null,
-      "tools_triggered": "venues_new_openings, venues_recommend",
-      "expected_output": "Returns recency-ranked newly-opened or coming-soon Pearl venues for Paris, honestly labels any zero-result alternatives, and includes a concise set of personalized Pearl hotel recommendations.",
-      "expected_output_url": null
-    },
-    {
-      "description": "Retrieve the authenticated member's private taste profile.",
-      "user_prompt": "What does my Pearl profile say about my taste and allergies, and what were my recent visits?",
-      "file_attachment_urls": null,
-      "tools_triggered": "profile_get, visits_list",
-      "expected_output": "Summarizes the member's available Pearl taste signals, allergies, and recent visits without asking for an account identifier.",
-      "expected_output_url": null
-    },
-    {
-      "description": "Review private trips, reservations, and saved places already available in Pearl.",
-      "user_prompt": "Show my Pearl trips, open my Tuscany collection, include my upcoming reservations and saved places, then show the exact details for my next reservation.",
-      "file_attachment_urls": null,
-      "tools_triggered": "trips_list, trip_get, reservations_list, reservation_get, saves_list",
-      "expected_output": "Lists the member's trips, opens the owned Tuscany collection if it exists, returns upcoming reservations and saved places, and retrieves the exact next reservation by its Pearl source and ID without modifying it.",
-      "expected_output_url": null
-    },
-    {
-      "description": "Search Pearl members and review the authenticated member's existing friendship state.",
-      "user_prompt": "Find my friend Maya on Pearl and show my accepted friends and pending requests.",
-      "file_attachment_urls": null,
-      "tools_triggered": "friends_search, friends_list",
-      "expected_output": "Returns privacy-filtered member matches and the authenticated member's accepted and pending friendships without sending or changing a request.",
+      "tools_triggered": "visits_list, saves_list, trips_list, trip_get, reservations_list, reservation_get",
+      "expected_output": "Returns member-scoped visits, saves, trips and reservations with honest pagination and totals, uses returned IDs for owned trip and reservation detail, and reports empty data without inventing records.",
       "expected_output_url": null
     },
     {
@@ -276,10 +252,10 @@
     },
     {
       "description": "Preview and explicitly confirm one attended visit before committing it.",
-      "user_prompt": "Log that I visited Narisawa on September 17. Show me the exact preview and wait for my confirmation before saving it.",
+      "user_prompt": "On the designated test account, log that I visited Narisawa on August 17, 2026. Show me the exact preview and wait for my confirmation before saving it.",
       "file_attachment_urls": null,
       "tools_triggered": "places_match, visits_import_prepare, visits_import_commit",
-      "expected_output": "Previews the matched venue and visit date without writing, waits for explicit confirmation, then commits only the confirmed item and returns a durable receipt. A safe retry does not duplicate it.",
+      "expected_output": "Creates a preview without creating a visit, waits for explicit confirmation, then commits only the confirmed item and returns a durable receipt. A safe retry does not duplicate it. Remove the test visit in Pearl after the canary.",
       "expected_output_url": null
     },
     {
