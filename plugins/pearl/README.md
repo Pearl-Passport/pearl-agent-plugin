@@ -1,16 +1,16 @@
 # Pearl agent integration package
 
-Pearl's installable package connects Codex, Claude, Cursor, and Grok Bot to one authenticated Streamable HTTP MCP endpoint:
+Pearl's installable package gives Codex, Claude, Cursor, and Cursor's Grok Bot a thin host integration for one authenticated Streamable HTTP MCP endpoint:
 
 `https://agent.joinpearl.co/mcp`
 
-The package contains host manifests, the Pearl Concierge skill, public setup documentation, brand assets, a presentation-only MCP Apps resource, and validation code. This candidate source-wires the resource to seven reviewed read tools, including member-scoped profile statistics and trip listings, but final real-host rendering verification is still pending, so the package does not claim that any host renders it successfully. The package contains no application, database, OAuth server, MCP executor, deployment configuration, access token, or client secret.
+The package contains host manifests, the Pearl Concierge skill, public setup documentation, brand assets, a presentation-only MCP Apps resource, and validation code. The MCP Apps resource remains attached only to reviewed reads. Cursor has a separately scoped action release for confirmed visit imports/edits and a read-only live-availability tool; those tools do not receive cards and do not widen Codex, Claude, ChatGPT, or CLI access. The package contains no application, database, OAuth server, MCP executor, deployment configuration, access token, or client secret.
 
 ## Current release
 
-Package `0.8.11` is read-only. The live MCP `tools/list` response is authoritative; manifests do not pin tools. The documented public set contains 13 reads for venue search, recommendations, new openings, place matching, profile, visits, saves, friends and requests, trips, and reservations.
+Package `0.9.0` keeps the common Codex, Claude, ChatGPT, Registry, and CLI surface read-only. The live MCP `tools/list` response is authoritative; manifests do not pin tools. The documented common set contains 13 reads for venue search, recommendations, new openings, place matching, profile, visits, saves, friends and requests, trips, and reservations. The exact `pearl-cursor` principal may additionally discover read-only `reservations_availability` under its existing `reservations:read` grant. Its four preview/commit visit tools appear only after the member reconnects and consents to `visits:write`.
 
-See the [capability snapshot](skills/pearl-concierge/references/capabilities.md) for exact current tools and honest unavailable-workflow labels. The package does not claim that a host has approved or listed Pearl.
+See the [capability snapshot](skills/pearl-concierge/references/capabilities.md) for the exact host matrix and honest unavailable-workflow labels. No host can book, hold, change, cancel, or pay for a reservation in this release. The package does not claim that a host has approved or listed Pearl.
 
 ## Included artifacts
 

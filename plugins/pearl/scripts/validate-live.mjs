@@ -14,17 +14,23 @@ const PUBLIC_READ_SCOPES = [
   "trips:read",
   "reservations:read"
 ];
+const CURSOR_SCOPES = [...PUBLIC_READ_SCOPES, "visits:write"];
+const EXPECTED_ADVERTISED_SCOPES = [...CURSOR_SCOPES].sort();
 const STATIC_HOST_CLIENTS = [
   {
     clientId: "pearl-claude-hosted",
-    callbacks: ["https://claude.ai/api/mcp/auth_callback"]
+    callbacks: ["https://claude.ai/api/mcp/auth_callback"],
+    scopes: PUBLIC_READ_SCOPES,
+    deniedScopes: ["visits:write"]
   },
   {
     clientId: "pearl-cursor",
     callbacks: [
       "https://www.cursor.com/agents/mcp/oauth/callback",
       "http://localhost:8787/callback"
-    ]
+    ],
+    scopes: CURSOR_SCOPES,
+    deniedScopes: [["validation", "write"].join(":")]
   }
 ];
 
@@ -72,12 +78,16 @@ assert(auth.client_id_metadata_document_supported === true, "authorization metad
 assert(!("registration_endpoint" in auth), "authorization metadata must not advertise DCR");
 assert(auth.token_endpoint_auth_methods_supported?.includes("none"), "authorization metadata must support public clients");
 assert(auth.code_challenge_methods_supported?.includes("S256"), "authorization metadata must require PKCE S256");
+assert(JSON.stringify([...(auth.scopes_supported ?? [])].sort()) === JSON.stringify(EXPECTED_ADVERTISED_SCOPES),
+  "authorization metadata must advertise exactly the common reads plus visits:write");
 
 const resourceResponse = await request("/.well-known/oauth-protected-resource/mcp");
 assert(resourceResponse.status === 200, `protected-resource metadata returned ${resourceResponse.status}`);
 const resource = await resourceResponse.json();
 assert(resource.resource === MCP_URL, `protected resource must be ${MCP_URL}`);
 assert(resource.authorization_servers?.length === 1 && resource.authorization_servers[0] === ORIGIN, "protected resource must use Pearl's one authorization server");
+assert(JSON.stringify([...(resource.scopes_supported ?? [])].sort()) === JSON.stringify(EXPECTED_ADVERTISED_SCOPES),
+  "protected-resource metadata must advertise exactly the common reads plus visits:write");
 
 const mcpGet = await request("/mcp");
 assert(mcpGet.status === 405, `MCP GET must fail closed with 405, received ${mcpGet.status}`);
@@ -92,7 +102,7 @@ const initialize = await request("/mcp", {
     params: {
       protocolVersion: "2025-06-18",
       capabilities: {},
-      clientInfo: { name: "pearl-package-validator", version: "0.8.11" }
+      clientInfo: { name: "pearl-package-validator", version: "0.9.0" }
     }
   })
 });
@@ -116,12 +126,11 @@ if (REQUIRE_OPENAI_CHALLENGE) {
 }
 
 if (REQUIRE_STATIC_HOST_CLIENTS) {
-  for (const { clientId, callbacks } of STATIC_HOST_CLIENTS) {
+  for (const { clientId, callbacks, scopes, deniedScopes } of STATIC_HOST_CLIENTS) {
     for (const callback of callbacks) {
-      await expectAuthorizationError(clientId, callback, PUBLIC_READ_SCOPES, "invalid_target");
+      await expectAuthorizationError(clientId, callback, scopes, "invalid_target");
     }
-    const unsupportedMutationScope = ["validation", "write"].join(":");
-    await expectAuthorizationError(clientId, callbacks[0], [...PUBLIC_READ_SCOPES, unsupportedMutationScope], "invalid_scope");
+    await expectAuthorizationError(clientId, callbacks[0], [...scopes, ...deniedScopes], "invalid_scope");
   }
 }
 

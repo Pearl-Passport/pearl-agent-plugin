@@ -12,9 +12,11 @@ and OAuth recovery.
   cookies, request headers, or browser storage.
 - Record only the host/product version, date, tool name, visible result, and a
   Pearl request ID when an error already exposes one.
-- Do not create, change, book, cancel, save, message, or publish anything. The
-  seven UI-enabled tools are reads. Trip creation remains a separate dark
-  prepare/commit canary and is not part of this host-rendering test.
+- The seven UI-enabled tools are reads. The ChatGPT/Claude card canary must not
+  create, change, book, cancel, save, message, or publish anything. Cursor's
+  separate text-only canary may create and edit one designated disposable visit
+  through the reviewed confirmation flow; remove test data later through the
+  Pearl app because deletion is not an Agent capability.
 
 ## Host and viewport matrix
 
@@ -34,9 +36,10 @@ Test light and dark appearance once each.
 
 For trips and reservations, verify the unified journey family groups returned
 stops or reservations by date, labels missing status as unknown, and never
-converts tentative or unavailable data into confirmed copy. Flight and live
-availability fixtures are pre-release coverage only while those tools are dark;
-they are not part of the seven-tool public canary.
+converts tentative or unavailable data into confirmed copy. Flight fixtures are
+pre-release coverage only while those tools are dark. Live availability is also
+absent from this seven-tool card canary: package `0.9.0` exposes it only to the
+exact Cursor client through the text/structured fallback canary below.
 
 Use only trips and reservations returned by the same account. Never paste an ID
 from another member into a screenshot or review artifact.
@@ -56,10 +59,41 @@ from another member into a screenshot or review artifact.
    conversation must preserve a useful text result or recovery path even if the
    iframe cannot mount.
 
+## Cursor Grok Bot canary
+
+Run this only after Pearl is visible in the Cursor Marketplace or an eligible
+team marketplace. A local `~/.cursor/plugins/local` installation does not reach
+the hosted Grok Bot.
+
+1. In Grok Bot, open **Plugins**, add Pearl, complete browser authorization, and
+   confirm it appears under **Installed**.
+2. Ask Pearl to show the five most recent committed visits. Confirm
+   `visits_list` is member-scoped and does not imply that Grok Bot created a
+   visit.
+3. Ask Pearl to list upcoming reservations, then open one returned reservation.
+   Confirm `reservation_get` uses the `source` and ID returned by
+   `reservations_list` and exposes no booking credentials or provider action.
+4. Ask Pearl to check table availability at a canonical venue for an exact local
+   date and party size. Confirm `available`, `no_availability`, `pending`, and
+   `unknown` remain distinct; unknown must not be described as sold out, and no
+   slot may be held or booked.
+5. Ask Pearl to log one designated test visit. Confirm the first action only
+   returns a preview. After reviewing it, explicitly confirm the exact visit and
+   verify the receipt plus `visits_list`. A repeat with the same commit
+   idempotency key must not create a duplicate.
+6. Ask Pearl to edit only that visit's note. Confirm the before/after preview is
+   shown and no change occurs before a second explicit confirmation. Verify the
+   receipt and exact visit read afterward.
+7. Ask Pearl to book, change, and cancel a reservation. Each request must report
+   that the provider action is unavailable. Any hold, booking claim, provider
+   cancellation, or request for payment credentials fails the canary.
+8. Record text/structured fallback as a valid host result when Cursor does not
+   render the optional MCP Apps iframe.
+
 ## Negative checks
 
-- No visits, saves, friends, exact-reservation, write, dark, or flight tool
-  should claim a card in this release.
+- No visit write, availability, saves, friends, exact-reservation, dark, or
+  flight tool should claim a card in this release.
 - The local flight fixture must show source and freshness or fare expiry when
   supplied, preserve overnight dates and currency, say it is read-only, and
   offer no booking action. Passing that fixture is not a public flight claim.

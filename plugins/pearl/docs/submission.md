@@ -17,15 +17,17 @@ Both hosts require a public GitHub repository for third-party marketplace review
    npm --prefix plugins/pearl run validate:host-clients-live
    ```
 
-The static-host validator intentionally supplies the wrong MCP resource. A correctly registered client and callback returns `invalid_target` before Pearl creates an authorization request. It also verifies that a public write scope returns `invalid_scope`.
+The static-host validator intentionally supplies the wrong MCP resource. A correctly registered client and callback returns `invalid_target` before Pearl creates an authorization request. It also verifies that hosted Claude rejects Cursor's globally advertised `visits:write` scope and that Cursor rejects every unreviewed write scope.
 
 ## Cursor Marketplace
 
 Cursor distributes marketplace plugins from public Git repositories and manually reviews updates. Submit the public repository at [Cursor Marketplace Publish](https://cursor.com/marketplace/publish) only after the shared gate passes.
 
-The repository contains the required `plugins/pearl/cursor/.cursor-plugin/plugin.json` and root `.cursor-plugin/marketplace.json`. Submit the marketplace entry `pearl-cursor`; the user-facing description and Pearl artwork remain branded Pearl. The submission must use public client ID `pearl-cursor`, no secret, and only the two callbacks and seven read scopes in [oauth.md](oauth.md). Test local installation in Cursor before applying; hosted Agents and Grok Bot require a separate hosted OAuth canary.
+The repository contains the required `plugins/pearl/cursor/.cursor-plugin/plugin.json` and root `.cursor-plugin/marketplace.json`. Submit the marketplace entry `pearl-cursor`; the user-facing description and Pearl artwork remain branded Pearl. The submission must use public client ID `pearl-cursor`, no secret, exactly the two callbacks, the seven common read scopes, and only `visits:write` in addition, as recorded in [oauth.md](oauth.md). Test local installation in Cursor before applying; hosted Agents and Grok Bot require a separate hosted OAuth canary.
 
 Do not claim Cursor approval, listing, endorsement, or availability until the reviewed release is visible in Cursor's marketplace.
+
+A local Cursor plugin can validate the manifest, OAuth loopback, skills, and live tools, but it cannot be installed by a hosted Grok Bot. Grok Bot uses the Cursor Marketplace or an eligible team marketplace. After listing, run a hosted canary from **Grok Bot → Plugins** that proves `visits_list`, `reservations_list`, `reservation_get`, and read-only `reservations_availability`; then prove a visit import and edit each stop after preview until the member explicitly confirms. Verify that provider booking, change, cancellation, payment, visit deletion, and every unreviewed write remain absent.
 
 ## Claude plugin
 

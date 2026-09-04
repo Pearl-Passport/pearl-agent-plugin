@@ -95,7 +95,8 @@ test("Cursor uses collision-resistant plugin and MCP identifiers with a secretle
       "saves:read",
       "friends:read",
       "trips:read",
-      "reservations:read"
+      "reservations:read",
+      "visits:write"
     ]
   });
   assert.equal(JSON.stringify(cursor).includes("CLIENT_SECRET"), false);
@@ -194,7 +195,7 @@ test("the public CLI is a read-only runtime projection with secretless trusted p
   assert.doesNotMatch(workflow, /NODE_AUTH_TOKEN|NPM_TOKEN|npm_[A-Za-z0-9]{20,}/);
 });
 
-test("the dated skill snapshot covers the exact 13 public reads", async () => {
+test("the dated skill snapshot covers 13 common reads and only the reviewed Cursor additions", async () => {
   const submission = JSON.parse(await readFile(path.join(REPOSITORY_ROOT, "chatgpt-app-submission.json"), "utf8"));
   const snapshot = await readFile(path.join(ROOT, "skills", "pearl-concierge", "references", "capabilities.md"), "utf8");
   const publicTools = Object.keys(submission.tools);
@@ -206,8 +207,12 @@ test("the dated skill snapshot covers the exact 13 public reads", async () => {
   assert.equal(publicTools.includes("reservation_get"), true);
   for (const name of publicTools) assert.equal(snapshot.includes(`\`${name}\``), true);
   assert.equal(publicTools.some((name) => name.endsWith("_prepare") || name.endsWith("_commit")), false);
-  assert.doesNotMatch(snapshot, /\b[A-Za-z0-9]+(?:_[A-Za-z0-9]+)*_(?:prepare|commit)\b/);
-  assert.doesNotMatch(snapshot, /\b[a-z-]+:write\b/);
+  assert.deepEqual(
+    [...new Set([...snapshot.matchAll(/\b([A-Za-z0-9]+(?:_[A-Za-z0-9]+)*_(?:prepare|commit))\b/g)].map((match) => match[1]))].sort(),
+    ["visits_import_commit", "visits_import_prepare", "visits_update_commit", "visits_update_prepare"]
+  );
+  assert.deepEqual([...new Set([...snapshot.matchAll(/\b([a-z-]+:write)\b/g)].map((match) => match[1]))], ["visits:write"]);
+  assert.doesNotMatch(snapshot, /reservations_(?:book|booking|cancel|change|modify)_(?:prepare|commit)/);
 });
 
 test("hosted Claude documents the fixed public client and exact read-only scopes", async () => {
@@ -215,17 +220,43 @@ test("hosted Claude documents the fixed public client and exact read-only scopes
   const setup = await readFile(path.join(ROOT, "docs", "setup.md"), "utf8");
   const oauth = await readFile(path.join(ROOT, "docs", "oauth.md"), "utf8");
   const liveValidator = await readFile(path.join(ROOT, "scripts", "validate-live.mjs"), "utf8");
+  const claudeOAuthSection = oauth.match(/## Claude web and desktop Chat[\s\S]*?(?=\n## Claude Code CIMD)/)?.[0] ?? "";
   assert.match(claude.description, /Eligible Pearl Access members/);
   for (const document of [setup, oauth]) {
     assert.match(document, /pearl-claude-hosted/);
     assert.match(document, /OAuth Client Secret[^\n]*(?:Leave|leave)[^\n]*empty/);
   }
-  assert.match(oauth, /https:\/\/claude\.ai\/api\/mcp\/auth_callback/);
+  assert.match(claudeOAuthSection, /https:\/\/claude\.ai\/api\/mcp\/auth_callback/);
   for (const scope of ["venues:read", "profile:read", "visits:read", "saves:read", "friends:read", "trips:read", "reservations:read"]) {
     assert.equal(oauth.includes(`\`${scope}\``), true);
   }
-  assert.doesNotMatch(oauth, /\b[a-z-]+:write\b/);
+  assert.doesNotMatch(claudeOAuthSection, /\b[a-z-]+:write\b/);
   assert.match(liveValidator, /register\.status === 404/);
+});
+
+test("Cursor Grok Bot setup is marketplace-gated with exact visit actions and no provider writes", async () => {
+  const setup = await readFile(path.join(ROOT, "docs", "setup.md"), "utf8");
+  const oauth = await readFile(path.join(ROOT, "docs", "oauth.md"), "utf8");
+  const hostTesting = await readFile(path.join(ROOT, "mcp-apps", "HOST-TESTING.md"), "utf8");
+  for (const document of [setup, hostTesting]) {
+    assert.match(document, /Grok Bot/);
+    assert.match(document, /visits_list/);
+    assert.match(document, /reservations_list/);
+    assert.match(document, /reservation_get/);
+    assert.match(document, /reservations_availability|table availability/);
+    assert.match(document, /explicit(?:ly)? confirm|explicit confirmation/);
+    assert.match(document, /provider action is unavailable|does \*\*not\*\* hold, book, change, cancel/);
+  }
+  assert.match(setup, /Grok Bot → Plugins/);
+  assert.match(setup, /Waiting for authorization/);
+  assert.match(setup, /local folder[\s\S]*does not make Pearl available to a hosted Grok Bot/);
+  assert.match(setup, /grok\.com[\s\S]*different host/);
+  assert.match(oauth, /direct grok\.com custom connector is not a supported install path/);
+  assert.deepEqual(
+    [...new Set([...`${setup}\n${oauth}`.matchAll(/\b([a-z-]+:write)\b/g)].map((match) => match[1]))],
+    ["visits:write"]
+  );
+  assert.doesNotMatch(`${setup}\n${oauth}`, /reservations_(?:book|booking|cancel|change|modify)_(?:prepare|commit)/);
 });
 
 test("Claude Code uses trusted CIMD without a static client override", async () => {
