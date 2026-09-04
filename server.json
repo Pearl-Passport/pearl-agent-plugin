@@ -2,8 +2,8 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.Pearl-Passport/pearl-agent-plugin",
   "title": "Pearl",
-  "description": "Read-only Pearl discovery, recommendations, and private travel context for supported MCP clients.",
-  "version": "0.9.0",
+  "description": "Pearl read-only discovery, live table availability, and confirmed visit actions for reviewed hosts.",
+  "version": "0.10.0",
   "websiteUrl": "https://joinpearl.co",
   "repository": {
     "url": "https://github.com/Pearl-Passport/pearl-agent-plugin",

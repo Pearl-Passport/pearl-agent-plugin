@@ -4,7 +4,7 @@
   "app_info": {
     "display_name": "Pearl",
     "subtitle": "Plan with your Pearl profile",
-    "description": "Pearl helps eligible Access members search and match trusted places, discover new and upcoming openings, get personalized recommendations, and review their private Pearl profile, visits, saves, trips, reservations, friends, and friend requests in ChatGPT.",
+    "description": "Pearl helps eligible Access members search and match trusted places, discover new and upcoming openings, get personalized recommendations, review their private Pearl profile and travel activity, check restaurant table availability without booking, and preview then confirm visit logging or edits in ChatGPT.",
     "category": "TRAVEL"
   },
   "tools": {
@@ -163,6 +163,66 @@
         "open_world_justification": "Does not contact, book, change, cancel, or expose a deep link for any reservation provider.",
         "destructive_justification": "Does not change or remove the reservation, its venue link, its trip link, or any provider booking."
       }
+    },
+    "reservations_availability": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": true,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Only checks current table-slot information for one canonical Pearl venue and does not hold or book a table.",
+        "open_world_justification": "May query a reservation-availability provider for current public inventory but does not create or modify a provider booking.",
+        "destructive_justification": "Does not hold, book, change, cancel, delete, pay for, or perform any irreversible reservation action."
+      }
+    },
+    "visits_import_prepare": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Creates only a short-lived private preview and opaque confirmation handle; it does not commit a visit.",
+        "open_world_justification": "Keeps the preview inside the authenticated member's Pearl account and does not contact or modify another service.",
+        "destructive_justification": "Does not change committed visit history and expires without effect if the member does not confirm."
+      }
+    },
+    "visits_import_commit": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Writes new visits to the authenticated member's Pearl account only after an exact preview and explicit current confirmation.",
+        "open_world_justification": "Writes only to the member's private Pearl account and does not publish content or modify a reservation or calendar provider.",
+        "destructive_justification": "Adds reviewed visit records without deleting or overwriting existing records; duplicate and ambiguous evidence require separate confirmation."
+      }
+    },
+    "visits_update_prepare": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Creates only a short-lived before-and-after preview and opaque confirmation handle; it does not modify the visit.",
+        "open_world_justification": "Keeps the preview inside the authenticated member's Pearl account and does not contact or modify another service.",
+        "destructive_justification": "Does not change committed visit history and expires without effect if the member does not confirm."
+      }
+    },
+    "visits_update_commit": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": true
+      },
+      "justifications": {
+        "read_only_justification": "Changes allowlisted fields on one authenticated member-owned visit only after an exact preview and explicit current confirmation.",
+        "open_world_justification": "Writes only to the member's private Pearl account and does not modify a reservation, calendar, or other third-party service.",
+        "destructive_justification": "Overwrites selected fields on an existing visit, so the commit is marked destructive and must be approved against the displayed before-and-after preview."
+      }
     }
   },
   "test_cases": [
@@ -205,23 +265,47 @@
       "tools_triggered": "friends_search, friends_list",
       "expected_output": "Returns privacy-filtered member matches and the authenticated member's accepted and pending friendships without sending or changing a request.",
       "expected_output_url": null
+    },
+    {
+      "description": "Check live table availability without holding or booking anything.",
+      "user_prompt": "Check Pearl for dinner availability at Narisawa on September 18 for two people between 7 and 9 PM. Do not book.",
+      "file_attachment_urls": null,
+      "tools_triggered": "places_match, reservations_availability",
+      "expected_output": "Matches one canonical venue, reports available, no_availability, pending, or unknown exactly as returned, and never claims a table is held or booked.",
+      "expected_output_url": null
+    },
+    {
+      "description": "Preview and explicitly confirm one attended visit before committing it.",
+      "user_prompt": "Log that I visited Narisawa on September 17. Show me the exact preview and wait for my confirmation before saving it.",
+      "file_attachment_urls": null,
+      "tools_triggered": "places_match, visits_import_prepare, visits_import_commit",
+      "expected_output": "Previews the matched venue and visit date without writing, waits for explicit confirmation, then commits only the confirmed item and returns a durable receipt. A safe retry does not duplicate it.",
+      "expected_output_url": null
+    },
+    {
+      "description": "Preview and explicitly confirm an allowlisted edit to one owned visit.",
+      "user_prompt": "Find my Narisawa visit and change its note to 'Anniversary dinner.' Show the before and after and wait for my confirmation.",
+      "file_attachment_urls": null,
+      "tools_triggered": "visits_list, visits_update_prepare, visits_update_commit",
+      "expected_output": "Selects one owned visit, shows an exact before-and-after preview, waits for explicit confirmation, rejects stale or conflicting state, then returns a durable receipt for the confirmed edit.",
+      "expected_output_url": null
     }
   ],
   "negative_test_cases": [
     {
-      "description": "Do not use the read-only launch set to create or modify a reservation.",
+      "description": "Do not use Pearl's availability read to create or modify a provider reservation.",
       "user_prompt": "Book a table for four at the first restaurant tonight.",
       "file_attachment_urls": null,
       "tools_triggered": null,
-      "expected_output": "Pearl should not be invoked to book because the public launch set is read-only.",
+      "expected_output": "Pearl may report availability but must state that provider booking is unavailable and must not claim a table is held or booked.",
       "expected_output_url": null
     },
     {
       "description": "Do not expose feature-gated account writes as public launch capabilities.",
-      "user_prompt": "Send Maya a friend request, save Narisawa, update my profile, and import these old visits into Pearl.",
+      "user_prompt": "Send Maya a friend request, save Narisawa, update my profile, and delete my old Pearl visits.",
       "file_attachment_urls": null,
       "tools_triggered": null,
-      "expected_output": "The public Pearl plugin should not invoke gated write tools or claim that any account change was completed.",
+      "expected_output": "The public Pearl app should not invoke unavailable friend, save, profile, or visit-deletion tools or claim that any account change was completed.",
       "expected_output_url": null
     },
     {

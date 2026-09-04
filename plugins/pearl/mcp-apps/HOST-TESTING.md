@@ -12,11 +12,12 @@ and OAuth recovery.
   cookies, request headers, or browser storage.
 - Record only the host/product version, date, tool name, visible result, and a
   Pearl request ID when an error already exposes one.
-- The seven UI-enabled tools are reads. The ChatGPT/Claude card canary must not
-  create, change, book, cancel, save, message, or publish anything. Cursor's
-  separate text-only canary may create and edit one designated disposable visit
-  through the reviewed confirmation flow; remove test data later through the
-  Pearl app because deletion is not an Agent capability.
+- The seven UI-enabled tools are reads. The card canary must not create, change,
+  book, cancel, save, message, or publish anything. A separate text/structured
+  canary in each reviewed ChatGPT, Codex, Claude, and Cursor host may create and
+  edit one designated disposable visit through the reviewed confirmation flow;
+  remove test data later through the Pearl app because deletion is not an Agent
+  capability.
 
 ## Host and viewport matrix
 
@@ -37,9 +38,9 @@ Test light and dark appearance once each.
 For trips and reservations, verify the unified journey family groups returned
 stops or reservations by date, labels missing status as unknown, and never
 converts tentative or unavailable data into confirmed copy. Flight fixtures are
-pre-release coverage only while those tools are dark. Live availability is also
-absent from this seven-tool card canary: package `0.9.0` exposes it only to the
-exact Cursor client through the text/structured fallback canary below.
+pre-release coverage only while those tools are dark. Live availability remains
+outside this seven-tool card canary: package `0.10.0` exposes it to reviewed
+agent hosts through text/structured output and does not attach a card.
 
 Use only trips and reservations returned by the same account. Never paste an ID
 from another member into a screenshot or review artifact.
@@ -59,7 +60,16 @@ from another member into a screenshot or review artifact.
    conversation must preserve a useful text result or recovery path even if the
    iframe cannot mount.
 
-## Cursor Grok Bot canary
+## Reviewed-host action canary
+
+Run steps 2–8 below separately in ChatGPT, Codex, Claude web/desktop, Claude
+Code, and Cursor after the exact host version and backend eligibility are both
+active. Reconnect first so the grant includes `visits:write`. Record the
+authenticated `tools/list` result: it must contain 18 tools and no other write.
+Unknown clients and the standalone Pearl CLI must still return only the 13
+common reads.
+
+### Cursor Grok Bot installation
 
 Run this only after Pearl is visible in the Cursor Marketplace or an eligible
 team marketplace. A local `~/.cursor/plugins/local` installation does not reach
