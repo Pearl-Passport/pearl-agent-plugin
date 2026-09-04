@@ -7,7 +7,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const PLUGIN_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const EXPECTED_VERSION = "0.8.11";
+const EXPECTED_VERSION = "0.9.0";
 const EXPECTED_MCP_URL = "https://agent.joinpearl.co/mcp";
 const EXPECTED_REGISTRY_SCHEMA = "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json";
 const EXPECTED_REGISTRY_NAME = "io.github.Pearl-Passport/pearl-agent-plugin";
@@ -27,6 +27,13 @@ const PUBLIC_READ_SCOPES = [
   "friends:read",
   "trips:read",
   "reservations:read"
+];
+const CURSOR_SCOPES = [...PUBLIC_READ_SCOPES, "visits:write"];
+const CURSOR_ACTION_TOOLS = [
+  "visits_import_commit",
+  "visits_import_prepare",
+  "visits_update_commit",
+  "visits_update_prepare"
 ];
 const PUBLIC_READ_TOOLS = [
   "venues_search",
@@ -268,7 +275,14 @@ export function validatePublicText(relative, contents) {
   const emails = [...contents.matchAll(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi)].map((match) => match[0].toLowerCase());
   check(emails.every((email) => email === PUBLIC_CONTACT_EMAIL), `${relative} contains a non-public contact email`, errors);
   for (const [kind, pattern] of SECRET_PATTERNS) check(!pattern.test(contents), `${relative} appears to contain a ${kind}`, errors);
-  for (const [kind, pattern] of PRIVATE_METADATA_PATTERNS) check(!pattern.test(contents), `${relative} contains a ${kind}`, errors);
+  for (const [kind, pattern] of PRIVATE_METADATA_PATTERNS) {
+    const reviewedContents = kind === "unreleased tool contract"
+      ? CURSOR_ACTION_TOOLS.reduce((text, name) => text.replaceAll(name, ""), contents)
+      : kind === "unreleased OAuth scope"
+        ? contents.replaceAll("visits:write", "")
+        : contents;
+    check(!pattern.test(reviewedContents), `${relative} contains a ${kind}`, errors);
+  }
   return errors;
 }
 
@@ -383,7 +397,7 @@ export async function validatePackage() {
   const cursorServer = cursor.mcpServers?.["pearl-cursor"];
   check(cursorServer?.url === EXPECTED_MCP_URL, "Cursor must use the same production MCP endpoint", errors);
   check(cursorServer?.auth?.CLIENT_ID === CURSOR_CLIENT_ID, `Cursor must use public client ${CURSOR_CLIENT_ID}`, errors);
-  check(JSON.stringify(cursorServer?.auth?.scopes) === JSON.stringify(PUBLIC_READ_SCOPES), "Cursor must request exactly the seven public read scopes", errors);
+  check(JSON.stringify(cursorServer?.auth?.scopes) === JSON.stringify(CURSOR_SCOPES), "Cursor must request the seven public reads plus only visits:write", errors);
   check(!Object.hasOwn(cursorServer?.auth ?? {}, "CLIENT_SECRET"), "Cursor must not contain CLIENT_SECRET", errors);
   check(![mcp, codex, claude, cursor].some(secretishJsonKey), "Tracked host manifests must not contain credential fields", errors);
   check(registry.$schema === EXPECTED_REGISTRY_SCHEMA, "MCP Registry metadata must use the reviewed 2025-12-11 schema", errors);
@@ -439,8 +453,9 @@ export async function validatePackage() {
   check(hasExactHttpUrl(oauthGuide, CLAUDE_HOSTED_CALLBACK), "Claude hosted setup must use the exact hosted callback", errors);
   check(/OAuth Client Secret[^\n]*(?:Leave|leave)[^\n]*empty/.test(setupGuide) && /OAuth Client Secret[^\n]*(?:Leave|leave)[^\n]*empty/.test(oauthGuide), "Claude hosted setup must explicitly leave the secret empty", errors);
   const documentedScopes = [...oauthGuide.matchAll(/`([a-z-]+:(?:read|write))`/g)].map((match) => match[1]);
-  check(JSON.stringify(documentedScopes) === JSON.stringify(PUBLIC_READ_SCOPES), "OAuth docs must list exactly the seven public read scopes", errors);
-  check(!/[a-z-]+:write\b/.test(`${setupGuide}\n${oauthGuide}`), "Public setup must not advertise a write scope", errors);
+  check(JSON.stringify(documentedScopes) === JSON.stringify(CURSOR_SCOPES), "OAuth docs must list the seven common reads plus only Cursor's visits:write", errors);
+  const documentedWriteScopes = [...`${setupGuide}\n${oauthGuide}`.matchAll(/\b([a-z-]+:write)\b/g)].map((match) => match[1]);
+  check(documentedWriteScopes.length > 0 && documentedWriteScopes.every((scope) => scope === "visits:write"), "Public setup may advertise only visits:write", errors);
   check(oauthGuide.includes("DCR endpoint remains disabled") && liveValidator.includes("register.status === 404"), "Documentation and live validation must keep DCR disabled", errors);
   check([setupGuide, oauthGuide].every((guide) => guide.includes("Anthropic-hosted CIMD") && guide.includes("localhost") && guide.includes("127.0.0.1") && /ephemeral (?:loopback )?port/.test(guide)), "Claude Code must document its CIMD loopback boundary", errors);
   check(setupGuide.includes("claude mcp login plugin:pearl:pearl") && setupGuide.includes("claude mcp get plugin:pearl:pearl") && !/--client-id|--client-secret|--callback-port/.test(setupGuide), "Claude Code must use its plugin-namespaced CIMD server without static overrides", errors);
@@ -478,8 +493,16 @@ export async function validatePackage() {
   check(JSON.stringify(publicToolNames) === JSON.stringify(PUBLIC_READ_TOOLS), `Public submission must contain the exact 13 read tools: ${publicToolNames.join(", ")}`, errors);
   check(publicToolNames.every((name) => capabilitySnapshot.includes(`\`${name}\``)), "The capability snapshot must describe every public read", errors);
   check(Object.values(submission.tools ?? {}).every((tool) => tool.annotations?.readOnlyHint === true && tool.annotations?.destructiveHint === false), "Every submitted tool must be annotated read-only and non-destructive", errors);
-  check(!/\b[A-Za-z0-9]+(?:_[A-Za-z0-9]+)*_(?:prepare|commit)\b/.test(`${skill}\n${capabilitySnapshot}\n${setupGuide}\n${oauthGuide}`), "Public docs must not expose unreleased tool contracts", errors);
-  check(!/\b[a-z-]+:write\b/.test(`${skill}\n${capabilitySnapshot}\n${setupGuide}\n${oauthGuide}`), "Public docs must not expose write scopes", errors);
+  const documentedActionTools = [...new Set(
+    [...`${skill}\n${capabilitySnapshot}\n${setupGuide}\n${oauthGuide}`.matchAll(/\b([A-Za-z0-9]+(?:_[A-Za-z0-9]+)*_(?:prepare|commit))\b/g)]
+      .map((match) => match[1]),
+  )].sort();
+  check(JSON.stringify(documentedActionTools) === JSON.stringify(CURSOR_ACTION_TOOLS), "Public docs must expose exactly the four reviewed Cursor visit tools", errors);
+  const publicWriteScopes = [...new Set(
+    [...`${skill}\n${capabilitySnapshot}\n${setupGuide}\n${oauthGuide}`.matchAll(/\b([a-z-]+:write)\b/g)]
+      .map((match) => match[1]),
+  )];
+  check(publicWriteScopes.length === 1 && publicWriteScopes[0] === "visits:write", "Public docs must expose only Cursor's visits:write scope", errors);
 
   for (const [relative, expectedHash] of EXPECTED_ASSETS) {
     const contents = await readFile(path.join(PLUGIN_ROOT, relative));

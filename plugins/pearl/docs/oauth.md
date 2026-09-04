@@ -15,7 +15,7 @@ Pearl Agent access currently requires an eligible Pearl Access member. The serve
 | Claude Code | Anthropic-hosted CIMD and ephemeral loopback callback | None |
 | Cursor IDE, Agents, and Grok Bot | Pre-registered public client `pearl-cursor` | Required; no secret |
 
-The current read scopes are:
+The common read scopes are:
 
 - `venues:read`
 - `profile:read`
@@ -25,7 +25,11 @@ The current read scopes are:
 - `trips:read`
 - `reservations:read`
 
-Do not request a write scope from this release.
+Codex, Claude, ChatGPT, MCP Registry clients, and the Pearl CLI request only those seven reads. The reviewed Cursor registration additionally requests:
+
+- `visits:write`
+
+That scope authorizes only the complete visit-import and visit-update preview/commit families that Pearl returns to the exact `pearl-cursor` client. It does not authorize visit deletion, reservation booking, reservation changes, cancellation, payment, or any other mutation. Existing grants and tokens are not widened; a member must reconnect and approve the new scope.
 
 ## Codex
 
@@ -80,16 +84,18 @@ Do not reuse `pearl-claude-hosted`, do not pass `--client-secret`, and do not in
 | Desktop app redirect URI | `http://localhost:8787/callback` |
 | Token authentication | `none` |
 | PKCE | `S256` |
-| Scopes | `venues:read profile:read visits:read saves:read friends:read trips:read reservations:read` |
+| Scopes | `venues:read profile:read visits:read saves:read friends:read trips:read reservations:read visits:write` |
 
 Register both callbacks exactly. Grok Bot uses the hosted Cursor callback and does not receive a separate OAuth client.
 
 The Cursor manifest intentionally names both the plugin and its MCP server `pearl-cursor`. This separates Cursor's static public-client configuration from the URL-only `pearl` server used by Codex and Claude Code. All wrappers still resolve to the single production endpoint above.
 
+Cursor Grok Bot is not the same host as the custom connector product at `grok.com`. Pearl has not registered a static xAI client and DCR remains disabled, so a direct grok.com custom connector is not a supported install path in this release. Do not reuse `pearl-cursor`, guess an xAI callback, or supply a client secret.
+
 ## Security boundaries
 
 - The package does not register clients, issue tokens, store grants, or implement OAuth.
-- The package does not enable a tool or broaden a live grant.
+- A manifest can request a reviewed scope, but only the server can enable a tool. Existing grants are never broadened in place.
 - Never add a client secret, token, authorization header, environment file, or callback override to the repository.
 - Runtime `tools/list`, OAuth scopes, and server-side eligibility remain authoritative.
 
@@ -103,3 +109,4 @@ The Cursor manifest intentionally names both the plugin and its MCP server `pear
 - [Cursor plugin reference](https://cursor.com/docs/reference/plugins.md)
 - [Cursor MCP and static OAuth](https://cursor.com/docs/mcp)
 - [Grok Bot plugin connections](https://cursor.com/help/grok-bot/connect-plugins)
+- [xAI Grok custom MCP connectors](https://docs.x.ai/grok/connectors)
