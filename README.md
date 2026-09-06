@@ -1,12 +1,21 @@
 # Pearl Agent Plugin
 
-Pearl's installable package connects Codex, Claude, Cursor, and Grok Bot to Pearl's authenticated remote MCP server at `https://agent.joinpearl.co/mcp`.
+Connect Pearl to Codex, Claude, Cursor, and supported AI apps to find places,
+explore your taste, and review your visits, saved places, trips, and reservations.
+An eligible Pearl Access membership is required.
 
-Pearl Agent access currently requires an eligible Pearl Access member. The server independently enforces admission, live Access eligibility, and OAuth scopes; installing this package cannot widen access.
+Start with the [Quick Start & Tester Guide](plugins/pearl/docs/quick-start.md)
+for features, example prompts, cards, and troubleshooting.
 
-Package `0.9.0` keeps the common Codex, Claude, ChatGPT, Registry, and CLI surface read-only. The reviewed Cursor registration adds read-only live table availability and confirmed visit logging/editing behind the single `visits:write` scope; it does not add provider booking, change, cancellation, or payment. Runtime MCP `tools/list` is authoritative. The public package contains thin host manifests, current workflow guidance, public documentation, approved brand assets, a presentation-only MCP Apps resource, and zero-dependency validation. The resource is source-wired only to reviewed read tools. ChatGPT has rendered prior venue and profile card revisions successfully; the `1.4.0` / `v7` card resource and every non-ChatGPT host remain subject to their own real-host canaries. The package contains no application, OAuth server, database, executor, environment, deployment configuration, or credential.
+Pearl uses one authenticated MCP address: `https://agent.joinpearl.co/mcp`.
+Features depend on the connected app and the permissions you approve; the live
+MCP `tools/list` response is authoritative. Where available, visit logging and
+editing require a preview and your explicit confirmation. Table availability
+does not hold or book a reservation. This MCP release cannot book, change,
+cancel, or pay for reservations.
 
-Repository availability does not mean Anthropic, Cursor, or OpenAI has approved, endorsed, or listed Pearl.
+Repository availability does not mean Anthropic, Cursor, or OpenAI has approved,
+endorsed, or listed Pearl.
 
 ## Install
 
@@ -30,9 +39,11 @@ claude plugin install pearl@pearl-integrations
 claude mcp login plugin:pearl:pearl
 ```
 
-For Claude web/desktop Chat, add `https://agent.joinpearl.co/mcp` as a custom connector, enter public client ID `pearl-claude-hosted`, and leave the secret empty.
+For Claude web/desktop Chat, add `https://agent.joinpearl.co/mcp` as a custom
+connector, enter public client ID `pearl-claude-hosted`, and leave Client Secret
+empty.
 
-### Cursor IDE, Cloud Agents, and Grok Bot
+### Cursor desktop
 
 ```bash
 git clone --branch v0.9.0 --depth 1 https://github.com/Pearl-Passport/pearl-agent-plugin.git
@@ -42,55 +53,36 @@ test ! -e ~/.cursor/plugins/local/pearl-cursor
 cp -R plugins/pearl/cursor ~/.cursor/plugins/local/pearl-cursor
 ```
 
-Reload Cursor and enable **Pearl Cursor** in **Customize**. The plugin and server use the collision-resistant identifier `pearl-cursor`, public client ID `pearl-cursor`, no secret, seven common read scopes plus only `visits:write`, and the official hosted and desktop callbacks documented in [OAuth setup](plugins/pearl/docs/oauth.md). Existing installations must reconnect to consent to the added scope.
+Reload Cursor, enable **Pearl Cursor** in **Customize**, and authenticate.
+A local install does not automatically reach hosted Cloud Agents or Grok Bot.
+See [host setup](plugins/pearl/docs/setup.md) for hosted access and reconnecting.
 
-## Validate
+## Manage access
+
+Open **Pearl → Settings → Account → Connected apps**, or
+[open Connected Apps](https://app.joinpearl.co/settings/connected-apps).
+Choose **Revoke** to stop a connection without deleting your Pearl data.
+
+Never share passwords, sign-in codes, access tokens, or payment details in chat.
+
+## Developer reference
+
+- [Host setup](plugins/pearl/docs/setup.md) and [OAuth configuration](plugins/pearl/docs/oauth.md)
+- [Capability reference](plugins/pearl/skills/pearl-concierge/references/capabilities.md)
+- [Standalone CLI](cli/pearl/README.md)
+- [Release instructions](plugins/pearl/docs/releasing.md) and [source provenance](SOURCE.md)
+
+CLI, Registry, and marketplace releases are separate from repository updates.
+Check the relevant release instructions before installing or publishing.
 
 ```bash
 npm --prefix plugins/pearl test
 npm --prefix plugins/pearl run validate
-npm --prefix plugins/pearl/mcp-apps test
-npm --prefix plugins/pearl/mcp-apps run validate
 npm --prefix plugins/pearl run validate:live
-npm --prefix plugins/pearl run validate:registry
-npm --prefix plugins/pearl run validate:registry:schema
-npm --prefix plugins/pearl run validate:registry:live
-npm --prefix cli/pearl run check
-npm --prefix cli/pearl test
-npm --prefix cli/pearl run validate
 ```
 
-### Pearl CLI release candidate
+## Help and policies
 
-The same repository contains Pearl's standalone read-only CLI in
-[`cli/pearl`](cli/pearl). After Pearl verifies ownership of the `@joinpearl`
-npm scope and publishes through the protected Trusted Publishing workflow:
-
-```bash
-npm install --global @joinpearl/cli
-pearl doctor --json
-pearl login
-pearl tools --json
-```
-
-Until that npm release exists, use the repository development instructions in
-the CLI README. Do not install an unverified package with a similar name.
-
-### MCP Registry release candidate
-
-[`server.json`](server.json) is Pearl's remote-only metadata for the preview MCP Registry. It declares `io.github.Pearl-Passport/pearl-agent-plugin`, matching the case-sensitive public GitHub owner, and the same one Streamable HTTP endpoint used by every host wrapper. It contains no header, token, client secret, package runtime, or tool allowlist.
-
-Registry publication is intentionally separate from source availability. It requires a reviewed `v0.9.0` release, a protected `mcp-registry-publish` GitHub environment with a required reviewer and release-tag restriction, and secretless GitHub OIDC. Until that protected workflow completes and the exact version is verified in the Registry, do not describe Pearl as listed there. The Registry is itself in preview.
-
-See [cross-host setup](plugins/pearl/docs/setup.md), the [capability snapshot](plugins/pearl/skills/pearl-concierge/references/capabilities.md), and [source provenance](SOURCE.md).
-
-Marketplace publication remains a separate host-review step. See [submission paths](plugins/pearl/docs/submission.md) for new applications and future release updates.
-
-## Security, policies, and brand
-
-- Support and security: `hello@joinpearl.co` (use `[Security]` in the subject line for vulnerability reports)
-- Support: https://joinpearl.co/support
-- Privacy: https://joinpearl.co/privacy
-- Terms: https://joinpearl.co/terms
-- Software license: [MIT](LICENSE)
-- Pearl trademarks and artwork: [TRADEMARKS.md](TRADEMARKS.md)
+- Support and security: [hello@joinpearl.co](mailto:hello@joinpearl.co)
+- [Help](https://joinpearl.co/support) · [Privacy](https://joinpearl.co/privacy) · [Terms](https://joinpearl.co/terms)
+- Software: [MIT license](LICENSE) · Pearl artwork: [Trademarks](TRADEMARKS.md)

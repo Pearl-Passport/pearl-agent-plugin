@@ -1,5 +1,12 @@
 # Install Pearl in Codex, Claude, and Cursor
 
+For a short feature overview, example prompts, and help, see the
+[Quick Start & Tester Guide](quick-start.md).
+
+To manage an existing connection, open **Settings → Account → Connected apps**
+in Pearl, or [open Connected Apps](https://app.joinpearl.co/settings/connected-apps).
+Choose **Revoke** to stop that app's access; this does not delete your Pearl data.
+
 Pearl uses one authenticated Streamable HTTP MCP endpoint: `https://agent.joinpearl.co/mcp`. The host manifests are thin adapters over that connection and the shared Pearl Concierge skill.
 
 Before setup, sign in to a Pearl account that is eligible for Pearl Access. The server independently enforces admission, live Access eligibility, and OAuth scopes; installing this package cannot widen access.

@@ -92,6 +92,7 @@ export const EXPECTED_PUBLIC_REPOSITORY_FILES = [
   "plugins/pearl/cursor/skills/pearl-concierge/agents/openai.yaml",
   "plugins/pearl/cursor/skills/pearl-concierge/references/capabilities.md",
   "plugins/pearl/docs/oauth.md",
+  "plugins/pearl/docs/quick-start.md",
   "plugins/pearl/docs/releasing.md",
   "plugins/pearl/docs/setup.md",
   "plugins/pearl/docs/submission.md",
