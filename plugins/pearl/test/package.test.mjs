@@ -29,6 +29,16 @@ test("the canonical portable package validates", async () => {
   assert.deepEqual(await validatePackage(), []);
 });
 
+test("the member quick start is concise, public-safe, and explains revocation", async () => {
+  const guide = await readFile(path.join(ROOT, "docs/quick-start.md"), "utf8");
+  assert.deepEqual(validatePublicText("docs/quick-start.md", guide), []);
+  assert(guide.split(/\s+/).length < 750, "Keep internal detail out of the member guide");
+  assert.match(guide, /Settings → Account → Connected apps/);
+  assert.match(guide, /https:\/\/app\.joinpearl\.co\/settings\/connected-apps/);
+  assert.match(guide, /wait for your explicit confirmation/);
+  assert.match(guide, /does not mean a host has approved or listed Pearl/);
+});
+
 test("public repository validation rejects inventory drift and private metadata", () => {
   assert.deepEqual(validatePublicFileInventory(EXPECTED_PUBLIC_REPOSITORY_FILES), []);
   assert.match(
