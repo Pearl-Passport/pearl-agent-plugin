@@ -1,7 +1,7 @@
 {
   "name": "pearl",
-  "version": "0.9.0",
-  "description": "Search and match Pearl places, get taste-aware recommendations, and review private Pearl travel activity through a read-only connection.",
+  "version": "0.10.0",
+  "description": "Search and match Pearl places, get taste-aware recommendations, check table availability, and confirm visit logging or edits.",
   "author": {
     "name": "Pearl LLC",
     "email": "hello@joinpearl.co",
@@ -21,12 +21,12 @@
   "interface": {
     "displayName": "Pearl",
     "shortDescription": "Plan with your Pearl profile",
-    "longDescription": "Pearl helps eligible Access members search and match trusted places, discover openings, get taste-aware recommendations, and review their private Pearl profile, visits, saves, trips, reservations, and friend context through a read-only authenticated connection.",
+    "longDescription": "Pearl helps eligible Access members search and match trusted places, discover openings, get taste-aware recommendations, review private travel context, check table availability, and explicitly confirm visit logging or edits.",
     "developerName": "Pearl LLC",
     "category": "Travel",
     "capabilities": [
       "MCP tools",
-      "Read-only",
+      "Confirmed actions",
       "OAuth"
     ],
     "websiteURL": "https://joinpearl.co",

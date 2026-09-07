@@ -1,6 +1,6 @@
 # Pearl capability snapshot
 
-This public documentation snapshot is dated **2026-09-03** for package `0.9.0`. It is not a tool allowlist. The authenticated MCP `tools/list` response is authoritative and may vary by host, member, OAuth grant, or rollout.
+This public documentation snapshot is dated **2026-09-04** for package `0.10.0`. It is not a tool allowlist. The authenticated MCP `tools/list` response is authoritative and may vary by host, member, OAuth grant, or rollout.
 
 ## Current public read set
 
@@ -20,11 +20,11 @@ This public documentation snapshot is dated **2026-09-03** for package `0.9.0`. 
 | `reservations_list` | List reservations recorded in Pearl with exact-total pagination | Does not book, change, or cancel a reservation |
 | `reservation_get` | Read one selected reservation by returned source and ID | Does not expose booking credentials or provider actions |
 
-## Reviewed Cursor additions
+## Reviewed agent-host additions
 
-After server activation, the exact `pearl-cursor` principal adds read-only availability under its existing `reservations:read` grant. Its two complete confirmed-action families appear only after the member reconnects and grants `visits:write`. Codex, Claude, ChatGPT, MCP Registry clients, and the Pearl CLI remain on the common read set.
+After coordinated server and host-version activation, reviewed ChatGPT, Codex, Claude, and Cursor registrations add read-only availability under `reservations:read`. Their two complete confirmed-action families appear only after the member reconnects and grants `visits:write`. Pearl recognizes exact registered principals plus the narrowly validated current OpenAI Codex CIMD client-ID family; it does not trust a client merely because it reports an OpenAI, Anthropic, or Cursor source. Unknown clients, MCP Registry-generic clients, retired registrations, direct grok.com connections, and the standalone Pearl CLI remain on the common read set.
 
-| Tool | Current Cursor workflow | Important boundary |
+| Tool | Current reviewed-host workflow | Important boundary |
 | --- | --- | --- |
 | `reservations_availability` | Check current restaurant table slots for one canonical Pearl venue, local date, party size, and optional time window | Read-only; pending and unknown remain distinct, unknown is not sold out, and no slot is held or booked |
 | `visits_import_prepare` | Preview one new visit or up to 20 minimized historical visit candidates | Creates no visit; raw email/calendar bodies and credentials are forbidden, and attendance/ambiguous/duplicate evidence requires review |
@@ -42,8 +42,8 @@ These tools cannot delete visits, edit a provider reservation, book a table, or 
 | Member-added places | Search and matching may return provenance only when explicitly supplied | Direct place creation and provenance-only filtering |
 | Saves and collections | Review existing saves and legacy trip/collection reads | Save/remove and collection management |
 | Trips | List trips and read stops | Create, edit, share, delete, collaborate, or book |
-| Reservations | List and read recorded reservation details; Cursor can check live table availability | Holding a slot, provider booking, changes, cancellation, messaging, or payment |
-| Visits and import | Review visits and match structured place evidence; Cursor can preview/confirm imports and allowlisted edits | Clean/delete visits and photo workflows |
+| Reservations | List and read recorded reservation details; reviewed agent hosts can check live table availability after coordinated activation | Holding a slot, provider booking, changes, cancellation, messaging, or payment |
+| Visits and import | Review visits and match structured place evidence; reviewed agent hosts can preview/confirm imports and allowlisted edits after reconnecting for `visits:write` | Clean/delete visits and photo workflows |
 | Profile | Read available taste/profile signals | Profile, login, entitlement, privacy, or security changes |
 | Friends | Search privacy-filtered members and read friend/request state | Send, accept, decline, cancel, remove, block, or import contacts |
 | Matching | Match place names to canonical Pearl venues | People matching and taste-twin matching |

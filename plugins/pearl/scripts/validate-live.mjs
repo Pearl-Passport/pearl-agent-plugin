@@ -5,6 +5,7 @@ const MCP_URL = `${ORIGIN}/mcp`;
 const RESOURCE_METADATA_URL = `${ORIGIN}/.well-known/oauth-protected-resource/mcp`;
 const REQUIRE_OPENAI_CHALLENGE = process.argv.includes("--require-openai-challenge");
 const REQUIRE_STATIC_HOST_CLIENTS = process.argv.includes("--require-static-host-clients");
+const REQUIRE_CROSS_HOST_ACTIONS = process.argv.includes("--require-cross-host-actions");
 const PUBLIC_READ_SCOPES = [
   "venues:read",
   "profile:read",
@@ -20,8 +21,8 @@ const STATIC_HOST_CLIENTS = [
   {
     clientId: "pearl-claude-hosted",
     callbacks: ["https://claude.ai/api/mcp/auth_callback"],
-    scopes: PUBLIC_READ_SCOPES,
-    deniedScopes: ["visits:write"]
+    scopes: REQUIRE_CROSS_HOST_ACTIONS ? CURSOR_SCOPES : PUBLIC_READ_SCOPES,
+    deniedScopes: REQUIRE_CROSS_HOST_ACTIONS ? [["validation", "write"].join(":")] : ["visits:write"]
   },
   {
     clientId: "pearl-cursor",
@@ -31,7 +32,33 @@ const STATIC_HOST_CLIENTS = [
     ],
     scopes: CURSOR_SCOPES,
     deniedScopes: [["validation", "write"].join(":")]
-  }
+  },
+  ...(REQUIRE_CROSS_HOST_ACTIONS ? [
+    {
+      clientId: "pearl-codex",
+      callbacks: ["http://127.0.0.1:49152/callback/pearl-validator"],
+      scopes: CURSOR_SCOPES,
+      deniedScopes: [["validation", "write"].join(":")]
+    },
+    {
+      clientId: "https://chatgpt.com/oauth/client.json",
+      callbacks: ["https://chatgpt.com/connector_platform_oauth_redirect"],
+      scopes: CURSOR_SCOPES,
+      deniedScopes: [["validation", "write"].join(":")]
+    },
+    {
+      clientId: "https://claude.ai/oauth/mcp-oauth-client-metadata",
+      callbacks: ["https://claude.ai/api/mcp/auth_callback"],
+      scopes: CURSOR_SCOPES,
+      deniedScopes: [["validation", "write"].join(":")]
+    },
+    {
+      clientId: "https://claude.ai/oauth/claude-code-client-metadata",
+      callbacks: ["http://localhost:49153/callback", "http://127.0.0.1:49154/callback"],
+      scopes: CURSOR_SCOPES,
+      deniedScopes: [["validation", "write"].join(":")]
+    }
+  ] : [])
 ];
 
 async function request(path, init = {}) {
@@ -102,7 +129,7 @@ const initialize = await request("/mcp", {
     params: {
       protocolVersion: "2025-06-18",
       capabilities: {},
-      clientInfo: { name: "pearl-package-validator", version: "0.9.0" }
+      clientInfo: { name: "pearl-package-validator", version: "0.10.0" }
     }
   })
 });
@@ -136,6 +163,7 @@ if (REQUIRE_STATIC_HOST_CLIENTS) {
 
 const validations = [
   REQUIRE_STATIC_HOST_CLIENTS ? "static host-client registrations" : null,
+  REQUIRE_CROSS_HOST_ACTIONS ? "reviewed cross-host action scopes" : null,
   REQUIRE_OPENAI_CHALLENGE ? "the OpenAI Apps challenge" : null
 ].filter(Boolean);
 console.log(`Pearl live discovery and unauthenticated MCP validation passed${validations.length ? ` with ${validations.join(" and ")}` : ""}.`);

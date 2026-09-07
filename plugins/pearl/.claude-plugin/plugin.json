@@ -2,8 +2,8 @@
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "pearl",
   "displayName": "Pearl",
-  "version": "0.9.0",
-  "description": "Eligible Pearl Access members can search and match trusted places, get taste-aware recommendations, and review private Pearl travel activity through a read-only authenticated connection.",
+  "version": "0.10.0",
+  "description": "Eligible Pearl Access members can discover places, review private travel activity, check table availability, and confirm visit logging or edits.",
   "author": {
     "name": "Pearl LLC",
     "email": "hello@joinpearl.co",

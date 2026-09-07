@@ -1,5 +1,7 @@
 import { normalizeToolResult, recoveryPrompt } from "./model.mjs";
 
+// Replaced at build time with the exact approved assets/icon.png. No fetch.
+const PEARL_BRAND_MARK = "__PEARL_BRAND_MARK__";
 const root = document.getElementById("app");
 const liveRegion = document.getElementById("live-status");
 const pending = new Map();
@@ -80,32 +82,12 @@ const ICON_PATHS = {
   suitcase: "M2.5 5h11v8h-11zM5.5 5V3.4h5V5M2.5 8.2h11M5.2 7v2.3M10.8 7v2.3",
 };
 
-function svgCircle(cx, cy, r, opacity) {
-  const node = document.createElementNS(SVG_NS, "circle");
-  node.setAttribute("cx", String(cx));
-  node.setAttribute("cy", String(cy));
-  node.setAttribute("r", String(r));
-  node.setAttribute("fill", "currentColor");
-  if (opacity) node.setAttribute("opacity", opacity);
-  return node;
-}
-
 function icon(name) {
   const svg = document.createElementNS(SVG_NS, "svg");
   svg.setAttribute("viewBox", "0 0 16 16");
   svg.setAttribute("aria-hidden", "true");
   svg.setAttribute("focusable", "false");
   svg.classList.add("icon");
-  if (name === "pearl") {
-    const glint = document.createElementNS(SVG_NS, "circle");
-    glint.setAttribute("cx", "6.7");
-    glint.setAttribute("cy", "6.5");
-    glint.setAttribute("r", "1.1");
-    glint.setAttribute("fill", "#fff");
-    glint.setAttribute("opacity", "0.75");
-    svg.append(svgCircle(8, 8, 6.4, "0.22"), svgCircle(8, 8, 3.7), glint);
-    return svg;
-  }
   const path = document.createElementNS(SVG_NS, "path");
   path.setAttribute("d", ICON_PATHS[name] || ICON_PATHS.info);
   path.setAttribute("fill", "none");
@@ -124,42 +106,16 @@ function stateIcon(name) {
   return badge;
 }
 
-// Deterministic brand-safe fallback artwork: a category-tinted
-// gradient tile with the venue initial. Categories map to the canonical Pearl
-// category palette; unknown categories hash the name to a stable palette slot.
-const CATEGORY_PALETTES = [
-  ["restaurant", "dining", "bistro", "brasserie", "steak", "sushi", "omakase"],
-  ["bar", "cocktail", "pub", "lounge", "speakeasy"],
-  ["hotel", "stay", "resort", "inn"],
-  ["winery", "wine", "vineyard"],
-  ["cafe", "coffee", "bakery", "patisserie"],
-  ["spa", "wellness", "club"],
-];
-
-function paletteIndex(item) {
-  const category = String(item.category || "").toLowerCase();
-  for (const [index, keywords] of CATEGORY_PALETTES.entries()) {
-    if (keywords.some((keyword) => category.includes(keyword))) return index;
-  }
-  const name = String(item.name || "");
-  let hash = 0;
-  for (let index = 0; index < Math.min(name.length, 24); index += 1) {
-    hash = (hash * 31 + name.charCodeAt(index)) % 6;
-  }
-  return hash;
-}
-
 function mediaFigure(item, compact = false) {
   const figure = element("figure", compact ? "media compact" : "media");
   const fallback = element("div", "media-fallback");
   fallback.setAttribute("aria-hidden", "true");
-  fallback.dataset.palette = String(paletteIndex(item));
   const initial = String(item.name || "").trim().charAt(0);
   fallback.append(element("span", "media-initial", initial ? initial.toUpperCase() : "·"));
   figure.append(fallback);
   if (item.image && item.image.src) {
     const image = document.createElement("img");
-    image.className = "media-image";
+    image.className = "media-image is-loading";
     // The card title carries the venue name; the photo itself is decorative.
     image.alt = "";
     image.loading = "lazy";
@@ -168,6 +124,11 @@ function mediaFigure(item, compact = false) {
     const credit = item.image.attribution
       ? element("figcaption", "media-credit", `Photo: ${item.image.attribution}`)
       : undefined;
+    if (credit) credit.hidden = true;
+    image.addEventListener("load", () => {
+      image.classList.remove("is-loading");
+      if (credit) credit.hidden = false;
+    }, { once: true });
     // A missing/broken/oversized/redirected image never delays the card: the
     // fallback tile is already painted and the failed image (plus its
     // attribution) simply drops out.
@@ -208,7 +169,14 @@ function header(model) {
   const node = element("header", "panel-header");
   const copy = element("div", "header-copy");
   const eyebrow = element("p", "eyebrow");
-  eyebrow.append(icon("pearl"), element("span", "", "Pearl concierge"));
+  const mark = element("img", "brand-mark");
+  mark.alt = "";
+  mark.width = 28;
+  mark.height = 28;
+  mark.src = PEARL_BRAND_MARK;
+  const brand = element("span", "brand-name", "Pearl");
+  brand.append(element("span", "brand-role", "Concierge"));
+  eyebrow.append(mark, brand);
   copy.append(eyebrow);
   copy.append(element("h1", "", model.title));
   copy.append(element("p", "subtitle", model.subtitle));
@@ -367,7 +335,14 @@ function stopList(stops) {
         labels.forEach((label, index) => row.append(chip(label, index === 0)));
         copy.append(row);
       }
-      entry.append(marker, copy);
+      entry.append(marker);
+      if (stop.image?.src) {
+        const photo = mediaFigure(stop, true);
+        photo.classList.add("stop-photo");
+        entry.classList.add("has-photo");
+        entry.append(photo);
+      }
+      entry.append(copy);
       list.append(entry);
     }
     section.append(list);
@@ -381,6 +356,11 @@ function journeyCard(item, index) {
   card.dataset.kind = item.journeyType || "trip";
   const titleId = `journey-title-${index}`;
   card.setAttribute("aria-labelledby", titleId);
+  if (item.image?.src) {
+    const photo = mediaFigure(item);
+    photo.classList.add("journey-photo");
+    card.append(photo);
+  }
   const heading = element("div", "journey-heading");
   const identity = element("div", "journey-identity");
   const mark = element("span", "journey-mark");
@@ -982,7 +962,7 @@ async function connect() {
   showLoading();
   try {
     const initialized = await request("ui/initialize", {
-      appInfo: { name: "Pearl Concierge", version: "1.4.0" },
+      appInfo: { name: "Pearl Concierge", version: "1.5.3" },
       appCapabilities: { availableDisplayModes: ["inline"] },
       protocolVersion: "2026-01-26",
     }, 5_000);

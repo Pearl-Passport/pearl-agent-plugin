@@ -4,16 +4,23 @@ import {
   PEARL_MCP_APP_ARTIFACT_SHA256,
 } from "./artifact.generated.mjs";
 
-export const PEARL_MCP_APP_VERSION = "1.4.0";
-// Hosts cache UI resources by URI. Change this URI whenever the bundled HTML,
-// JavaScript, or CSS changes so clients cannot reuse an obsolete card bundle.
-export const PEARL_MCP_APP_RESOURCE_URI = "ui://pearl/concierge/v7/index.html";
+export const PEARL_MCP_APP_VERSION = "1.5.3";
+// Retain the reviewed URI for backward-compatible content fixes. ChatGPT may
+// cache content for up to an hour. A new URI is a metadata/contract change;
+// do not strand installed snapshots just to invalidate their content cache.
+export const PEARL_MCP_APP_RESOURCE_URI = "ui://pearl/concierge/v9/index.html";
 // ChatGPT can retain tools/list metadata for an already-open conversation.
 // Keep the bounded reviewed resource history readable so those conversations
 // load the current artifact instead of silently dropping the card.
 export const PEARL_MCP_APP_COMPATIBILITY_RESOURCE_URIS = Object.freeze([
+  "ui://pearl/concierge/v8/index.html",
+  "ui://pearl/concierge/v7/index.html",
   "ui://pearl/concierge/v6/index.html",
   "ui://pearl/concierge/v5/index.html",
+  // Installed ChatGPT plugin snapshots still reference v4 (live canary,
+  // 2026-09-04). Keep this exact released URI pinned until those snapshots
+  // have been refreshed and verified; a rolling last-N window is insufficient.
+  "ui://pearl/concierge/v4/index.html",
 ]);
 export const PEARL_MCP_APP_MIME_TYPE = "text/html;profile=mcp-app";
 export const PEARL_MCP_APP_MAX_RESOURCE_BYTES = 256 * 1024;

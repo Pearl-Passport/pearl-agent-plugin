@@ -7,7 +7,7 @@ const MAX_TEXT = 240;
 // (integration.mjs) and the document CSP img-src (scripts/build.mjs).
 const IMAGE_ORIGIN_PREFIX = "https://agent.joinpearl.co/";
 const IMAGE_PATH_PATTERN = /^[A-Za-z0-9/_\-.]{1,400}$/;
-const IMAGE_KEYS = ["image", "hero_image", "photo", "thumbnail", "primary_photo"];
+const IMAGE_KEYS = ["hero_image_url", "image_url", "image", "hero_image", "photo", "thumbnail", "primary_photo"];
 const IMAGE_LIST_KEYS = ["photos", "images", "gallery"];
 const PUBLIC_READ_SCOPES = new Set([
   "venues:read",
@@ -305,7 +305,7 @@ function normalizeJourney(value, index, kindHint) {
   const date = temporal.display;
   const endDate = formatTemporal(firstScalar(sources, ["end_date", "trip_end_date", "ends_at", "check_out"], 80));
   const time = temporal.hasTime ? "" : formatClock(firstScalar(sources, ["time", "reservation_time", "start_time"], 40));
-  const city = firstText(sources, ["city", "destination", "locality"], 80);
+  const city = firstText(sources, ["city", "venue_city", "destination", "locality"], 80);
   const people = firstNumber(sources, ["party_size", "guests", "travellers", "travelers"]);
   const status = firstText(sources, ["status", "reservation_status", "state"], 40).toLowerCase();
   const collectionType = firstText(sources, ["collection_type"], 40).toLowerCase();
@@ -338,6 +338,7 @@ function normalizeJourney(value, index, kindHint) {
     location: city,
     facts,
     stops: [],
+    image: reservation ? normalizeImage(sources) : undefined,
   };
 }
 

@@ -1,78 +1,55 @@
-/* Pearl MCP Apps design-system foundation.
- *
- * TOKEN BRIDGE — every --pearl-ui-* token below maps to a canonical Pearl
- * design-system token defined in src/index.css ([data-ui="pearl"] scope).
- * The full documented bridge lives in TOKENS.md next to this file. Hosts may
- * override the structural tokens through the allowlisted
- * hostContext.styles.variables keys (see app.mjs); Pearl brand accents stay
- * fixed so cards remain unmistakably Pearl inside a host-native shell.
- *
- * GLASS LAYER — the panel paints a soft Pearl ambient wash (cream/terracotta/
- * honey/navy) and every inner primitive is a translucent "glass" surface with
- * backdrop blur and a warm iridescent hairline. Every glass treatment has an
- * opaque fallback for hosts without backdrop-filter, and is disabled under
- * prefers-reduced-transparency, prefers-contrast: more, and forced colors.
+/* Pearl MCP Apps — Zypsy onboarding V1 adaptation.
+ * Canonical Pearl light values: --ds-* in src/index.css; see TOKENS.md.
+ * Host structural variables win. No app stylesheet, font, or network import.
+ * V1 has no approved dark palette: retain Pearl's existing dark surfaces,
+ * with neutral actions derived from its existing ink/surface pair.
+ * Secondary body ink and focus deliberately use accessible documented values.
  */
 
 :root {
   color-scheme: light dark;
-  /* Structural bridge (host-overridable) — canonical Pearl light values. */
-  --pearl-ui-canvas: var(--color-background-primary, #fbfaf7);          /* ← --pearl-bg */
-  --pearl-ui-surface: var(--color-background-secondary, #ffffff);       /* ← --pearl-paper */
-  --pearl-ui-subtle: var(--color-background-tertiary, #f3efe9);         /* ← --pearl-subtle */
-  --pearl-ui-text: var(--color-text-primary, #17212a);                  /* ← --pearl-ink */
-  --pearl-ui-text-secondary: var(--color-text-secondary, #6b6b6b);      /* ← --pearl-ink-3 (AA body) */
-  --pearl-ui-border: var(--color-border-primary, rgba(85, 85, 85, 0.30));      /* ← --pearl-ink-4 */
-  --pearl-ui-border-soft: var(--color-border-secondary, rgba(85, 85, 85, 0.16)); /* ← --pearl-ink-4 soft */
-  --pearl-ui-focus: var(--color-ring-primary, #8a4f36);                 /* ← --pearl-accent-on-tint */
-  --pearl-ui-danger: var(--color-text-danger, #843e3e);                 /* ← --pearl-danger-on-tint */
-  --pearl-ui-danger-bg: var(--color-background-danger, rgba(159, 79, 79, 0.14));   /* ← --pearl-danger-tint */
-  --pearl-ui-success: var(--color-text-success, #2a5c54);               /* ← --pearl-success-on-tint */
-  --pearl-ui-success-bg: var(--color-background-success, rgba(60, 120, 112, 0.14)); /* ← --pearl-success-tint */
-  --pearl-ui-warning: var(--color-text-warning, #8a5a12);               /* ← --pearl-warning-on-tint */
-  --pearl-ui-warning-bg: var(--color-background-warning, rgba(220, 176, 111, 0.18)); /* ← --pearl-warning-tint */
+  --pearl-ui-canvas: var(--color-background-primary, #f8f6f4); /* --ds-cream-50 */
+  --pearl-ui-surface: var(--color-background-secondary, #ffffff); /* --ds-surface-default */
+  --pearl-ui-subtle: var(--color-background-tertiary, #f4f4f3); /* --ds-action-secondary */
+  --pearl-ui-text: var(--color-text-primary, #3a3a39); /* --ds-text-primary */
+  --pearl-ui-text-secondary: var(--color-text-secondary, #6b6b6b); /* accessible --pearl-ink-3 */
+  --pearl-ui-border: var(--color-border-primary, #d2d2d0); /* --ds-border-strong */
+  --pearl-ui-border-soft: var(--color-border-secondary, #e6e6e5); /* --ds-border-default */
+  --pearl-ui-focus: var(--color-ring-primary, #3a3a39); /* V1 focus uses --ds-text-primary */
+  --pearl-ui-danger: var(--color-text-danger, #85183e); /* --ds-action-destructive */
+  --pearl-ui-danger-bg: var(--color-background-danger, rgba(159, 79, 79, 0.14));
+  --pearl-ui-success: var(--color-text-success, #2a5c54);
+  --pearl-ui-success-bg: var(--color-background-success, rgba(60, 120, 112, 0.14));
+  --pearl-ui-warning: var(--color-text-warning, #8a5a12);
+  --pearl-ui-warning-bg: var(--color-background-warning, rgba(220, 176, 111, 0.18));
+
+  /* System type is intentional: host UI guidance, not the app's custom fonts. */
   --pearl-ui-font: var(--font-sans, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif);
-  --pearl-ui-radius-sm: var(--border-radius-sm, 8px);
-  --pearl-ui-radius-md: var(--border-radius-md, 12px);
-  --pearl-ui-radius-lg: var(--border-radius-lg, 16px);
-  --pearl-ui-shadow: var(--shadow-sm, 0 8px 24px -12px rgba(23, 33, 42, 0.18));
+  --pearl-ui-font-display: var(--pearl-ui-font);
+  --pearl-ui-radius-sm: var(--border-radius-sm, 8px); /* --ds-radius-8 */
+  --pearl-ui-radius-md: var(--border-radius-md, 12px); /* --ds-radius-12 */
+  --pearl-ui-radius-lg: var(--border-radius-lg, 24px); /* --ds-radius-24 */
+  --pearl-ui-radius-action: 9999px; /* --ds-radius-full */
+  --pearl-ui-shadow: var(--shadow-sm, 0 3px 6px -2px #0000001f, 0 18px 36px -18px #0000001f); /* --ds-shadow-sm */
+  --pearl-ui-space-4: 4px; /* --ds-space-4 */
+  --pearl-ui-space-8: 8px; /* --ds-space-8 */
+  --pearl-ui-space-12: 12px; /* --ds-space-12 */
+  --pearl-ui-space-16: 16px; /* --ds-space-16 */
+  --pearl-ui-space-24: 24px; /* --ds-space-24 */
+  --pearl-ui-body-size: 14px; /* --ds-size-14 */
+  --pearl-ui-body-line: 20px; /* --ds-lh-20 */
+  --pearl-ui-heading-size: 24px; /* --ds-size-24 */
+  --pearl-ui-heading-line: 28px; /* --ds-lh-28 */
 
-  /* Pearl brand accents (fixed) — canonical sources noted per token. */
-  --pearl-ui-accent: #8a4f36;                       /* ← --pearl-accent-on-tint */
-  --pearl-ui-accent-strong: #a8674b;                /* ← --pearl-accent */
-  --pearl-ui-accent-bg: rgba(168, 103, 75, 0.12);   /* ← --pearl-accent-tint */
-  --pearl-ui-saved: #8a5a12;                        /* ← --pearl-warning-on-tint (AA on saved tint) */
-  --pearl-ui-saved-bg: rgba(184, 137, 60, 0.14);    /* ← --pearl-saved-tint */
-  --pearl-ui-navy: #212f52;                         /* ← --pearl-navy */
-  --pearl-ui-action: #8a4f36;                       /* ← --pearl-accent-on-tint */
-  --pearl-ui-action-hover: #a8674b;                 /* ← --pearl-accent */
-  --pearl-ui-action-fg: #ffffff;                    /* ← --pearl-paper */
-
-  /* Editorial display stack — system serif echo of Pearl's Playfair display. */
-  --pearl-ui-font-display: ui-serif, "New York", Georgia, "Times New Roman", var(--pearl-ui-font);
-
-  /* Glass layer — translucent projections of --pearl-paper / --pearl-bg. */
-  --pearl-ui-glass: rgba(255, 255, 255, 0.60);
-  --pearl-ui-glass-strong: rgba(255, 255, 255, 0.78);
-  --pearl-ui-glass-border: rgba(255, 255, 255, 0.65);
-  --pearl-ui-glass-blur: 16px;
-  /* Ambient wash stops ← --pearl-accent-tint, --pearl-saved-tint, navy tint. */
-  --pearl-ui-wash-a: rgba(168, 103, 75, 0.10);
-  --pearl-ui-wash-b: rgba(184, 137, 60, 0.08);
-  --pearl-ui-wash-c: rgba(33, 47, 82, 0.06);
-  /* Iridescent hairline stops — warmed Pearl variant of the app's card-glass. */
-  --pearl-ui-irid-1: rgba(255, 255, 255, 0.70);
-  --pearl-ui-irid-2: rgba(168, 103, 75, 0.38);
-  --pearl-ui-irid-3: rgba(184, 137, 60, 0.30);
-  --pearl-ui-irid-4: rgba(33, 47, 82, 0.24);
-
-  /* Category artwork palette ← canonical --pearl-cat-* colors. */
-  --pearl-ui-cat-0: #9f4f4f; --pearl-ui-cat-0-deep: #6e3535;  /* restaurant */
-  --pearl-ui-cat-1: #b8862e; --pearl-ui-cat-1-deep: #7d5a1e;  /* bar */
-  --pearl-ui-cat-2: #3e5c76; --pearl-ui-cat-2-deep: #293e50;  /* hotel */
-  --pearl-ui-cat-3: #8e5c7a; --pearl-ui-cat-3-deep: #613e53;  /* winery */
-  --pearl-ui-cat-4: #855a42; --pearl-ui-cat-4-deep: #5a3c2c;  /* cafe */
-  --pearl-ui-cat-5: #3f7368; --pearl-ui-cat-5-deep: #2a4e46;  /* spa / other */
+  /* Neutral V1 actions; status hues remain semantic, never decorative. */
+  --pearl-ui-accent: var(--pearl-ui-text);
+  --pearl-ui-accent-strong: var(--pearl-ui-text);
+  --pearl-ui-accent-bg: var(--pearl-ui-subtle);
+  --pearl-ui-navy: var(--pearl-ui-text);
+  --pearl-ui-action: #20201f; /* --ds-action-primary */
+  --pearl-ui-action-hover: #3a3a39; /* --ds-action-primary-hover */
+  --pearl-ui-action-fg: #fbfbfa; /* --ds-action-primary-fg */
+  --pearl-ui-secondary-hover: #e6e6e5; /* --ds-action-secondary-hover */
 
   --safe-top: 0px;
   --safe-right: 0px;
@@ -83,80 +60,48 @@
 }
 
 :root[data-theme="dark"] {
-  --pearl-ui-canvas: var(--color-background-primary, #15171b);          /* ← --pearl-bg dark */
-  --pearl-ui-surface: var(--color-background-secondary, #1f2228);       /* ← --pearl-paper dark */
-  --pearl-ui-subtle: var(--color-background-tertiary, #23262c);         /* ← --pearl-subtle dark */
-  --pearl-ui-text: var(--color-text-primary, #f4f1eb);                  /* ← --pearl-ink dark */
-  --pearl-ui-text-secondary: var(--color-text-secondary, #b8b4ab);      /* ← --pearl-ink-2 dark */
-  --pearl-ui-border: var(--color-border-primary, rgba(244, 241, 235, 0.28));      /* ← --pearl-ink-4 dark */
+  --pearl-ui-canvas: var(--color-background-primary, #15171b);
+  --pearl-ui-surface: var(--color-background-secondary, #1f2228);
+  --pearl-ui-subtle: var(--color-background-tertiary, #23262c);
+  --pearl-ui-text: var(--color-text-primary, #f4f1eb);
+  --pearl-ui-text-secondary: var(--color-text-secondary, #b8b4ab);
+  --pearl-ui-border: var(--color-border-primary, rgba(244, 241, 235, 0.28));
   --pearl-ui-border-soft: var(--color-border-secondary, rgba(244, 241, 235, 0.14));
-  --pearl-ui-focus: var(--color-ring-primary, #d89c7e);                 /* ← --pearl-accent-on-tint dark */
+  --pearl-ui-focus: var(--color-ring-primary, #f4f1eb);
   --pearl-ui-danger: var(--color-text-danger, #de9393);
   --pearl-ui-danger-bg: var(--color-background-danger, rgba(159, 79, 79, 0.22));
   --pearl-ui-success: var(--color-text-success, #82c6b9);
   --pearl-ui-success-bg: var(--color-background-success, rgba(60, 120, 112, 0.22));
   --pearl-ui-warning: var(--color-text-warning, #e5c48f);
   --pearl-ui-warning-bg: var(--color-background-warning, rgba(220, 176, 111, 0.22));
-
-  --pearl-ui-accent: #d89c7e;                       /* ← --pearl-accent-on-tint dark */
-  --pearl-ui-accent-strong: #c28368;                /* ← --pearl-accent dark */
-  --pearl-ui-accent-bg: rgba(194, 131, 104, 0.18);  /* ← --pearl-accent-tint dark */
-  --pearl-ui-saved: #e5c48f;                        /* ← --pearl-warning-on-tint dark */
-  --pearl-ui-saved-bg: rgba(210, 160, 78, 0.20);    /* ← --pearl-saved-tint dark */
-  --pearl-ui-navy: #f4f1eb;                         /* ← --pearl-navy dark (inverts to ink) */
-  --pearl-ui-action: #d89c7e;                       /* ← --pearl-accent-soft dark */
-  --pearl-ui-action-hover: #e2b09a;
-  --pearl-ui-action-fg: #15171b;                    /* ← --pearl-bg dark */
-
-  --pearl-ui-glass: rgba(31, 34, 40, 0.55);
-  --pearl-ui-glass-strong: rgba(35, 38, 44, 0.74);
-  --pearl-ui-glass-border: rgba(255, 255, 255, 0.14);
-  --pearl-ui-wash-a: rgba(194, 131, 104, 0.14);
-  --pearl-ui-wash-b: rgba(210, 160, 78, 0.10);
-  --pearl-ui-wash-c: rgba(96, 118, 178, 0.10);
-  --pearl-ui-irid-1: rgba(255, 255, 255, 0.34);
-  --pearl-ui-irid-2: rgba(216, 156, 126, 0.40);
-  --pearl-ui-irid-3: rgba(210, 160, 78, 0.30);
-  --pearl-ui-irid-4: rgba(120, 140, 196, 0.26);
+  --pearl-ui-action: #f4f1eb;
+  --pearl-ui-action-hover: #ffffff;
+  --pearl-ui-action-fg: #15171b;
+  --pearl-ui-secondary-hover: #23262c;
   --pearl-ui-shadow: var(--shadow-sm, 0 10px 28px -12px rgba(0, 0, 0, 0.55));
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme]) {
-    --pearl-ui-canvas: #15171b;
-    --pearl-ui-surface: #1f2228;
-    --pearl-ui-subtle: #23262c;
-    --pearl-ui-text: #f4f1eb;
-    --pearl-ui-text-secondary: #b8b4ab;
-    --pearl-ui-border: rgba(244, 241, 235, 0.28);
-    --pearl-ui-border-soft: rgba(244, 241, 235, 0.14);
-    --pearl-ui-focus: #d89c7e;
-    --pearl-ui-danger: #de9393;
-    --pearl-ui-danger-bg: rgba(159, 79, 79, 0.22);
-    --pearl-ui-success: #82c6b9;
-    --pearl-ui-success-bg: rgba(60, 120, 112, 0.22);
-    --pearl-ui-warning: #e5c48f;
-    --pearl-ui-warning-bg: rgba(220, 176, 111, 0.22);
-    --pearl-ui-accent: #d89c7e;
-    --pearl-ui-accent-strong: #c28368;
-    --pearl-ui-accent-bg: rgba(194, 131, 104, 0.18);
-    --pearl-ui-saved: #e5c48f;
-    --pearl-ui-saved-bg: rgba(210, 160, 78, 0.20);
-    --pearl-ui-navy: #f4f1eb;
-    --pearl-ui-action: #d89c7e;
-    --pearl-ui-action-hover: #e2b09a;
-    --pearl-ui-action-fg: #15171b;
-    --pearl-ui-glass: rgba(31, 34, 40, 0.55);
-    --pearl-ui-glass-strong: rgba(35, 38, 44, 0.74);
-    --pearl-ui-glass-border: rgba(255, 255, 255, 0.14);
-    --pearl-ui-wash-a: rgba(194, 131, 104, 0.14);
-    --pearl-ui-wash-b: rgba(210, 160, 78, 0.10);
-    --pearl-ui-wash-c: rgba(96, 118, 178, 0.10);
-    --pearl-ui-irid-1: rgba(255, 255, 255, 0.34);
-    --pearl-ui-irid-2: rgba(216, 156, 126, 0.40);
-    --pearl-ui-irid-3: rgba(210, 160, 78, 0.30);
-    --pearl-ui-irid-4: rgba(120, 140, 196, 0.26);
-    --pearl-ui-shadow: 0 10px 28px -12px rgba(0, 0, 0, 0.55);
+  --pearl-ui-canvas: var(--color-background-primary, #15171b);
+  --pearl-ui-surface: var(--color-background-secondary, #1f2228);
+  --pearl-ui-subtle: var(--color-background-tertiary, #23262c);
+  --pearl-ui-text: var(--color-text-primary, #f4f1eb);
+  --pearl-ui-text-secondary: var(--color-text-secondary, #b8b4ab);
+  --pearl-ui-border: var(--color-border-primary, rgba(244, 241, 235, 0.28));
+  --pearl-ui-border-soft: var(--color-border-secondary, rgba(244, 241, 235, 0.14));
+  --pearl-ui-focus: var(--color-ring-primary, #f4f1eb);
+  --pearl-ui-danger: var(--color-text-danger, #de9393);
+  --pearl-ui-danger-bg: var(--color-background-danger, rgba(159, 79, 79, 0.22));
+  --pearl-ui-success: var(--color-text-success, #82c6b9);
+  --pearl-ui-success-bg: var(--color-background-success, rgba(60, 120, 112, 0.22));
+  --pearl-ui-warning: var(--color-text-warning, #e5c48f);
+  --pearl-ui-warning-bg: var(--color-background-warning, rgba(220, 176, 111, 0.22));
+  --pearl-ui-action: #f4f1eb;
+  --pearl-ui-action-hover: #ffffff;
+  --pearl-ui-action-fg: #15171b;
+  --pearl-ui-secondary-hover: #23262c;
+  --pearl-ui-shadow: var(--shadow-sm, 0 10px 28px -12px rgba(0, 0, 0, 0.55));
   }
 }
 
@@ -172,7 +117,8 @@ html, body {
 body {
   color: var(--pearl-ui-text);
   background: transparent;
-  font: 400 14px/1.45 var(--pearl-ui-font);
+  font: 400 var(--pearl-ui-body-size)/var(--pearl-ui-body-line) var(--pearl-ui-font);
+  letter-spacing: -0.1px;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
@@ -198,33 +144,10 @@ button:focus-visible,
   width: 100%;
   min-width: 0;
   overflow: hidden;
-  border: 1px solid var(--pearl-ui-glass-border);
+  border: 1px solid var(--pearl-ui-border-soft);
   border-radius: var(--pearl-ui-radius-lg);
-  background:
-    radial-gradient(130% 90% at 12% -10%, var(--pearl-ui-wash-a), transparent 55%),
-    radial-gradient(110% 80% at 100% 0%, var(--pearl-ui-wash-b), transparent 50%),
-    radial-gradient(120% 100% at 85% 110%, var(--pearl-ui-wash-c), transparent 55%),
-    var(--pearl-ui-canvas);
+  background: var(--pearl-ui-canvas);
   box-shadow: var(--pearl-ui-shadow);
-}
-
-/* Warm iridescent hairline (Pearl variant of the app's .card-glass border). */
-.panel::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  padding: 1px;
-  background: linear-gradient(135deg,
-      var(--pearl-ui-irid-1) 0%,
-      var(--pearl-ui-irid-2) 28%,
-      var(--pearl-ui-irid-3) 55%,
-      var(--pearl-ui-irid-4) 80%,
-      var(--pearl-ui-irid-1) 100%);
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  pointer-events: none;
 }
 
 .panel-header {
@@ -232,7 +155,7 @@ button:focus-visible,
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  padding: 18px 18px 14px;
+  padding: var(--pearl-ui-space-24);
   border-bottom: 1px solid var(--pearl-ui-border-soft);
 }
 
@@ -241,8 +164,8 @@ button:focus-visible,
 .eyebrow {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin: 0 0 5px;
+  gap: var(--pearl-ui-space-8);
+  margin: 0 0 var(--pearl-ui-space-12);
   color: var(--pearl-ui-accent);
   font-size: 11px;
   font-weight: 600;
@@ -254,8 +177,8 @@ h1, h2, h3, p { margin-top: 0; }
 
 h1 {
   margin-bottom: 4px;
-  font: 600 clamp(20px, 5vw, 27px)/1.16 var(--pearl-ui-font-display);
-  letter-spacing: -0.01em;
+  font: 500 var(--pearl-ui-heading-size)/var(--pearl-ui-heading-line) var(--pearl-ui-font);
+  letter-spacing: -0.4px;
 }
 
 .subtitle,
@@ -278,9 +201,9 @@ h1 {
   min-height: 26px;
   max-width: 100%;
   padding: 3px 10px;
-  border: 1px solid var(--pearl-ui-glass-border);
+  border: 1px solid var(--pearl-ui-border-soft);
   border-radius: 999px;
-  background: var(--pearl-ui-glass-strong);
+  background: var(--pearl-ui-surface);
   color: var(--pearl-ui-text);
   font-size: 12px;
   font-weight: 500;
@@ -341,7 +264,11 @@ h1 {
   color: inherit;
 }
 
-.eyebrow .icon { width: 12px; height: 12px; }
+.brand-mark { display: block; width: 28px; height: 28px; flex: 0 0 auto; }
+.brand-name { font-weight: 600; }
+.brand-role { margin-left: 8px; font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--pearl-ui-text-secondary); }
+.eyebrow { font-size: 12px; }
+
 
 /* --------------------------------------------------------------- states */
 
@@ -351,7 +278,7 @@ h1 {
   gap: 10px;
   margin: 14px 18px 0;
   padding: 11px 12px;
-  border: 1px solid var(--pearl-ui-glass-border);
+  border: 1px solid var(--pearl-ui-border-soft);
   border-radius: var(--pearl-ui-radius-md);
   background: var(--pearl-ui-warning-bg);
   color: var(--pearl-ui-warning);
@@ -370,7 +297,7 @@ h1 {
 .status-mark { display: inline-flex; flex: 0 0 auto; margin-top: 2px; }
 .status-copy { margin: 0; color: inherit; }
 
-.content { padding: 16px 18px 18px; }
+.content { padding: var(--pearl-ui-space-24); }
 
 /* -------------------------------------------------------------- profile */
 
@@ -390,7 +317,7 @@ h1 {
   min-width: 0;
   gap: 2px;
   padding: 14px;
-  border: 1px solid var(--pearl-ui-glass-border);
+  border: 1px solid var(--pearl-ui-border-soft);
   border-radius: var(--pearl-ui-radius-md);
   background: var(--pearl-ui-surface);
 }
@@ -398,8 +325,9 @@ h1 {
 .metric-value {
   color: var(--pearl-ui-text);
   font-family: var(--pearl-ui-font-display);
-  font-size: clamp(22px, 6vw, 30px);
-  font-weight: 650;
+  font-size: clamp(24px, 6vw, 32px);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
   line-height: 1.1;
   letter-spacing: -0.02em;
 }
@@ -421,15 +349,16 @@ h1 {
 .profile-questions {
   min-width: 0;
   padding: 14px;
-  border: 1px solid var(--pearl-ui-glass-border);
+  border: 1px solid var(--pearl-ui-border-soft);
   border-radius: var(--pearl-ui-radius-md);
   background: var(--pearl-ui-surface);
 }
 
 .section-title {
   margin: 0 0 10px;
-  font-size: 15px;
-  line-height: 1.3;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 24px;
 }
 
 .facet-card .chip-row { margin-top: 0; }
@@ -572,32 +501,32 @@ h1 {
   justify-content: center;
   min-width: 44px;
   min-height: 44px;
-  padding: 10px 16px;
+  padding: 11px var(--pearl-ui-space-24);
   border: 1px solid transparent;
-  border-radius: var(--pearl-ui-radius-md);
+  border-radius: var(--pearl-ui-radius-action);
   background: var(--pearl-ui-action);
   color: var(--pearl-ui-action-fg);
-  font-weight: 600;
-  line-height: 1.2;
+  font-weight: 500;
+  line-height: 20px;
   cursor: pointer;
   transition: background-color 160ms ease, transform 160ms ease, border-color 160ms ease;
 }
 
-.button:hover { background: var(--pearl-ui-action-hover); }
-.button:active { transform: translateY(1px); }
-.button[disabled] { cursor: not-allowed; opacity: 0.55; }
+.button:active:not([disabled]) { background: var(--pearl-ui-action-hover); }
+.button[disabled] { cursor: not-allowed; opacity: 0.5; }
 
 .button.secondary {
-  border-color: var(--pearl-ui-border);
-  background: var(--pearl-ui-surface);
+  border-color: transparent;
+  background: var(--pearl-ui-subtle);
   color: var(--pearl-ui-text);
 }
 
-.button.secondary:hover {
-  border-color: var(--pearl-ui-accent-strong);
-  background: var(--pearl-ui-accent-bg);
-  color: var(--pearl-ui-accent);
+@media (hover: hover) and (pointer: fine) {
+  .button:hover:not([disabled]) { background: var(--pearl-ui-action-hover); }
+  .button.secondary:hover:not([disabled]) { background: var(--pearl-ui-secondary-hover); color: var(--pearl-ui-text); }
+  button.result-card:hover { border-color: var(--pearl-ui-text); }
 }
+.button.secondary:active:not([disabled]) { background: var(--pearl-ui-secondary-hover); color: var(--pearl-ui-text); }
 
 /* ---------------------------------------------------------------- cards */
 
@@ -611,29 +540,31 @@ h1 {
   position: relative;
   min-width: 0;
   padding: 14px;
-  border: 1px solid var(--pearl-ui-glass-border);
+  border: 1px solid var(--pearl-ui-border-soft);
   border-radius: var(--pearl-ui-radius-md);
   background: var(--pearl-ui-surface);
-  box-shadow: 0 2px 10px -6px rgba(23, 33, 42, 0.16);
+  box-shadow: none;
 }
 
 button.result-card {
   width: 100%;
   min-height: 88px;
+  /* Buttons otherwise center their content when a taller sibling grows the row. */
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
   color: inherit;
   text-align: left;
   cursor: pointer;
   transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
 }
 
-button.result-card:hover {
-  border-color: var(--pearl-ui-accent-strong);
-  transform: translateY(-1px);
-}
+
 
 button.result-card[aria-pressed="true"] {
   border-color: var(--pearl-ui-accent);
-  box-shadow: inset 0 0 0 1px var(--pearl-ui-accent), 0 6px 18px -8px var(--pearl-ui-accent-bg);
+  box-shadow: inset 0 0 0 1px var(--pearl-ui-accent);
 }
 
 .item-heading {
@@ -688,14 +619,14 @@ button.result-card[aria-pressed="true"] {
   min-width: 0;
   overflow: hidden;
   padding: 14px;
-  border: 1px solid var(--pearl-ui-glass-border);
+  border: 1px solid var(--pearl-ui-border-soft);
   border-radius: var(--pearl-ui-radius-md);
   background: var(--pearl-ui-surface);
-  box-shadow: 0 2px 10px -6px rgba(23, 33, 42, 0.16);
+  box-shadow: none;
 }
 
 .journey-card[data-kind="flight"] {
-  border-color: color-mix(in srgb, var(--pearl-ui-navy) 22%, var(--pearl-ui-glass-border));
+  border-color: color-mix(in srgb, var(--pearl-ui-navy) 22%, var(--pearl-ui-border-soft));
 }
 
 .journey-heading,
@@ -875,8 +806,8 @@ button.result-card[aria-pressed="true"] {
 }
 
 .stop-copy { min-width: 0; padding-top: 3px; }
-.stop-heading { justify-content: space-between; gap: 8px; }
-.stop-name { min-width: 0; overflow-wrap: anywhere; }
+.stop-heading { justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+.stop-name { min-width: 0; flex: 1 1 140px; overflow-wrap: anywhere; }
 .stop-heading .chip { flex: 0 0 auto; min-height: 22px; padding: 2px 7px; }
 .stop-meta, .stop-detail { margin: 3px 0 0; color: var(--pearl-ui-text-secondary); font-size: 12px; }
 .stop-copy .chip-row { margin-top: 7px; }
@@ -905,10 +836,11 @@ button.result-card[aria-pressed="true"] {
 }
 
 .media.compact { aspect-ratio: 4 / 1; margin: -12px -12px 10px; }
+.media.journey-photo { aspect-ratio: 4 / 1; }
+.journey-stop.has-photo { grid-template-columns: 30px 56px minmax(0, 1fr); }
+.media.stop-photo { width: 56px; height: 48px; margin: 0; border-radius: var(--pearl-ui-radius-sm); border: 1px solid var(--pearl-ui-border-soft); }
 
-/* Deterministic brand-safe fallback artwork: category-tinted gradient with a
-   pearl sheen and the venue initial. Renders instantly; never waits on the
-   network image, which layers above it only after a successful load. */
+/* A quiet, clearly non-photographic placeholder when no approved photo loads. */
 .media-fallback {
   position: absolute;
   inset: 0;
@@ -916,16 +848,11 @@ button.result-card[aria-pressed="true"] {
   place-items: center;
 }
 
-.media-fallback[data-palette="0"] { background: radial-gradient(120% 90% at 18% 0%, rgba(255, 255, 255, 0.30), transparent 55%), linear-gradient(140deg, var(--pearl-ui-cat-0), var(--pearl-ui-cat-0-deep)); }
-.media-fallback[data-palette="1"] { background: radial-gradient(120% 90% at 18% 0%, rgba(255, 255, 255, 0.30), transparent 55%), linear-gradient(140deg, var(--pearl-ui-cat-1), var(--pearl-ui-cat-1-deep)); }
-.media-fallback[data-palette="2"] { background: radial-gradient(120% 90% at 18% 0%, rgba(255, 255, 255, 0.30), transparent 55%), linear-gradient(140deg, var(--pearl-ui-cat-2), var(--pearl-ui-cat-2-deep)); }
-.media-fallback[data-palette="3"] { background: radial-gradient(120% 90% at 18% 0%, rgba(255, 255, 255, 0.30), transparent 55%), linear-gradient(140deg, var(--pearl-ui-cat-3), var(--pearl-ui-cat-3-deep)); }
-.media-fallback[data-palette="4"] { background: radial-gradient(120% 90% at 18% 0%, rgba(255, 255, 255, 0.30), transparent 55%), linear-gradient(140deg, var(--pearl-ui-cat-4), var(--pearl-ui-cat-4-deep)); }
-.media-fallback[data-palette="5"] { background: radial-gradient(120% 90% at 18% 0%, rgba(255, 255, 255, 0.30), transparent 55%), linear-gradient(140deg, var(--pearl-ui-cat-5), var(--pearl-ui-cat-5-deep)); }
+.media-fallback { background: var(--pearl-ui-subtle); }
 
 .media-initial {
-  color: rgba(251, 250, 247, 0.92);
-  font: 600 28px/1 var(--pearl-ui-font-display);
+  color: var(--pearl-ui-text-secondary);
+  font: 500 28px/1 var(--pearl-ui-font);
   letter-spacing: 0.02em;
   text-transform: uppercase;
 }
@@ -940,6 +867,9 @@ button.result-card[aria-pressed="true"] {
   object-fit: cover;
 }
 
+/* Preserve the image's layout box so native lazy loading can start. */
+.media-image.is-loading { opacity: 0; }
+
 .media-credit {
   position: absolute;
   right: 6px;
@@ -948,8 +878,8 @@ button.result-card[aria-pressed="true"] {
   overflow: hidden;
   padding: 2px 8px;
   border-radius: 999px;
-  background: rgba(23, 33, 42, 0.55);
-  color: rgba(251, 250, 247, 0.92);
+  background: #20201f;
+  color: #fbfbfa;
   font-size: 10px;
   line-height: 1.4;
   white-space: nowrap;
@@ -960,7 +890,7 @@ button.result-card[aria-pressed="true"] {
 
 .comparison {
   margin-top: 14px;
-  border: 1px solid var(--pearl-ui-glass-border);
+  border: 1px solid var(--pearl-ui-border-soft);
   border-radius: var(--pearl-ui-radius-md);
   background: var(--pearl-ui-surface);
 }
@@ -1040,7 +970,7 @@ button.result-card[aria-pressed="true"] {
 
 .skeleton {
   height: 112px;
-  border: 1px solid var(--pearl-ui-glass-border);
+  border: 1px solid var(--pearl-ui-border-soft);
   border-radius: var(--pearl-ui-radius-md);
   background: linear-gradient(100deg, var(--pearl-ui-surface) 30%, var(--pearl-ui-subtle) 50%, var(--pearl-ui-surface) 70%);
   background-size: 240% 100%;
@@ -1061,46 +991,6 @@ button.result-card[aria-pressed="true"] {
 
 @keyframes shimmer {
   to { background-position-x: -240%; }
-}
-
-/* ---------------------------------------------------- glass enhancement */
-
-/* Progressive enhancement only: hosts without backdrop-filter keep the
-   opaque canonical surfaces declared above. */
-@supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
-  .result-card,
-  .journey-card,
-  .metric-card,
-  .facet-card,
-  .taste-pattern-card,
-  .taste-insight-card,
-  .constraint-item,
-  .profile-section,
-  .profile-questions,
-  .comparison,
-  .empty-state,
-  .error-state,
-  .skeleton {
-    background-color: var(--pearl-ui-glass);
-    -webkit-backdrop-filter: blur(var(--pearl-ui-glass-blur)) saturate(1.12);
-    backdrop-filter: blur(var(--pearl-ui-glass-blur)) saturate(1.12);
-  }
-
-  .skeleton {
-    background-image: linear-gradient(100deg, transparent 30%, var(--pearl-ui-subtle) 50%, transparent 70%);
-    background-size: 240% 100%;
-  }
-
-  .button.secondary,
-  .count-pill,
-  .chip:not(.accent),
-  .status-pill:not([data-status]) {
-    background-color: var(--pearl-ui-glass-strong);
-    -webkit-backdrop-filter: blur(10px);
-    backdrop-filter: blur(10px);
-  }
-
-  .comparison-card { background-color: var(--pearl-ui-glass-strong); }
 }
 
 /* Accessibility overrides: return to fully opaque canonical surfaces. */
@@ -1126,14 +1016,11 @@ button.result-card[aria-pressed="true"] {
   .chip,
   .status-pill {
     background-color: var(--pearl-ui-surface);
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
   }
 }
 
 @media (prefers-contrast: more) {
   .panel { background: var(--pearl-ui-canvas); }
-  .panel::before { display: none; }
   .result-card,
   .journey-card,
   .journey-fact,
@@ -1154,12 +1041,18 @@ button.result-card[aria-pressed="true"] {
   .status-pill {
     background-color: var(--pearl-ui-surface);
     border-color: var(--pearl-ui-border);
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
   }
 }
 
 /* ------------------------------------------------------------ responsive */
+
+@media (max-width: 539px) {
+  .panel-header, .content { padding: var(--pearl-ui-space-16); }
+  .panel-header { flex-wrap: wrap; }
+  .count-pill { max-width: 100%; }
+  .status-banner { margin-inline: var(--pearl-ui-space-16); }
+}
+
 
 @media (min-width: 540px) {
   .results-grid,
@@ -1182,7 +1075,7 @@ button.result-card[aria-pressed="true"] {
   .panel-header { padding: 15px 14px 12px; gap: 10px; }
   .content { padding: 14px; }
   .count-pill { display: none; }
-  h1 { font-size: 21px; }
+  h1 { font-size: 20px; line-height: 24px; }
   .button { width: 100%; }
   .metrics-grid { grid-template-columns: minmax(0, 1fr); }
   .journey-heading { align-items: flex-start; }
@@ -1212,6 +1105,9 @@ button.result-card[aria-pressed="true"] {
   .profile-section, .profile-questions, .media {
     border: 1px solid CanvasText;
   }
-  .panel::before, .media-fallback { display: none; }
+  .media-fallback { display: none; }
+  .button { forced-color-adjust: auto; border: 1px solid ButtonText; }
+  .button:not(.secondary) { background: ButtonText; color: ButtonFace; }
+  .button.secondary { background: ButtonFace; color: ButtonText; }
   button.result-card[aria-pressed="true"] { outline: 3px solid Highlight; }
 }
