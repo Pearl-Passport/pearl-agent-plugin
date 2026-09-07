@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   aliasRequest,
+  collectReadPages,
+  loadSession,
   DEFAULT_SERVER,
   executeReadCapability,
   EXIT_CODES,
@@ -20,6 +22,101 @@ import {
   validateOAuthCallback,
   validateTokenResponse,
 } from '../src/oauth.mjs';
+
+function historyPage(rows, cursor, complete = cursor === null) {
+  return { result: { visits: rows, next_cursor: cursor, pagination: { coverage_state: complete ? 'complete' : 'partial', partial_reason: complete ? null : 'page_limit', total_count: 3, total_count_is_exact: true } }, request_id: 'test-request' };
+}
+
+test('complete history follows cursors without changing filters', async () => {
+  const calls = [];
+  const result = await collectReadPages({ capability: 'visits_list', arguments: { city: 'Paris', limit: 2 } }, async (request) => {
+    calls.push(request.arguments);
+    return calls.length === 1 ? historyPage([{ visit_id: 'a' }, { visit_id: 'b' }], 'cursor-2') : historyPage([{ visit_id: 'c' }], null);
+  });
+  assert.deepEqual(calls, [{ city: 'Paris', limit: 2 }, { city: 'Paris', limit: 2, cursor: 'cursor-2' }]);
+  assert.equal(result.result.visits.length, 3);
+  assert.equal(result.result.pagination.coverage_state, 'complete');
+  assert.equal(result.traversal.pages_fetched, 2);
+});
+
+test('history limits and partial source responses never claim complete coverage', async () => {
+  const request = { capability: 'visits_list', arguments: {} };
+  const bounded = await collectReadPages(request, async () => historyPage([{}], 'next'), { maxPages: 1 });
+  assert.equal(bounded.result.next_cursor, 'next');
+  assert.equal(bounded.result.pagination.partial_reason, 'page_limit');
+  const partial = await collectReadPages(request, async () => historyPage([{}], null, false));
+  assert.equal(partial.result.pagination.coverage_state, 'partial');
+  const loop = await collectReadPages(request, async () => historyPage([{}], 'repeat'));
+  assert.equal(loop.result.pagination.partial_reason, 'cursor_loop');
+  assert.equal(loop.traversal.pages_fetched, 2);
+});
+
+test('interrupted history preserves completed rows and a usable continuation', async () => {
+  let calls = 0;
+  const result = await collectReadPages({ capability: 'visits_list', arguments: {} }, async () => {
+    if (++calls === 2) throw new Error('private upstream detail');
+    return historyPage([{ visit_id: 'a' }], 'next');
+  });
+  assert.equal(result.result.visits.length, 1);
+  assert.equal(result.result.next_cursor, 'next');
+  assert.equal(result.result.pagination.partial_reason, 'read_failed');
+  assert(!JSON.stringify(result).includes('private upstream detail'));
+});
+
+test('history rejects unsupported tools, invalid bounds and malformed pages', async () => {
+  const execute = async () => { throw new Error('must not execute'); };
+  await assert.rejects(collectReadPages({ capability: 'venues_search', arguments: {} }, execute), /supports history lists/);
+  await assert.rejects(collectReadPages({ capability: 'visits_list', arguments: {} }, execute, { maxPages: 0 }), /max-pages/);
+  await assert.rejects(collectReadPages({ capability: 'visits_list', arguments: {} }, async () => ({ result: {} })), /invalid history page/);
+});
+
+test('history stops at its time and byte budgets with the unconsumed cursor', async () => {
+  const request = { capability: 'visits_list', arguments: {} };
+  let time = 0;
+  const timed = await collectReadPages(request, async () => {
+    time = 100;
+    return historyPage([{}], 'next');
+  }, { now: () => time, timeoutMs: 100 });
+  assert.equal(timed.result.pagination.partial_reason, 'deadline');
+  assert.equal(timed.result.next_cursor, 'next');
+  let calls = 0;
+  const sized = await collectReadPages(request, async () => ++calls === 1
+    ? historyPage([{ visit_id: 'kept' }], 'next')
+    : historyPage([{ note: 'x'.repeat(2 * 1024 * 1024) }], null));
+  assert.equal(sized.result.pagination.partial_reason, 'size_limit');
+  assert.equal(sized.result.next_cursor, 'next');
+  assert.equal(sized.result.visits.length, 1);
+});
+
+test('CLI all emits partial data with a nonzero exit status and validates flags', async () => {
+  const stdout = outputSink();
+  const stderr = outputSink();
+  const dependencies = {
+    stdout: stdout.stream, stderr: stderr.stream,
+    readCredentialImpl: async () => JSON.stringify({ server: DEFAULT_SERVER, access_token: 'test', refresh_token: 'test', expires_at: Date.now() + 600_000 }),
+    fetchImpl: async (url) => url.endsWith('/capabilities')
+      ? response(200, { capabilities: [{ name: 'visits_list', annotations: { readOnlyHint: true } }] })
+      : response(200, historyPage([{ visit_id: 'a' }], 'next')),
+  };
+  assert.equal(await runCli(['visits', '--all', '--max-pages', '1', '--json'], dependencies), EXIT_CODES.server);
+  assert.equal(JSON.parse(stdout.value()).result.next_cursor, 'next');
+  assert.equal(await runCli(['visits', '--max-pages', '1'], dependencies), EXIT_CODES.usage);
+  assert.equal(await runCli(['search', 'sushi', '--all'], dependencies), EXIT_CODES.usage);
+});
+
+test('refresh outages preserve credentials and request retry while revoked grants need reconnect', async () => {
+  for (const [cause, expected] of [[new TypeError('fetch failed'), 'refresh_unavailable'], [Object.assign(new Error('revoked'), { code: 'invalid_grant', status: 400 }), 'refresh_failed']]) {
+    let writes = 0;
+    const session = { server: DEFAULT_SERVER, access_token: 'old', refresh_token: 'old', expires_at: 0 };
+    await assert.rejects(loadSession(DEFAULT_SERVER, {
+      readCredentialImpl: async () => JSON.stringify(session),
+      writeCredentialImpl: async () => { writes++; },
+      withCredentialLockImpl: async (_account, operation) => operation(),
+      refreshImpl: async () => { throw cause; },
+    }), (error) => error.code === expected && error.userAction === (expected === 'refresh_failed' ? 'reconnect' : 'retry'));
+    assert.equal(writes, 0);
+  }
+});
 
 function response(status, body, headers = {}) {
   return new Response(JSON.stringify(body), {

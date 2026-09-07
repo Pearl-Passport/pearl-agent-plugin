@@ -40,6 +40,8 @@ const EXPECTED_FILES = [
   "src/model.mjs",
   "src/styles.css",
   "test/fixtures/flights.json",
+  "test/fixtures/availability.json",
+  "test/fixtures/visit-update.json",
   "test/fixtures/journeys.json",
   "test/fixtures/profile.json",
   "test/fixtures/states-denied.json",

@@ -129,7 +129,7 @@ const initialize = await request("/mcp", {
     params: {
       protocolVersion: "2025-06-18",
       capabilities: {},
-      clientInfo: { name: "pearl-package-validator", version: "0.10.0" }
+      clientInfo: { name: "pearl-package-validator", version: "0.10.1" }
     }
   })
 });

@@ -252,7 +252,7 @@ function readableStatus(value) {
 
 function journeyKindIcon(kind) {
   if (kind === "flight") return "plane";
-  if (kind === "reservation") return "reservation";
+  if (kind === "reservation" || kind === "availability") return "reservation";
   return "suitcase";
 }
 
@@ -264,10 +264,10 @@ function journeyStatus(value) {
   return label;
 }
 
-function journeyFacts(facts) {
+function journeyFacts(facts, maximum = 6) {
   if (!Array.isArray(facts) || !facts.length) return undefined;
   const list = element("dl", "journey-facts");
-  for (const fact of facts.slice(0, 6)) {
+  for (const fact of facts.slice(0, maximum)) {
     if (!fact?.label || !fact?.value) continue;
     const row = element("div", "journey-fact");
     row.append(element("dt", "", fact.label));
@@ -389,17 +389,19 @@ function journeyCard(item, index) {
   }
 
   if (item.detail) card.append(element("p", "journey-detail", item.detail));
-  const facts = journeyFacts(item.facts);
+  const facts = journeyFacts(item.facts, item.journeyType === "availability" ? 8 : 6);
   if (facts) card.append(facts);
   if (item.score) card.append(element("p", "journey-price", item.score));
   const stops = stopList(item.stops);
   if (stops) card.append(stops);
 
-  if (item.journeyType === "flight") {
+  if (item.journeyType === "flight" || item.journeyType === "availability") {
     const provenance = element("footer", "journey-provenance");
     provenance.append(element("span", "", `Source: ${item.source || "Pearl"}`));
     if (item.freshness) provenance.append(element("span", "", `${item.freshnessLabel || "Updated"}: ${item.freshness}`));
-    provenance.append(element("span", "", "Read only · confirm fare and availability before booking"));
+    provenance.append(element("span", "", item.journeyType === "availability"
+      ? "No table is held or booked · confirm terms with the provider"
+      : "Read only · confirm fare and availability before booking"));
     card.append(provenance);
   }
   return card;
@@ -752,26 +754,51 @@ function errorContent(model) {
   node.append(stateIcon("alert"));
   node.append(element("p", "", model.subtitle));
   if (model.error.requiredScope) {
-    node.append(element("p", "scope-note", `Required access: ${model.error.requiredScope}`));
+    node.append(element("p", "scope-note", `Required access: ${model.error.requiredScope === "visits:write" ? "Add and edit visits" : model.error.requiredScope}`));
   }
   const label = model.error.userAction === "reconnect" ? "Reconnect"
-    : model.error.userAction === "grant_scope" ? "Request read access"
+    : model.error.userAction === "grant_scope" ? model.error.requiredScope === "visits:write" ? "Request visit access" : "Request read access"
     : "Try again";
   const action = button(label, () => recover(model, action));
   node.append(action);
   return node;
 }
 
+function visitActionContent(model) {
+  const list = element("div", "journey-list");
+  for (const item of model.items) {
+    const card = element("article", "journey-card");
+    const body = element("div", "profile-section");
+    body.append(element("h2", "journey-title", item.name));
+    for (const warning of item.warnings || []) body.append(element("p", "journey-detail", warning));
+    for (const change of item.changes || []) {
+      body.append(element("h3", "journey-kicker", change.label));
+      body.append(journeyFacts([{ label: "Before", value: change.before }, { label: "After", value: change.after }]));
+    }
+    const facts = journeyFacts(item.facts, 8);
+    if (facts) body.append(facts);
+    card.append(body);
+    list.append(card);
+  }
+  if (!model.items.length) list.append(element("p", "journey-detail", model.actionStage === "preview"
+    ? "No reviewable items were returned. Prepare the request again in the conversation."
+    : "No item receipts were returned. Check the result in the conversation before retrying."));
+  return list;
+}
+
 function emptyContent(model) {
   const node = element("div", "empty-state");
   node.append(stateIcon("compass"));
-  node.append(element("h2", "", "No matching results yet"));
+  node.append(element("h2", "", model.emptyTitle || "No matching results yet"));
   node.append(element("p", "", model.subtitle));
-  const action = button("Refine in chat", async () => {
+  const checkingAvailability = model.kind === "availability" && ["pending", "unknown"].includes(model.availabilityStatus);
+  const action = button(checkingAvailability ? "Check again in chat" : "Refine in chat", async () => {
     try {
       await request("ui/message", {
         role: "user",
-        content: [{ type: "text", text: "Help me refine this Pearl search with a useful next question." }],
+        content: [{ type: "text", text: checkingAvailability
+          ? "Check my previous Pearl restaurant availability request again, continuing any pending refresh."
+          : "Help me refine this Pearl search with a useful next question." }],
       });
       announce("Asked the host to refine the search.");
     } catch {
@@ -789,7 +816,11 @@ function renderCurrent() {
   const model = currentModel;
   const panel = element("section", "panel");
   panel.append(header(model));
-  if (model.partial) panel.append(banner("Some results could not be loaded. The available items are still shown below."));
+  if (model.partial) panel.append(banner(model.kind === "visit_action"
+    ? "This result is incomplete. Review the remaining items in the conversation before confirming or retrying."
+    : "Some results could not be loaded. The available items are still shown below."));
+  if (model.expiresAt) panel.append(banner(`Preview expires: ${model.expiresAt}. Ask for a new preview if it expires.`));
+  if (model.refreshInProgress) panel.append(banner("A provider check is still running. These are the currently returned options."));
   const content = element("div", "content");
   if (model.state === "error") {
     content.append(errorContent(model));
@@ -797,7 +828,9 @@ function renderCurrent() {
     content.append(emptyContent(model));
   } else if (model.kind === "profile") {
     content.append(profileContent(model));
-  } else if (model.kind === "journeys" || model.kind === "flights") {
+  } else if (model.kind === "visit_action") {
+    content.append(visitActionContent(model));
+  } else if (["journeys", "flights", "availability"].includes(model.kind)) {
     content.append(journeyContent(model));
   } else {
     if (model.kind === "venues") {
@@ -962,7 +995,7 @@ async function connect() {
   showLoading();
   try {
     const initialized = await request("ui/initialize", {
-      appInfo: { name: "Pearl Concierge", version: "1.5.3" },
+      appInfo: { name: "Pearl Concierge", version: "1.5.5" },
       appCapabilities: { availableDisplayModes: ["inline"] },
       protocolVersion: "2026-01-26",
     }, 5_000);

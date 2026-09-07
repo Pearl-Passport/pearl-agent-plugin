@@ -1,0 +1,30 @@
+{
+  "structuredContent": {
+    "confirmation_required": true,
+    "action_handle_expires_at": "2026-09-07T23:55:00Z",
+    "preview": {
+      "visit_id": "11111111-1111-4111-8111-111111111111",
+      "venue": {
+        "name": "Pearl Bistro"
+      },
+      "fields": [
+        "score",
+        "comment",
+        "visited_at_has_day"
+      ],
+      "before": {
+        "visited_at": "2026-09-01",
+        "visited_at_has_day": true,
+        "score": 8,
+        "comment": "Lovely dinner."
+      },
+      "after": {
+        "visited_at": "2026-09-01",
+        "visited_at_has_day": false,
+        "score": 9,
+        "comment": "Lovely dinner. The outdoor table was quiet."
+      },
+      "duplicate_warning": null
+    }
+  }
+}

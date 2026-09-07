@@ -12,16 +12,15 @@ and OAuth recovery.
   cookies, request headers, or browser storage.
 - Record only the host/product version, date, tool name, visible result, and a
   Pearl request ID when an error already exposes one.
-- The seven UI-enabled tools are reads. The card canary must not create, change,
-  book, cancel, save, message, or publish anything. A separate text/structured
-  canary in each reviewed ChatGPT, Codex, Claude, and Cursor host may create and
-  edit one designated disposable visit through the reviewed confirmation flow;
-  remove test data later through the Pearl app because deletion is not an Agent
-  capability.
+- Eight supported reads have cards. Read canaries must not create, change,
+  book, cancel, save, message, or publish anything. The four visit action tools
+  have model-only visibility and presentation cards. Test their confirmation
+  flow separately with one designated disposable visit, then remove test data
+  through the Pearl app because deletion is not an Agent capability.
 
 ## Host and viewport matrix
 
-Run the seven prompts in ChatGPT web and desktop. Repeat the venue comparison and
+Run the read prompts in ChatGPT web and desktop. Repeat the venue comparison and
 one journey result at a mobile-width viewport or in the supported mobile host.
 Test light and dark appearance once each.
 
@@ -34,13 +33,13 @@ Test light and dark appearance once each.
 | `trips_list` | “List my Pearl trips and collections.” | Owned trip/collection cards with dates and stop counts when returned |
 | `trip_get` | First list trips in chat, then ask to open one returned trip. | Trip-stop cards; no booking claim |
 | `reservations_list` | “Show my Pearl reservations.” | Reservation cards with date, status, and safe account details |
+| `reservations_availability` | Ask for availability at one returned venue, with date and party size. | Dining options or distinct pending, unknown, and empty states |
 
 For trips and reservations, verify the unified journey family groups returned
 stops or reservations by date, labels missing status as unknown, and never
 converts tentative or unavailable data into confirmed copy. Flight fixtures are
-pre-release coverage only while those tools are dark. Live availability remains
-outside this seven-tool card canary: package `0.10.0` exposes it to reviewed
-agent hosts through text/structured output and does not attach a card.
+pre-release coverage only while those tools are dark. Live availability is still limited to reviewed agent hosts; adding its card
+does not widen client eligibility.
 
 Use only trips and reservations returned by the same account. Never paste an ID
 from another member into a screenshot or review artifact.
@@ -170,7 +169,7 @@ For each host, retain:
 
 - host/product and version;
 - test date and account class (never account credentials);
-- the seven tool outcomes;
+- the read and separately confirmed visit-action outcomes;
 - one two-place comparison screenshot;
 - one 390px screenshot;
 - one dark-mode journey screenshot;
@@ -181,3 +180,31 @@ Mark the canary failed if a host does not fetch the current resource, a card
 clips or scrolls horizontally, OAuth recovery loops, a dark/future tool renders,
 or the text fallback is missing. A failed host canary does not make the MCP read
 tools unavailable, but it blocks a successful UI-rendering claim for that host.
+
+## Dining availability card (1.5.4 / v10)
+
+The existing client-gated reservations_availability tool now receives portable
+card metadata after its access checks. In each eligible host, check available,
+pending, unknown, and no_availability responses. Confirm venue-local slot time,
+party size, provider, checked time with timezone, price, deposit, payment and
+cancellation terms. The retry button sends only a fixed request to the host; it
+never calls a tool or books a table. v9 and older pinned URIs remain readable.
+
+Local fixture validation includes desktop light, mobile dark, and a clicked
+pending-state retry through the standard parent bridge. This does not establish
+that a host has refreshed its installed metadata; verify in a fresh conversation
+after gateway deployment. Hosts without MCP Apps still receive the data result.
+
+## Visit previews and receipts (1.5.5 / v11)
+
+With a fresh visits:write grant, verify import and update prepare/commit results.
+The four action tools must have ui.visibility set only to model. Cards show
+previews and receipts; no card click can prepare, confirm or commit a mutation.
+Keep the existing before/after, attendance, duplicate, expiry, same-key replay,
+and stale-state checks in the conversation. A render does not prove a human
+confirmed. v10 and the older pinned resources remain readable.
+
+Check a full 2,000-character note, month-only date, twenty import items, ambiguous
+place, possible duplicate, partial import, saved/replayed/skipped receipts, empty
+receipt and recoverable error. Exact values must not be silently truncated; an
+unsupported or over-limit result must direct the user back to the conversation.

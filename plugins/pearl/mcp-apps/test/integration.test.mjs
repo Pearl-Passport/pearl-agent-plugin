@@ -96,8 +96,8 @@ test("resource response is versioned, correctly typed, and deny-by-default", asy
   const response = createPearlMcpAppResource();
   assert.equal(response.contents.length, 1);
   const content = response.contents[0];
-  assert.equal(PEARL_MCP_APP_VERSION, "1.5.3");
-  assert.equal(content.uri, "ui://pearl/concierge/v9/index.html");
+  assert.equal(PEARL_MCP_APP_VERSION, "1.5.5");
+  assert.equal(content.uri, "ui://pearl/concierge/v11/index.html");
   assert.equal(content.mimeType, PEARL_MCP_APP_MIME_TYPE);
   assert.equal(content.text, html);
   assert.equal(content.text, PEARL_MCP_APP_ARTIFACT_HTML);
@@ -165,7 +165,9 @@ test("installed ChatGPT v4 snapshot keeps loading the current artifact", () => {
 
 test("bounded previous card URIs serve the current reviewed artifact", () => {
   assert.deepEqual(PEARL_MCP_APP_COMPATIBILITY_RESOURCE_URIS, [
-    "ui://pearl/concierge/v8/index.html",
+    "ui://pearl/concierge/v10/index.html",
+  "ui://pearl/concierge/v9/index.html",
+  "ui://pearl/concierge/v8/index.html",
     "ui://pearl/concierge/v7/index.html",
     "ui://pearl/concierge/v6/index.html",
     "ui://pearl/concierge/v5/index.html",
@@ -189,7 +191,7 @@ test("bounded previous card URIs serve the current reviewed artifact", () => {
   );
 });
 
-test("only reviewed read result shapes opt into the UI", () => {
+test("only supported read and visit-action result shapes opt into the UI", () => {
   assert.deepEqual(PEARL_MCP_APP_TOOL_NAMES, [
     "venues_search",
     "venues_recommend",
@@ -198,6 +200,8 @@ test("only reviewed read result shapes opt into the UI", () => {
     "trips_list",
     "trip_get",
     "reservations_list",
+    "reservations_availability",
+    "visits_import_prepare", "visits_import_commit", "visits_update_prepare", "visits_update_commit",
   ]);
   for (const name of PEARL_MCP_APP_TOOL_NAMES) assert.equal(pearlMcpAppSupportsTool(name), true);
   const writeTool = ["saves", "change", "prepare"].join("_");
@@ -319,4 +323,14 @@ test("journey fixtures support light and dark standard bridge previews", async (
     assert.match(harness, new RegExp(`const theme = ${JSON.stringify(theme)}`));
     assert.match(harness, /ui\/notifications\/tool-result/);
   }
+});
+
+test("visit action tools are visible only to the model and cards cannot execute them", async () => {
+  for (const name of ["visits_import_prepare", "visits_import_commit", "visits_update_prepare", "visits_update_commit"]) {
+    assert.deepEqual(withPearlMcpAppMeta({ name })._meta.ui.visibility, ["model"]);
+  }
+  const html = await buildHtml();
+  assert.doesNotMatch(html, /data\.action_handle(?!_expires_at)|idempotency_key/);
+  assert.ok(html.includes("tool?.annotations?.readOnlyHint === true"));
+  assert.match(html, /Nothing has been changed/);
 });

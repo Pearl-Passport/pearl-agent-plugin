@@ -4,15 +4,15 @@ import {
   PEARL_MCP_APP_ARTIFACT_SHA256,
 } from "./artifact.generated.mjs";
 
-export const PEARL_MCP_APP_VERSION = "1.5.3";
-// Retain the reviewed URI for backward-compatible content fixes. ChatGPT may
-// cache content for up to an hour. A new URI is a metadata/contract change;
-// do not strand installed snapshots just to invalidate their content cache.
-export const PEARL_MCP_APP_RESOURCE_URI = "ui://pearl/concierge/v9/index.html";
+export const PEARL_MCP_APP_VERSION = "1.5.5";
+// Visit preview and receipt bindings introduce a new metadata version.
+export const PEARL_MCP_APP_RESOURCE_URI = "ui://pearl/concierge/v11/index.html";
 // ChatGPT can retain tools/list metadata for an already-open conversation.
 // Keep the bounded reviewed resource history readable so those conversations
 // load the current artifact instead of silently dropping the card.
 export const PEARL_MCP_APP_COMPATIBILITY_RESOURCE_URIS = Object.freeze([
+  "ui://pearl/concierge/v10/index.html",
+  "ui://pearl/concierge/v9/index.html",
   "ui://pearl/concierge/v8/index.html",
   "ui://pearl/concierge/v7/index.html",
   "ui://pearl/concierge/v6/index.html",
@@ -37,6 +37,10 @@ export const PEARL_CLAUDE_MCP_APP_DOMAIN = "61326a67f094099d1f34519381c01e4a.cla
 // build.mjs), and the model image allowlist (model.mjs IMAGE_ORIGIN_PREFIX).
 export const PEARL_MCP_APP_IMAGE_ORIGIN = PEARL_MCP_APP_DOMAIN;
 
+export const PEARL_MCP_APP_ACTION_TOOL_NAMES = Object.freeze([
+  "visits_import_prepare", "visits_import_commit", "visits_update_prepare", "visits_update_commit",
+]);
+
 export const PEARL_MCP_APP_TOOL_NAMES = Object.freeze([
   "venues_search",
   "venues_recommend",
@@ -45,6 +49,8 @@ export const PEARL_MCP_APP_TOOL_NAMES = Object.freeze([
   "trips_list",
   "trip_get",
   "reservations_list",
+  "reservations_availability",
+  ...PEARL_MCP_APP_ACTION_TOOL_NAMES,
 ]);
 
 export const PEARL_MCP_APP_CSP = Object.freeze({
@@ -83,7 +89,7 @@ export function withPearlMcpAppMeta(toolDefinition, { chatgptCompatibility = tru
       ui: {
         ...currentUi,
         resourceUri: PEARL_MCP_APP_RESOURCE_URI,
-        visibility: [...PEARL_MCP_APP_VISIBILITY],
+        visibility: PEARL_MCP_APP_ACTION_TOOL_NAMES.includes(definition.name) ? ["model"] : [...PEARL_MCP_APP_VISIBILITY],
       },
       ...(chatgptCompatibility
         ? { "openai/outputTemplate": PEARL_MCP_APP_RESOURCE_URI }
@@ -106,7 +112,7 @@ function createResourceDefinition(uri, compatibility = false) {
     descriptor: {
       uri,
       name: compatibility ? "Pearl Concierge (compatibility)" : "Pearl Concierge",
-      description: "A read-only presentation for supported Pearl venue, taste-profile, trip, and reservation results.",
+      description: "A presentation for supported Pearl reads and visit previews and receipts; cards cannot execute mutations.",
       mimeType: PEARL_MCP_APP_MIME_TYPE,
       _meta: artifactMeta,
     },

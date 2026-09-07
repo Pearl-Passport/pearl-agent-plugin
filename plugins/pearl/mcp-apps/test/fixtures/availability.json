@@ -1,0 +1,32 @@
+{
+  "structuredContent": {
+    "status": "available",
+    "venue": {
+      "name": "Pearl Bistro",
+      "city": "Paris"
+    },
+    "query": {
+      "local_date": "2026-09-12",
+      "party_size": 2
+    },
+    "slots": [
+      {
+        "local_time": "19:30",
+        "platform": "resy",
+        "table_type": "Patio",
+        "price": {
+          "amount_minor": 12550,
+          "currency": "USD"
+        },
+        "deposit": {
+          "amount_minor": 2500,
+          "currency": "USD"
+        },
+        "payment_required": true,
+        "cancellation_policy": "Cancel at least 24 hours before arrival.",
+        "observed_at": "2026-09-12T16:00:00Z",
+        "expires_at": "2026-09-12T16:10:00Z"
+      }
+    ]
+  }
+}
