@@ -59,6 +59,18 @@ test("accepts venue imagery only from the approved Pearl origin", () => {
   for (const item of model.items.slice(2)) assert.equal(item.image, undefined);
 });
 
+test("accepts the live MCP hero_image_url and image_url fields without widening the origin", () => {
+  const src = "https://agent.joinpearl.co/api/v1/venue-images/11111111-1111-4111-8111-111111111111/hero";
+  for (const field of ["hero_image_url", "image_url"]) {
+    const result = normalizeToolResult({ structuredContent: { venues: [
+      { id: "live-shaped", name: "Catalog fixture", [field]: src },
+      { id: "unsafe", name: "Foreign image", [field]: "https://evil.example/a.jpg" },
+    ] } });
+    assert.equal(result.items[0].image.src, src);
+    assert.equal(result.items[1].image, undefined);
+  }
+});
+
 test("normalizes trips and reservations without changing their status", async () => {
   const model = normalizeToolResult(await fixture("journeys"));
   assert.equal(model.kind, "journeys");
@@ -73,6 +85,19 @@ test("normalizes trips and reservations without changing their status", async ()
   assert.equal(model.items[2].journeyType, "trip");
   assert.equal(model.items[2].status, "pending");
   assert.equal(model.items[2].group, "4 stops");
+});
+
+test("reservation catalog photos and venue-city survive normalization without provider authority", () => {
+  const src = 'https://agent.joinpearl.co/api/v1/venue-images/11111111-1111-4111-8111-111111111111/card';
+  const model = normalizeToolResult({ structuredContent: { reservations: [
+    { id: 'one', venue_name: 'Catalog fixture', venue_city: 'Paris', status: 'tentative', hero_image_url: src },
+    { id: 'two', venue_name: 'Unknown', status: 'unknown', hero_image_url: 'https://evil.example/image.jpg' },
+  ] } });
+  assert.equal(model.items[0].image.src, src);
+  assert.equal(model.items[0].location, 'Paris');
+  assert.equal(model.items[0].status, 'tentative');
+  assert.equal(model.items[1].image, undefined);
+  assert.equal(model.items[1].status, 'unknown');
 });
 
 test("normalizes trip detail into one journey with stops grouped by returned day", () => {

@@ -1,10 +1,10 @@
-# Cursor and Claude submission paths
+# Host submission paths
 
 Package validation and marketplace approval are different gates. Pearl must complete the release checks below before opening either host application, and a submitted or publicly available repository does not make Pearl an official or approved integration.
 
 ## Shared release gate
 
-Both hosts require a public GitHub repository for third-party marketplace review. Before changing repository visibility:
+Cursor and Claude require a public GitHub repository for third-party marketplace review. OpenAI uses a versioned portal draft and server scan. Before changing repository visibility or submitting a new host version:
 
 1. Finish legal and brand approval for the exact release.
 2. Scan the complete reachable and previously published Git history for credentials and private implementation material.
@@ -17,7 +17,13 @@ Both hosts require a public GitHub repository for third-party marketplace review
    npm --prefix plugins/pearl run validate:host-clients-live
    ```
 
-The static-host validator intentionally supplies the wrong MCP resource. A correctly registered client and callback returns `invalid_target` before Pearl creates an authorization request. It also verifies that hosted Claude rejects Cursor's globally advertised `visits:write` scope and that Cursor rejects every unreviewed write scope.
+The static-host validator intentionally supplies the wrong MCP resource. A correctly registered client and callback returns `invalid_target` before Pearl creates an authorization request. It verifies that each reviewed host accepts only the seven reads plus `visits:write` and rejects every other write scope.
+
+## OpenAI app version
+
+Changing `tools/list`, annotations, schemas, or scopes requires a new version in the OpenAI portal. Scan the same production-candidate endpoint and verify the exact 18-tool inventory: 13 common reads, read-only `reservations_availability`, and the four confirmed visit tools. The two prepare calls and import commit are non-destructive writes; visit update commit is destructive because it changes an existing record. Test approval prompts, prepare/confirm separation, idempotent retries, scope denial, and the negative provider-booking canary in the draft before submission.
+
+Prepare the new ChatGPT portal draft from the reviewed commit before backend activation. Because the portal must scan the exact production contract, perform the scan immediately after the coordinated gateway/migration activation, verify the exact inventory with a fresh reviewer grant, and roll back ChatGPT eligibility if it differs. Existing grants are never widened, so the previously published version retains its consented scope set during this bounded window. Do not describe a successful scan as approval. If an older version is already under review, use the portal's supported update or cancel-and-resubmit flow; do not silently change the submitted version.
 
 ## Cursor Marketplace
 

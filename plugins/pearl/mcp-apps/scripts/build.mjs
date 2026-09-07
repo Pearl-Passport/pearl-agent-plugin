@@ -18,8 +18,9 @@ function inlineModel(source) {
     .replace(/^export const /gm, "const ");
 }
 
-function inlineApp(source) {
-  return source.replace(/^import \{ normalizeToolResult, recoveryPrompt \} from "\.\/model\.mjs";\n/, "");
+function inlineApp(source, brandMark) {
+  return source.replace(/^import \{ normalizeToolResult, recoveryPrompt \} from "\.\/model\.mjs";\n/, "")
+    .replace('"__PEARL_BRAND_MARK__"', JSON.stringify(`data:image/png;base64,${brandMark.toString("base64")}`));
 }
 
 function assertEmbeddable(label, source) {
@@ -33,15 +34,19 @@ function cspHash(source) {
 }
 
 export async function buildHtml() {
-  const [styles, modelSource, appSource] = await Promise.all([
+  const [styles, modelSource, appSource, brandMark] = await Promise.all([
     readFile(path.join(PACKAGE_ROOT, "src", "styles.css"), "utf8"),
     readFile(path.join(PACKAGE_ROOT, "src", "model.mjs"), "utf8"),
     readFile(path.join(PACKAGE_ROOT, "src", "app.mjs"), "utf8"),
+    readFile(path.join(PACKAGE_ROOT, "..", "assets", "icon.png")),
   ]);
   assertEmbeddable("styles.css", styles);
   assertEmbeddable("model.mjs", modelSource);
   assertEmbeddable("app.mjs", appSource);
-  const script = `${inlineModel(modelSource)}\n${inlineApp(appSource)}`;
+  if (brandMark.subarray(0, 8).toString("hex") !== "89504e470d0a1a0a" || brandMark.length > 64 * 1024) {
+    throw new Error("Pearl's approved inline mark must remain a bounded PNG");
+  }
+  const script = `${inlineModel(modelSource)}\n${inlineApp(appSource, brandMark)}`;
   const scriptHash = cspHash(script);
   const styleHash = cspHash(styles);
   return `<!doctype html>

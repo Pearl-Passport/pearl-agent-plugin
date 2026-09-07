@@ -56,6 +56,27 @@ test("build is deterministic and self-contained", async () => {
   assert.ok(Buffer.byteLength(first) < 256 * 1024);
 });
 
+test("V1 uses the approved Pearl mark and keeps asset/network boundaries unchanged", async () => {
+  const html = await buildHtml();
+  const mark = await readFile(path.join(PACKAGE_ROOT, "..", "assets", "icon.png"));
+  assert.ok(html.includes(`data:image/png;base64,${mark.toString("base64")}`));
+  assert.doesNotMatch(html, /__PEARL_BRAND_MARK__/);
+  assert.match(html, /font-src 'none'/);
+  assert.match(html, /connect-src 'none'/);
+  const css = await readFile(path.join(PACKAGE_ROOT, "src", "styles.css"), "utf8");
+  assert.doesNotMatch(css, /backdrop-filter|--pearl-ui-(?:glass|wash|irid)/);
+  assert.match(css, /\(hover: hover\) and \(pointer: fine\)/);
+  assert.match(css, /--pearl-ui-radius-action: 9999px/);
+});
+
+test("host canary documents the existing image-only network exception", async () => {
+  const guide = await readFile(path.join(PACKAGE_ROOT, "HOST-TESTING.md"), "utf8");
+  assert.ok(guide.includes(`${PEARL_MCP_APP_IMAGE_ORIGIN}/api/v1/venue-images/`));
+  assert.match(guide, /connection, frame, and base-URI allowlists remain empty/);
+  assert.match(guide, /No API fetch, font, analytics, remote script, or foreign image may load/);
+  assert.doesNotMatch(guide, /no request initiated by the iframe|empty connection, asset/);
+});
+
 test("portable UI metadata is primary and ChatGPT alias is optional", () => {
   const original = { title: "Render", _meta: { existing: true } };
   const portable = withPearlMcpAppMeta(original, { chatgptCompatibility: false });
@@ -75,8 +96,8 @@ test("resource response is versioned, correctly typed, and deny-by-default", asy
   const response = createPearlMcpAppResource();
   assert.equal(response.contents.length, 1);
   const content = response.contents[0];
-  assert.equal(PEARL_MCP_APP_VERSION, "1.4.0");
-  assert.equal(content.uri, "ui://pearl/concierge/v7/index.html");
+  assert.equal(PEARL_MCP_APP_VERSION, "1.5.3");
+  assert.equal(content.uri, "ui://pearl/concierge/v9/index.html");
   assert.equal(content.mimeType, PEARL_MCP_APP_MIME_TYPE);
   assert.equal(content.text, html);
   assert.equal(content.text, PEARL_MCP_APP_ARTIFACT_HTML);
@@ -133,10 +154,22 @@ test("Claude receives its connector-derived sandbox domain without changing the 
   }
 });
 
+test("installed ChatGPT v4 snapshot keeps loading the current artifact", () => {
+  // Pin the observed installed version independently of the rotating alias list.
+  const content = createPearlMcpAppResource("ui://pearl/concierge/v4/index.html").contents[0];
+  assert.equal(content.uri, "ui://pearl/concierge/v4/index.html");
+  assert.equal(content.text, PEARL_MCP_APP_ARTIFACT_HTML);
+  assert.equal(content._meta["pearl/artifactSha256"], PEARL_MCP_APP_ARTIFACT_SHA256);
+  assert.deepEqual(content._meta.ui.csp, PEARL_MCP_APP_CSP);
+});
+
 test("bounded previous card URIs serve the current reviewed artifact", () => {
   assert.deepEqual(PEARL_MCP_APP_COMPATIBILITY_RESOURCE_URIS, [
+    "ui://pearl/concierge/v8/index.html",
+    "ui://pearl/concierge/v7/index.html",
     "ui://pearl/concierge/v6/index.html",
     "ui://pearl/concierge/v5/index.html",
+    "ui://pearl/concierge/v4/index.html",
   ]);
   assert.deepEqual(
     PEARL_MCP_APP_RESOURCES.map((resource) => resource.descriptor.uri),

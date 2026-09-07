@@ -1,97 +1,79 @@
-# Pearl MCP Apps token bridge
+# Pearl MCP Apps · onboarding V1 bridge
 
-The MCP Apps widget is a standalone, host-sandboxed bundle, so it cannot import
-the application stylesheet. Instead, `src/styles.css` re-declares a reviewed
-subset of Pearl's canonical design system as `--pearl-ui-*` tokens. This file
-is the documented bridge: **every widget token maps to exactly one canonical
-Pearl source** in `src/index.css` (the `[data-ui="pearl"]` scope). There is no
-second design system — when a canonical value changes, update the mapped value
-here and in `src/styles.css`, then run `npm run generate`.
+The standalone widget adapts Zypsy onboarding V1 without importing the app
+stylesheet or changing the global app theme. Canonical light values live in
+the `--ds-*` section of `src/index.css`. Repository-only test
+`scripts/pearl-mcp-design-tokens.test.mjs` compares 26 mapped values with that
+source and checks body/action/focus contrast. The exported package stays
+self-contained; CI runs the guard when either stylesheet changes.
 
-Structural tokens stay host-overridable through the allowlisted
-`hostContext.styles.variables` keys (see `allowedHostStyleKeys` in
-`src/app.mjs`), matching the "Pearl identity inside a host-native shell"
-model: system fonts and host-tunable structure, fixed Pearl brand accents.
+## Reviewed mapping
 
-## Structural tokens (host-overridable)
+Widget names below have the prefix `--pearl-ui-`.
 
-| Widget token | Canonical Pearl source | Light | Dark | Host override key |
-| --- | --- | --- | --- | --- |
-| `--pearl-ui-canvas` | `--pearl-bg` | `#FBFAF7` | `#15171B` | `--color-background-primary` |
-| `--pearl-ui-surface` | `--pearl-paper` | `#FFFFFF` | `#1F2228` | `--color-background-secondary` |
-| `--pearl-ui-subtle` | `--pearl-subtle` | `#F3EFE9` | `#23262C` | `--color-background-tertiary` |
-| `--pearl-ui-text` | `--pearl-ink` | `#17212A` | `#F4F1EB` | `--color-text-primary` |
-| `--pearl-ui-text-secondary` | `--pearl-ink-3` (light, AA body) / `--pearl-ink-2` (dark) | `#6B6B6B` | `#B8B4AB` | `--color-text-secondary` |
-| `--pearl-ui-border` | `--pearl-ink-4` | `rgba(85,85,85,0.30)` | `rgba(244,241,235,0.28)` | `--color-border-primary` |
-| `--pearl-ui-border-soft` | `--pearl-ink-4` at hairline strength | `rgba(85,85,85,0.16)` | `rgba(244,241,235,0.14)` | `--color-border-secondary` |
-| `--pearl-ui-focus` | `--pearl-accent-on-tint` | `#8A4F36` | `#D89C7E` | `--color-ring-primary` |
-| `--pearl-ui-danger` / `-bg` | `--pearl-danger-on-tint` / `--pearl-danger-tint` | `#843E3E` / `rgba(159,79,79,0.14)` | `#DE9393` / `rgba(159,79,79,0.22)` | `--color-text-danger` / `--color-background-danger` |
-| `--pearl-ui-success` / `-bg` | `--pearl-success-on-tint` / `--pearl-success-tint` | `#2A5C54` / `rgba(60,120,112,0.14)` | `#82C6B9` / `rgba(60,120,112,0.22)` | `--color-text-success` / `--color-background-success` |
-| `--pearl-ui-warning` / `-bg` | `--pearl-warning-on-tint` / `--pearl-warning-tint` | `#8A5A12` / `rgba(220,176,111,0.18)` | `#E5C48F` / `rgba(220,176,111,0.22)` | `--color-text-warning` / `--color-background-warning` |
-| `--pearl-ui-font` | system sans (host constraint; Pearl app uses Inter) | system stack | system stack | `--font-sans` |
-| `--pearl-ui-radius-sm/md/lg` | `--radius` ladder | `8 / 12 / 16px` | same | `--border-radius-sm/md/lg` |
-| `--pearl-ui-shadow` | Pearl soft elevation | ink-tinted | black-tinted | `--shadow-sm` |
-
-## Brand tokens (fixed — never host-overridden)
-
-| Widget token | Canonical Pearl source | Light | Dark |
-| --- | --- | --- | --- |
-| `--pearl-ui-accent` | `--pearl-accent-on-tint` | `#8A4F36` | `#D89C7E` |
-| `--pearl-ui-accent-strong` | `--pearl-accent` | `#A8674B` | `#C28368` |
-| `--pearl-ui-accent-bg` | `--pearl-accent-tint` | `rgba(168,103,75,0.12)` | `rgba(194,131,104,0.18)` |
-| `--pearl-ui-saved` / `-bg` | `--pearl-saved` family (AA text via warning-on-tint) | `#8A5A12` / `rgba(184,137,60,0.14)` | `#E5C48F` / `rgba(210,160,78,0.20)` |
-| `--pearl-ui-navy` | `--pearl-navy` | `#212F52` | `#F4F1EB` (canonical dark inversion) |
-| `--pearl-ui-action` / `-hover` / `-fg` | `--pearl-accent-on-tint` / `--pearl-accent` / `--pearl-paper` | `#8A4F36` / `#A8674B` / `#FFFFFF` | `#D89C7E` / `#E2B09A` / `#15171B` |
-| `--pearl-ui-font-display` | system-serif echo of Pearl display serif (Playfair) | `ui-serif, "New York", Georgia…` | same |
-
-## Glass layer (derived, with mandatory fallbacks)
-
-| Widget token | Derivation | Purpose |
+| Widget | Canonical source | Light default |
 | --- | --- | --- |
-| `--pearl-ui-glass` / `-strong` | `--pearl-paper` at 60% / 78% (dark: `--pearl-paper` at 55% / 74%) | translucent card/chip surfaces |
-| `--pearl-ui-glass-border` | white hairline over glass (dark: `rgba(255,255,255,0.14)`) | card hairlines |
-| `--pearl-ui-glass-blur` | `16px` | backdrop blur radius |
-| `--pearl-ui-wash-a/b/c` | `--pearl-accent-tint`, `--pearl-saved-tint`, navy tint | panel ambient wash |
-| `--pearl-ui-irid-1…4` | Pearl-warmed variant of the app's `.card-glass` iridescent border (terracotta/honey/navy instead of lilac/mint) | panel hairline gradient |
-| `--pearl-ui-cat-0…5` (+ `-deep`) | canonical category colors: restaurant `#9F4F4F`, bar `#B8862E`, hotel `#3E5C76`, winery `#8E5C7A`, cafe `#855A42`, spa/other `#3F7368` | deterministic fallback artwork |
+| canvas / surface / subtle | cream-50 / surface-default / action-secondary | #f8f6f4 / #ffffff / #f4f4f3 |
+| text | text-primary | #3a3a39 |
+| text-secondary | Accessible legacy --pearl-ink-3 exception | #6b6b6b |
+| border / border-soft | border-strong / border-default | #d2d2d0 / #e6e6e5 |
+| focus | V1 route uses text-primary | #3a3a39 |
+| action / action-hover / action-fg | action-primary / action-primary-hover / action-primary-fg | #20201f / #3a3a39 / #fbfbfa |
+| secondary-hover / danger | action-secondary-hover / action-destructive | #e6e6e5 / #85183e |
+| radius-sm/md/lg/action | radius-8/12/24/full | 8 / 12 / 24 / 9999px |
+| space-4/8/12/16/24 | corresponding space tokens | corresponding pixels |
+| body-size/line, heading-size/line | size-14 / lh-20, size-24 / lh-28 | 14/20, 24/28px |
+| shadow | shadow-sm | canonical restrained shell elevation |
 
-Glass rules:
+Canonical source names above have the prefix `--ds-` unless stated otherwise.
+Host structural variables retain precedence through the existing allowlist:
+background/text/border/ring/status colors, system font, radii, and shadow.
+Primary action colors stay paired for contrast. Existing reviewed Pearl
+success/warning colors and status backgrounds are retained; V1's incomplete
+status palette is not invented here.
 
-- Blur and translucency are progressive enhancement inside
-  `@supports (backdrop-filter…)`. The base declarations are the opaque
-  canonical surfaces, so unsupported hosts render correctly.
-- `prefers-reduced-transparency: reduce` and `prefers-contrast: more` return
-  every surface to opaque `--pearl-ui-surface`; `forced-colors: active`
-  removes decorative gradients entirely.
-- `prefers-reduced-motion: reduce` collapses all animation and the card hover
-  lift.
+## Intentional adaptations
 
-## Shared primitives
+- **Fonts:** platform system sans throughout; no font downloads.
+  [ChatGPT typography guidance](https://developers.openai.com/plugins/concepts/ui-guidelines#typography)
+  calls for system fonts even in fullscreen. Do not claim pixel-identical
+  Gambetta/Geist typography to the app onboarding.
+- **Contrast:** V1's lighter body text steps and decorative focus ring do not
+  meet ordinary body/focus contrast. Retain accessible secondary ink and the
+  route's strong ink outline; do not edit canonical design values.
+- **Dark:** V1 has no approved dark palette. Preserve existing Pearl dark
+  surfaces/ink, deriving neutral controls from that ink/surface pair. This is
+  host compatibility, not a newly approved Zypsy dark theme.
+- **Compact host:** 24px desktop / 16px mobile padding, 44px minimum controls,
+  wrapping comparisons, no nested horizontal scrolling. Pill actions use
+  medium weight, 50% disabled opacity, and fine-pointer-only hover to avoid
+  sticky touch hover.
+- **Surfaces:** flat opaque cards, no blur, terracotta wash, or iridescent
+  border. Only the loading skeleton animates, respecting reduced motion.
+  Status remains readable as words, not color alone.
 
-All card families compose the same primitives — no per-family styling forks:
+## Artwork and safety
 
-`panel` (glass shell + iridescent hairline) · `panel-header` / `eyebrow` (Pearl
-mark + label) · `count-pill` / `chip` / `status-pill` (badges) · `metric-card`
-· `facet-card` · `rank-list` · `result-card` (+ optional `media` block) ·
-`comparison` / `comparison-card` / `comparison-row` · `button` (primary =
-Pearl accent, secondary = glass) · `status-banner` · `empty-state` /
-`error-state` (+ `state-icon`) · `skeleton`.
+The builder inlines the exact approved `assets/icon.png` once as a data URI;
+it does not redraw the mark, add an endpoint, or make a logo request. The
+trademark restrictions in `assets/README.md` remain applicable.
 
-## Venue imagery
+Venue images load only from `https://agent.joinpearl.co`, with no-referrer
+and lazy loading. Foreign, lookalike, credentialed, query-bearing, and non-HTTPS
+URLs fail closed. Document and resource CSPs are unchanged. A neutral initial
+placeholder appears immediately; photo and credit appear only after load.
+Error removes both without blocking the result. An initial is not a fabricated
+venue photograph. Other icons are decorative inline SVG with text labels.
 
-- Images render only from the approved origin `https://agent.joinpearl.co`
-  (see `PEARL_MCP_APP_IMAGE_ORIGIN` in `src/integration.mjs`); the document
-  CSP `img-src` and the resource-metadata CSP both pin the same single origin.
-- URLs with query strings, fragments, credentials, other origins, or
-  origin-lookalike hosts fail closed in `normalizeImage` (`src/model.mjs`).
-- Every media block paints the deterministic category-tinted fallback first;
-  the network image layers above it only after a successful load, and is
-  removed on error. Attribution renders in the `media-credit` badge when the
-  source record provides it.
+All card families share primitives, bounded untrusted-text rendering, and the
+complete text fallback. No script, font, analytics, credential, or arbitrary
+network capability is added.
 
-## Icons
+## Release checks
 
-Inline SVG only (`icon()` in `src/app.mjs`): `pearl` mark (eyebrow), `info` /
-`alert` / `check` (status), `compass` (empty/error states). All icons are
-`aria-hidden`, stroke `currentColor`, and inherit token colors. No external
-image, font, or icon-font requests exist anywhere in the bundle.
+Run widget `generate`, `test`, `validate`, the repository token guard, and
+MCP Apps browser suite. Coverage includes 1000/390/320px, light/dark, comparison,
+focus, reduced motion, forced colors, image success/failure, and recovery.
+Changed bytes require a new resource URI; bounded older URIs stay readable.
+Real ChatGPT/Claude rendering remains a separate [host canary](HOST-TESTING.md),
+not something proved by fixture screenshots.

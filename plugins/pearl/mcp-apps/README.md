@@ -16,7 +16,8 @@ The primary integration is the open MCP Apps contract:
 - tool metadata explicitly declares `ui.visibility: ["model", "app"]`;
 - the resource uses `text/html;profile=mcp-app`;
 - the iframe uses the `ui/*` JSON-RPC bridge over `postMessage`;
-- the resource CSP allows no network, nested frame, or external asset origin;
+- the resource CSP allows only Pearl-hosted venue images, with no API network,
+  nested frames, remote scripts, or fonts;
 - the resource declares Pearl's verified MCP origin as its unique submitted
   component domain without widening that deny-by-default CSP;
 - every tool must still return useful `content` and `structuredContent` for
@@ -45,10 +46,16 @@ capabilities.
 
 ## Server hook
 
-`src/integration.mjs` exports the versioned resource URI, MIME type, zero-network
+`src/integration.mjs` exports the versioned resource URI, MIME type, restricted
 CSP, bounded resource definition, exact supported-tool list, and integration
 helpers. Both protocol implementations register that same definition and return
 fresh copies of its same read payload.
+
+Published/installed host snapshots can outlive the last few UI releases. Keep
+the exact v4 URI pinned alongside v8/v7/v6/v5 compatibility aliases until host
+refresh is verified; a live ChatGPT canary still requested v4 on 2026-09-04.
+All aliases return the current v9 artifact with identical authentication and
+CSP. This does not load old code or accept arbitrary resource URLs.
 
 The current source allowlist is exactly `venues_search`, `venues_recommend`,
 `venues_new_openings`, `profile_get`, `trips_list`, `trip_get`, and
@@ -97,10 +104,15 @@ that exact tool read-only; otherwise it sends a fixed user follow-up message.
 
 ## Design and accessibility
 
-The standalone token subset is copied from reviewed Pearl semantic tokens. It
-uses the accessible Pearl secondary text color instead of the lighter V1 text
-steps that are not approved for body copy. No fonts or images are fetched. Host
-theme variables are applied from the MCP Apps host context when provided.
+The `1.5.3` / `v9` presentation adapts onboarding V1's neutral ink, cream,
+flat surfaces, pill actions, and spacing. A repository-only drift test compares
+the mapped values with canonical `--ds-*` tokens. Accessible secondary ink
+and strong focus are retained. See [TOKENS.md](TOKENS.md) for the mapping and
+intentional host-font/dark-theme adaptations.
+
+The exact approved Pearl mark is inlined once. No fonts are fetched; only
+approved Pearl-hosted venue images may load. Host theme variables remain
+supported, and image failure never blocks the text or placeholder.
 
 The UI includes visible focus, native keyboard controls, 44-pixel targets,
 320-pixel layouts, light and dark themes, reduced-motion support, accessible
@@ -112,10 +124,11 @@ fullscreen, desktop, web, and mobile host context without horizontal scrolling.
 Structural UI inherits the host/platform system font, and comparison cards stack
 without nested scrolling.
 
-Canonical source CI also exercises the built iframe in Chromium at 1000px and
-390px. It checks two- and three-place comparison layouts, keyboard selection,
+Canonical source CI also exercises the built iframe in Chromium at 1000px,
+390px, and 320px. It checks two- and three-place comparison layouts, keyboard selection,
 minimum target sizes, reduced motion, light/dark rendering, horizontal overflow,
-and safe partial, empty, missing-scope, and injected-scope states. See
+forced colors, approved-image success/failure, and safe partial, empty,
+missing-scope, and injected-scope states. See
 [HOST-TESTING.md](HOST-TESTING.md) for the separate real-host release canary;
 browser fixtures do not substitute for ChatGPT rendering evidence.
 

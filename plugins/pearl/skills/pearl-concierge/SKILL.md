@@ -57,7 +57,7 @@ Keep result categories separate. An imported reservation is not proof of attenda
 
 ## Gated trip creation
 
-Trip creation is not part of package `0.9.0`. A separately reviewed connection may expose a complete trip-creation preview/commit pair through live discovery. Use the workflow only when both companion tools are present and the grant includes their required write scope.
+Trip creation is not part of package `0.10.0`. A separately reviewed connection may expose a complete trip-creation preview/commit pair through live discovery. Use the workflow only when both companion tools are present and the grant includes their required write scope.
 
 1. Collect a trip name and only the optional description and dates the member actually supplied. Never infer exact dates from vague timing.
 2. Call the discovered preview tool with a new idempotency key. This creates no trip.
@@ -77,7 +77,7 @@ Trip creation does not add stops, share the trip, or book anything. Use `trips_l
 
 ## Visit logging, import, and edits
 
-The reviewed Cursor connection may expose `visits_import_prepare`, `visits_import_commit`, `visits_update_prepare`, and `visits_update_commit` after the member reconnects and grants `visits:write`. Other packaged hosts remain read-only. Treat a missing tool, missing companion, or missing scope as unavailable.
+Reviewed ChatGPT, Codex, Claude, and Cursor connections may expose `visits_import_prepare`, `visits_import_commit`, `visits_update_prepare`, and `visits_update_commit` after the member reconnects and grants `visits:write`. Availability is still determined by the authenticated `tools/list`; unknown MCP clients, the standalone Pearl CLI, and unreviewed registrations remain read-only. Treat a missing tool, missing companion, or missing scope as unavailable.
 
 For a new visit or structured historical import:
 
@@ -95,7 +95,7 @@ For an edit, first select one owned `visit_id` from `visits_list`. Call `visits_
 
 ## Unavailable and future workflows
 
-Package `0.9.0` provides no mutations for saves, profile fields, friends, trips, reservations, collections, member-added venues, photos, or visit deletion/cleanup. Its only reviewed public mutation is Cursor's complete visit-import and visit-update pairs when live discovery exposes them. Dark trip code or UI guidance does not make trip creation available to a public client. Pearl also does not provide provider booking, modification, cancellation, messaging, payment, contact import, people matching, or taste-twin matching.
+Package `0.10.0` provides no mutations for saves, profile fields, friends, trips, reservations, collections, member-added venues, photos, or visit deletion/cleanup. Its only reviewed public mutations are the complete visit-import and visit-update pairs when live discovery exposes them to a reviewed ChatGPT, Codex, Claude, or Cursor connection. Dark trip code or UI guidance does not make trip creation available to a public client. Pearl also does not provide provider booking, modification, cancellation, messaging, payment, contact import, people matching, or taste-twin matching.
 
 If a later reviewed release exposes a mutation in live discovery:
 

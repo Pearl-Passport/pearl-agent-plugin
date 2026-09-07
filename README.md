@@ -22,7 +22,7 @@ endorsed, or listed Pearl.
 ### Codex Desktop and CLI
 
 ```bash
-git clone --branch v0.9.0 --depth 1 https://github.com/Pearl-Passport/pearl-agent-plugin.git
+git clone --branch v0.10.0 --depth 1 https://github.com/Pearl-Passport/pearl-agent-plugin.git
 cd pearl-agent-plugin
 codex plugin marketplace add .
 codex plugin add pearl@pearl-integrations
@@ -32,7 +32,7 @@ codex mcp login pearl
 ### Claude Code
 
 ```bash
-git clone --branch v0.9.0 --depth 1 https://github.com/Pearl-Passport/pearl-agent-plugin.git
+git clone --branch v0.10.0 --depth 1 https://github.com/Pearl-Passport/pearl-agent-plugin.git
 cd pearl-agent-plugin
 claude plugin marketplace add .
 claude plugin install pearl@pearl-integrations
@@ -46,7 +46,7 @@ empty.
 ### Cursor desktop
 
 ```bash
-git clone --branch v0.9.0 --depth 1 https://github.com/Pearl-Passport/pearl-agent-plugin.git
+git clone --branch v0.10.0 --depth 1 https://github.com/Pearl-Passport/pearl-agent-plugin.git
 cd pearl-agent-plugin
 mkdir -p ~/.cursor/plugins/local
 test ! -e ~/.cursor/plugins/local/pearl-cursor

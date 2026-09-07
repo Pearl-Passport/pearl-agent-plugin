@@ -229,13 +229,19 @@ async function validate() {
   check(css.includes("data-theme=\"dark\""), "MCP Apps UI must include an explicit dark theme", errors);
   check(css.includes("forced-colors: active"), "MCP Apps UI must preserve controls in forced colors", errors);
   check(!/url\s*\(/i.test(css), "MCP Apps CSS must not load external assets", errors);
-  // Glass is progressive enhancement with accessible fallbacks.
-  check(css.includes("@supports") && css.includes("backdrop-filter"),
-    "Glass surfaces must be progressive enhancement behind @supports", errors);
+  // V1 replaces the former decorative glass layer; do not reintroduce it.
+  check(!/backdrop-filter|--pearl-ui-(?:glass|wash|irid|cat)-?/.test(css),
+    "V1 surfaces must remain flat and free of legacy glass/accent washes", errors);
   check(css.includes("prefers-reduced-transparency: reduce"),
-    "Glass surfaces must fall back to opaque under reduced transparency", errors);
+    "Surfaces must remain opaque under reduced transparency", errors);
   check(css.includes("prefers-contrast: more"),
-    "Glass surfaces must fall back to opaque under increased contrast", errors);
+    "Surfaces must retain a high-contrast variant", errors);
+  const approvedMark = await readFile(path.join(PACKAGE_ROOT, "..", "assets", "icon.png"));
+  check(first.includes(`data:image/png;base64,${approvedMark.toString("base64")}`)
+    && !first.includes("__PEARL_BRAND_MARK__"),
+    "Widget must inline the exact approved Pearl mark without a new origin", errors);
+  check(first.includes(`appInfo: { name: "Pearl Concierge", version: "${PEARL_MCP_APP_VERSION}" }`),
+    "UI initialization version must match its resource package", errors);
   check(css.includes(".media-fallback") && css.includes(".media-credit") && css.includes(".media-image"),
     "Venue media needs deterministic fallback, image, and attribution primitives", errors);
   check(css.includes("--pearl-ui-canvas") && /Canonical Pearl/i.test(css),

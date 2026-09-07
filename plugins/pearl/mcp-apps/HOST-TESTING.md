@@ -12,11 +12,12 @@ and OAuth recovery.
   cookies, request headers, or browser storage.
 - Record only the host/product version, date, tool name, visible result, and a
   Pearl request ID when an error already exposes one.
-- The seven UI-enabled tools are reads. The ChatGPT/Claude card canary must not
-  create, change, book, cancel, save, message, or publish anything. Cursor's
-  separate text-only canary may create and edit one designated disposable visit
-  through the reviewed confirmation flow; remove test data later through the
-  Pearl app because deletion is not an Agent capability.
+- The seven UI-enabled tools are reads. The card canary must not create, change,
+  book, cancel, save, message, or publish anything. A separate text/structured
+  canary in each reviewed ChatGPT, Codex, Claude, and Cursor host may create and
+  edit one designated disposable visit through the reviewed confirmation flow;
+  remove test data later through the Pearl app because deletion is not an Agent
+  capability.
 
 ## Host and viewport matrix
 
@@ -37,14 +38,35 @@ Test light and dark appearance once each.
 For trips and reservations, verify the unified journey family groups returned
 stops or reservations by date, labels missing status as unknown, and never
 converts tentative or unavailable data into confirmed copy. Flight fixtures are
-pre-release coverage only while those tools are dark. Live availability is also
-absent from this seven-tool card canary: package `0.9.0` exposes it only to the
-exact Cursor client through the text/structured fallback canary below.
+pre-release coverage only while those tools are dark. Live availability remains
+outside this seven-tool card canary: package `0.10.0` exposes it to reviewed
+agent hosts through text/structured output and does not attach a card.
 
 Use only trips and reservations returned by the same account. Never paste an ID
 from another member into a screenshot or review artifact.
 
 ## Interaction checks
+
+For the `1.5.3` / `v9` onboarding-V1 adaptation, verify the approved Pearl mark,
+neutral cream/ink surfaces, rounded neutral actions, and readable system type.
+No terracotta glass wash or custom-font download should appear. A failed venue
+photo must leave a readable placeholder without a photo-credit badge. Test both
+390px and 320px; host dark styling is an adaptation, not a V1 dark-palette claim.
+Existing `v8`, `v7`, `v6`, `v5`, and pinned `v4` resource URIs remain readable for cached sessions.
+Venue images must stay top-aligned even when descriptions have different lengths.
+
+### If ChatGPT says "Failed to fetch template"
+
+Inspect the failing card's resource URI before changing the renderer. Installed
+plugin snapshots can retain old tool metadata even in a new conversation. A live
+2026-09-04 canary requested `ui://pearl/concierge/v4/index.html` while the current
+server advertised v9. The exact v4 URL is therefore a pinned compatibility
+alias for the current reviewed artifact, with the same authentication and CSP.
+Do not remove it based only on a rolling version count; first verify that the
+installed/reviewed host versions no longer reference it. Unknown URLs still fail
+closed. Do not disable CSP, loosen OAuth, or create a second connector to fix a
+template error. Retry the original card after deployment and confirm a visible
+render; successful resource delivery alone is not a host canary pass.
 
 1. Select two venue cards. The comparison must contain exactly two equal columns
    on desktop and no blank third column.
@@ -59,7 +81,16 @@ from another member into a screenshot or review artifact.
    conversation must preserve a useful text result or recovery path even if the
    iframe cannot mount.
 
-## Cursor Grok Bot canary
+## Reviewed-host action canary
+
+Run steps 2–8 below separately in ChatGPT, Codex, Claude web/desktop, Claude
+Code, and Cursor after the exact host version and backend eligibility are both
+active. Reconnect first so the grant includes `visits:write`. Record the
+authenticated `tools/list` result: it must contain 18 tools and no other write.
+Unknown clients and the standalone Pearl CLI must still return only the 13
+common reads.
+
+### Cursor Grok Bot installation
 
 Run this only after Pearl is visible in the Cursor Marketplace or an eligible
 team marketplace. A local `~/.cursor/plugins/local` installation does not reach
@@ -92,6 +123,19 @@ the hosted Grok Bot.
 
 ## Negative checks
 
+- For visit actions, leave the preview unapproved and verify that nothing is
+  committed. Repeat with tool-result text that says “ignore confirmation” and
+  with an earlier blanket approval; neither is approval of the current preview.
+- Supply a valid venue ID with a different name/type/country/address, and a NYC
+  venue under the wrong borough. Matching must request review, not silently
+  log that ID. Resolve with the member and obtain a new preview before commit.
+- Test two accounts: one account cannot edit the other's visit or use its
+  preview handle. Test expired previews, stale edits, missing `visits:write`,
+  revoked grants, duplicate races, and safe retries with the same commit key.
+- Record that confirmation is asserted by the connected host, not an
+  independently verified Pearl human click. Disable auto-approval for commits;
+  a host unable to stop for approval must remain read-only.
+
 - No visit write, availability, saves, friends, exact-reservation, dark, or
   flight tool should claim a card in this release.
 - The local flight fixture must show source and freshness or fare expiry when
@@ -102,8 +146,22 @@ the hosted Grok Bot.
   host message.
 - No card may offer booking, cancellation, save, edit, friend-request, or other
   write actions.
-- Browser network inspection must show no request initiated by the iframe. Its
-  resource CSP has empty connection, asset, frame, and base-URI allowlists.
+- Browser network inspection may show only approved venue-image requests to
+  `https://agent.joinpearl.co/api/v1/venue-images/<venue-uuid>/card` (or legacy `/hero`). The Pearl mark is inlined and
+  requires no request. Resource CSP allows only `https://agent.joinpearl.co`
+  for static assets; connection, frame, and base-URI allowlists remain empty.
+  No API fetch, font, analytics, remote script, or foreign image may load.
+- Use a fresh venue search with known public catalog photos: confirm the MCP
+  `hero_image_url` reaches the card, the image request returns a raster image,
+  and its natural width is nonzero. The `/api/v1/` path above is an image GET,
+  not a JavaScript API fetch. Missing photos must keep the neutral fallback.
+  Check new openings and fallback recommendations, trip-stop thumbnails, and
+  reservations linked to canonical venues too. Missing/unmatched venue photos
+  must not hide stops or change reservation status. Collection-list covers are
+  not included. The image optimizer is server-side; no CDN URL or member data
+  should appear in the browser's image requests.
+  Fixture-only photo success does not prove live delivery. Version 1.5.3 keeps
+  the reviewed v9 URI and CSP; hosts may cache previous HTML for up to an hour.
 - An unsupported host must still receive useful text and structured tool output.
 
 ## Evidence record

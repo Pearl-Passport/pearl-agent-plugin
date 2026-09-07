@@ -66,6 +66,20 @@ test("exact URL validation rejects prefixed, suffixed, and look-alike hosts", ()
   assert.equal(hasExactHttpUrl("https://claude.ai.attacker.example/api/mcp/auth_callback", callback), false);
 });
 
+test("visit and reservation guidance separates reviewed actions from provider booking", async () => {
+  const guide = await readFile(path.join(ROOT, 'docs/visits-and-reservations.md'), 'utf8');
+  for (const tool of ['visits_import_prepare', 'visits_import_commit', 'visits_update_prepare', 'visits_update_commit']) {
+    assert(guide.includes(tool), `Missing reviewed visit tool: ${tool}`);
+  }
+  assert.match(guide, /Runtime `tools\/list` is authoritative/);
+  assert.match(guide, /Existing\s+grants need reconnection and consent to `visits:write`/);
+  assert.match(guide, /generic and\s+unknown clients remain read-only/);
+  assert.match(guide, /Book, hold, change or cancel.*Not available/);
+  assert.match(guide, /before\/after preview then confirmation/);
+  assert.match(guide, /host currently asserts human confirmation/);
+  assert.match(guide, /Live\s+availability and visit actions currently use text\/structured results, not cards/);
+});
+
 test("the three host manifests share one logical MCP endpoint", async () => {
   const codex = await json(".codex-plugin/plugin.json");
   const claude = await json(".claude-plugin/plugin.json");
@@ -205,18 +219,22 @@ test("the public CLI is a read-only runtime projection with secretless trusted p
   assert.doesNotMatch(workflow, /NODE_AUTH_TOKEN|NPM_TOKEN|npm_[A-Za-z0-9]{20,}/);
 });
 
-test("the dated skill snapshot covers 13 common reads and only the reviewed Cursor additions", async () => {
+test("the dated skill snapshot covers the 18 reviewed cross-host tools", async () => {
   const submission = JSON.parse(await readFile(path.join(REPOSITORY_ROOT, "chatgpt-app-submission.json"), "utf8"));
   const snapshot = await readFile(path.join(ROOT, "skills", "pearl-concierge", "references", "capabilities.md"), "utf8");
   const publicTools = Object.keys(submission.tools);
-  assert.equal(publicTools.length, 13);
+  assert.equal(submission.test_cases.length, 5, "OpenAI portal requires exactly five positive cases");
+  assert.equal(submission.negative_test_cases.length, 3);
+  const coveredTools = new Set(submission.test_cases.flatMap((item) => item.tools_triggered.split(",").map((name) => name.trim())));
+  assert.deepEqual([...coveredTools].sort(), [...publicTools].sort());
+  assert.equal(publicTools.length, 18);
   assert.deepEqual(
     ["venues_new_openings", "places_match", "friends_search", "friends_list"].filter((name) => publicTools.includes(name)),
     ["venues_new_openings", "places_match", "friends_search", "friends_list"]
   );
   assert.equal(publicTools.includes("reservation_get"), true);
   for (const name of publicTools) assert.equal(snapshot.includes(`\`${name}\``), true);
-  assert.equal(publicTools.some((name) => name.endsWith("_prepare") || name.endsWith("_commit")), false);
+  assert.equal(publicTools.includes("reservations_availability"), true);
   assert.deepEqual(
     [...new Set([...snapshot.matchAll(/\b([A-Za-z0-9]+(?:_[A-Za-z0-9]+)*_(?:prepare|commit))\b/g)].map((match) => match[1]))].sort(),
     ["visits_import_commit", "visits_import_prepare", "visits_update_commit", "visits_update_prepare"]
@@ -225,7 +243,7 @@ test("the dated skill snapshot covers 13 common reads and only the reviewed Curs
   assert.doesNotMatch(snapshot, /reservations_(?:book|booking|cancel|change|modify)_(?:prepare|commit)/);
 });
 
-test("hosted Claude documents the fixed public client and exact read-only scopes", async () => {
+test("hosted Claude documents the fixed public client and reviewed action scope", async () => {
   const claude = await json(".claude-plugin/plugin.json");
   const setup = await readFile(path.join(ROOT, "docs", "setup.md"), "utf8");
   const oauth = await readFile(path.join(ROOT, "docs", "oauth.md"), "utf8");
@@ -240,8 +258,21 @@ test("hosted Claude documents the fixed public client and exact read-only scopes
   for (const scope of ["venues:read", "profile:read", "visits:read", "saves:read", "friends:read", "trips:read", "reservations:read"]) {
     assert.equal(oauth.includes(`\`${scope}\``), true);
   }
-  assert.doesNotMatch(claudeOAuthSection, /\b[a-z-]+:write\b/);
+  assert.match(claudeOAuthSection, /\bvisits:write\b/);
+  assert.doesNotMatch(claudeOAuthSection.replaceAll("visits:write", ""), /\b[a-z-]+:write\b/);
   assert.match(liveValidator, /register\.status === 404/);
+});
+
+test("Codex uses only the validated OpenAI-hosted CIMD family", async () => {
+  const oauth = await readFile(path.join(ROOT, "docs", "oauth.md"), "utf8");
+  const setup = await readFile(path.join(ROOT, "docs", "setup.md"), "utf8");
+  for (const document of [oauth, setup]) {
+    assert.match(document, /OpenAI-hosted CIMD/);
+    assert.match(document, /chatgpt\.com\/oauth\/codex\//);
+    assert.match(document, /loopback/);
+  }
+  assert.match(oauth, /no credentials, query, or fragment/);
+  assert.match(oauth, /Any mismatch fails closed/);
 });
 
 test("Cursor Grok Bot setup is marketplace-gated with exact visit actions and no provider writes", async () => {
@@ -309,7 +340,7 @@ test("release validation safely probes both static host registrations", async ()
   const pkg = await json("package.json");
   const liveValidator = await readFile(path.join(ROOT, "scripts", "validate-live.mjs"), "utf8");
   const releasing = await readFile(path.join(ROOT, "docs", "releasing.md"), "utf8");
-  assert.equal(pkg.scripts["validate:host-clients-live"], "node scripts/validate-live.mjs --require-static-host-clients");
+  assert.equal(pkg.scripts["validate:host-clients-live"], "node scripts/validate-live.mjs --require-static-host-clients --require-cross-host-actions");
   assert.match(liveValidator, /pearl-claude-hosted/);
   assert.match(liveValidator, /pearl-cursor/);
   assert.match(liveValidator, /https:\/\/invalid\.example\/mcp/);
