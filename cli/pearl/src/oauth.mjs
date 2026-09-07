@@ -94,7 +94,12 @@ function openBrowser(url) {
 async function fetchJson(url, options = {}, fetchImpl = fetch, timeoutMs = 20_000) {
   const response = await fetchImpl(url, { ...options, signal: AbortSignal.timeout(timeoutMs) });
   const payload = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(payload.error_description || payload.message || payload.error || `OAuth request failed (${response.status})`);
+  if (!response.ok) {
+    const error = new Error('Pearl authorization request failed.');
+    error.status = response.status;
+    error.code = typeof payload.error === 'string' ? payload.error : 'oauth_failed';
+    throw error;
+  }
   return payload;
 }
 

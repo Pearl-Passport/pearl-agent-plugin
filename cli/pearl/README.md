@@ -56,6 +56,7 @@ pearl new-openings --input '{"city":"New York","limit":8}'
 pearl match ./places.json
 pearl profile cuisines
 pearl visits --input '{"city":"London","limit":20}'
+pearl visits --all --json
 pearl favorites --input '{"city":"Rome"}'
 pearl saves
 pearl friend-search "Austin" --input '{"limit":5}'
@@ -68,6 +69,19 @@ pearl call venues_search --input '{"query":"wine bar","city":"Paris"}'
 pearl mcp-url
 pearl logout
 ```
+
+Use `--all` with `visits`, `saves`, `trips`, or `reservations` to follow history
+pages with unchanged filters. It stops at 20 pages by default (`--max-pages`
+accepts 1–100), the command timeout, or 2 MB of combined page responses. The
+result combines the rows and reports `traversal.pages_fetched` and coverage.
+Partial scans retain completed rows and a continuation cursor when available,
+return exit code 6, and never claim to be complete. Resume with the same filters
+and the returned cursor through `--input`. A cursor-loop result needs a fresh
+request instead. `--timeout` bounds traversal as well as each ordinary read.
+
+`pearl doctor --authenticated --json` reports which read workflows this
+connection exposes. Temporary refresh failures keep the stored connection and
+ask for a retry; an unusable authorization needs an access check and reconnect.
 
 `pearl tools` is authoritative. Alias commands are conveniences for Pearl's
 current public read workflows; they do not make unavailable tools appear.

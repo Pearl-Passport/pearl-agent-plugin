@@ -12,7 +12,7 @@
     {
       "name": "pearl",
       "source": "./plugins/pearl",
-      "version": "0.10.0",
+      "version": "0.10.1",
       "description": "Pearl discovery, private travel context, live table availability, and confirmed visit actions for eligible Pearl Access members",
       "category": "productivity",
       "tags": ["pearl", "travel", "venues"]

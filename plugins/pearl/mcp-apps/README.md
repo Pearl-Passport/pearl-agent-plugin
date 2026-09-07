@@ -6,14 +6,14 @@ journey family for trip indexes, day-grouped trip stops, reservations, and
 flight or availability result shapes without owning
 authentication, storage, network access, or Pearl business logic. The canonical
 source now wires one versioned resource into both production MCP protocol paths
-for seven reviewed read tools. Venue and profile cards have rendered
+for eight supported reads and four visit action tools. Venue and profile cards have rendered
 successfully in ChatGPT developer mode; public directory availability still
 depends on OpenAI review and publication.
 
 The primary integration is the open MCP Apps contract:
 
 - tool metadata uses `_meta.ui.resourceUri`;
-- tool metadata explicitly declares `ui.visibility: ["model", "app"]`;
+- read tools declare `ui.visibility: ["model", "app"]`; visit action tools declare `["model"]`;
 - the resource uses `text/html;profile=mcp-app`;
 - the iframe uses the `ui/*` JSON-RPC bridge over `postMessage`;
 - the resource CSP allows only Pearl-hosted venue images, with no API network,
@@ -52,29 +52,30 @@ helpers. Both protocol implementations register that same definition and return
 fresh copies of its same read payload.
 
 Published/installed host snapshots can outlive the last few UI releases. Keep
-the exact v4 URI pinned alongside v8/v7/v6/v5 compatibility aliases until host
+the exact v4 URI pinned alongside v10/v9/v8/v7/v6/v5 compatibility aliases until host
 refresh is verified; a live ChatGPT canary still requested v4 on 2026-09-04.
-All aliases return the current v9 artifact with identical authentication and
+All aliases return the current v11 artifact with identical authentication and
 CSP. This does not load old code or accept arbitrary resource URLs.
 
-The current source allowlist is exactly `venues_search`, `venues_recommend`,
+The supported read list is `venues_search`, `venues_recommend`,
 `venues_new_openings`, `profile_get`, `trips_list`, `trip_get`, and
-`reservations_list`. They are current, public, read-only tools whose output
+`reservations_list`, plus the client-gated `reservations_availability`. These are read-only tools whose output
 shapes the renderer handles. Profile results render member-scoped activity
 counts, taste facets, top cities, and fixed follow-up questions without adding
-a profile mutation. Place matching, visits, saves, friends, exact-reservation,
-every write, and every dark tool remain data-only. The optional OpenAI compatibility
-alias is emitted only on those seven tools for an authenticated OpenAI client
-source; other hosts receive only the portable field.
+a profile mutation. Place matching, visit-list reads, saves, friends, exact-reservation,
+other writes and other gated tools remain data-only. The four reviewed visit
+import/update prepare/commit tools also receive presentation metadata after
+their existing gates. Their visibility is model-only: cards never invoke a
+mutation. OpenAI connections receive the optional output-template alias;
+other hosts receive the portable field.
 
-Trip and reservation reads use the unified journey family today. Flight search,
-protected-flight, and reservation-availability shapes have reviewed fixtures in
-the same family so they can be host-tested before any future gate opens, but
-their dark tools do not receive card metadata and are not advertised as public.
-Flight cards repeat only an explicit returned status, source, freshness or fare
-expiry, and currency amount. They always say that the result is read-only and
-that fare and availability must be confirmed before booking; they expose no
-booking control.
+Trip and reservation reads use the unified journey family. Restaurant availability
+has a dedicated dining presentation with venue-local times, party size, provider,
+checked time, price, deposit, payment and cancellation terms. Pending, unknown,
+and confirmed empty results remain distinct. The card never holds or books a table.
+Its metadata is attached only after existing client, scope, and capability gates;
+adding the card does not enable this tool for another client. Flight tools remain
+data-only and gated.
 
 Keep search and read tools data-first. A render tool should receive final,
 model-checked structured data and return that same data plus concise text. This
@@ -97,14 +98,15 @@ data as untrusted, and inserts values only through DOM `textContent`.
 
 Errors use Pearl's structured envelope (`code`, `message`, `user_action`, and
 optional public details). Required scope labels are displayed only when they
-exactly match the finite seven-scope public read allowlist. Recovery messages
+exactly match the seven common read scopes or the reviewed `visits:write` action
+scope. Recovery messages
 are fixed UI strings and never include tool-returned messages, scope text, or
 other result data. The UI will retry a tool directly only when the host marks
 that exact tool read-only; otherwise it sends a fixed user follow-up message.
 
 ## Design and accessibility
 
-The `1.5.3` / `v9` presentation adapts onboarding V1's neutral ink, cream,
+The `1.5.5` / `v11` presentation adapts onboarding V1's neutral ink, cream,
 flat surfaces, pill actions, and spacing. A repository-only drift test compares
 the mapped values with canonical `--ds-*` tokens. Accessible secondary ink
 and strong focus are retained. See [TOKENS.md](TOKENS.md) for the mapping and
@@ -141,3 +143,10 @@ any other host.
 - [OpenAI: add UI to an MCP server](https://developers.openai.com/plugins/build/chatgpt-ui)
 - [OpenAI plugin UI guidelines](https://developers.openai.com/plugins/concepts/ui-guidelines)
 - [OpenAI plugin UI reference](https://developers.openai.com/plugins/reference)
+
+Visit previews show exact before/after values, full notes up to the registry limit,
+month-only date precision, duplicate warnings, and expiry. Import previews show
+all twenty supported items with attendance, match and duplicate review reminders.
+Receipts distinguish saved, replayed, skipped and unverified results. Confirmation
+stays in the host conversation using the existing prepared action. A card is not
+independent evidence of human confirmation and never carries a commit control.

@@ -17,9 +17,9 @@ export const EXIT_CODES = Object.freeze({
   server: 6,
 });
 
-const VALUE_FLAGS = new Set(['input', 'input-file', 'scope', 'server', 'timeout']);
+const VALUE_FLAGS = new Set(['input', 'input-file', 'scope', 'server', 'timeout', 'max-pages']);
 const BOOLEAN_FLAGS = new Set([
-  'allow-loopback-http', 'authenticated', 'help', 'json', 'no-input', 'no-open', 'version',
+  'all', 'allow-loopback-http', 'authenticated', 'help', 'json', 'no-input', 'no-open', 'version',
 ]);
 const COMMON_FLAGS = new Set(['allow-loopback-http', 'help', 'json', 'no-input', 'server', 'timeout', 'version']);
 const COMMAND_FLAGS = new Map([
@@ -30,9 +30,11 @@ const COMMAND_FLAGS = new Map([
   ['recommend', new Set(['input', 'input-file'])],
   ['new-openings', new Set(['input', 'input-file'])],
   ['match', new Set(['input', 'input-file'])],
-  ['visits', new Set(['input', 'input-file'])],
+  ['visits', new Set(['input', 'input-file', 'all', 'max-pages'])],
   ['favorites', new Set(['input', 'input-file'])],
-  ['saves', new Set(['input', 'input-file'])],
+  ['saves', new Set(['input', 'input-file', 'all', 'max-pages'])],
+  ['trips', new Set(['input', 'input-file', 'all', 'max-pages'])],
+  ['reservations', new Set(['input', 'input-file', 'all', 'max-pages'])],
   ['friend-search', new Set(['input', 'input-file'])],
 ]);
 const MAX_INPUT_BYTES = 256 * 1024;
@@ -69,14 +71,14 @@ Usage:
   pearl new-openings [--input JSON]
   pearl match <JSON-or-file>
   pearl profile [lens]
-  pearl visits [--input JSON]
+  pearl visits [--input JSON] [--all --max-pages 20]
   pearl favorites [--input JSON]
-  pearl saves [--input JSON]
+  pearl saves [--input JSON] [--all --max-pages 20]
   pearl friend-search <query> [--input JSON]
   pearl friends
-  pearl trips
+  pearl trips [--input JSON] [--all --max-pages 20]
   pearl trip <collection-id-or-name>
-  pearl reservations
+  pearl reservations [--input JSON] [--all --max-pages 20]
   pearl reservation <user_reservations|member_reservations> <reservation-id>
   pearl mcp-url
 
@@ -146,6 +148,9 @@ export function parseArgs(argv) {
 }
 
 export function validateCommandFlags(command, flags) {
+  if (flags['max-pages'] !== undefined && flags.all !== true) {
+    throw new CliError('invalid_option', '--max-pages requires --all.', EXIT_CODES.usage);
+  }
   const commandFlags = COMMAND_FLAGS.get(command) ?? new Set();
   for (const name of Object.keys(flags)) {
     if (!COMMON_FLAGS.has(name) && !commandFlags.has(name)) {
@@ -271,7 +276,7 @@ export async function aliasRequest(command, positionals, flags, readFileImpl = r
   }
   if (command === 'trips') {
     requirePositionals(positionals, 0, 'Usage: pearl trips');
-    return { capability: 'trips_list', arguments: {} };
+    return { capability: 'trips_list', arguments: await optionalInput(flags, undefined, readFileImpl) };
   }
   if (command === 'trip') {
     requirePositionals(positionals, 1, 'Usage: pearl trip <collection-id-or-name>');
@@ -281,7 +286,7 @@ export async function aliasRequest(command, positionals, flags, readFileImpl = r
   }
   if (command === 'reservations') {
     requirePositionals(positionals, 0, 'Usage: pearl reservations');
-    return { capability: 'reservations_list', arguments: {} };
+    return { capability: 'reservations_list', arguments: await optionalInput(flags, undefined, readFileImpl) };
   }
   if (command === 'reservation') {
     requirePositionals(positionals, 2, 'Usage: pearl reservation <source> <reservation-id>');
@@ -372,19 +377,87 @@ export async function runtimeCapabilities({ server, session, fetchImpl = fetch, 
 }
 
 export async function executeReadCapability({ server, session, capability, arguments: args, fetchImpl = fetch, timeoutMs = 20_000 }) {
+  const deadline = Date.now() + timeoutMs;
   const catalog = await runtimeCapabilities({ server, session, fetchImpl, timeoutMs });
   const definition = catalog.capabilities.find((item) => item?.name === capability);
   if (!definition) throw new CliError('capability_unavailable', `Pearl did not advertise the requested tool: ${capability}`, EXIT_CODES.server);
   if (definition.annotations?.readOnlyHint !== true) {
     throw new CliError('write_tool_refused', 'Pearl CLI only executes runtime-advertised read-only tools.', EXIT_CODES.usage);
   }
+  const remaining = deadline - Date.now();
+  if (remaining <= 0) throw new CliError('request_timeout', 'Pearl discovery exceeded the request deadline.', EXIT_CODES.network, { retryable: true, userAction: 'retry' });
   return requestJson(`${server}/api/v1/execute`, {
     method: 'POST',
     body: { capability, arguments: assertObject(args, 'Tool input') },
     session,
     fetchImpl,
-    timeoutMs,
+    timeoutMs: remaining,
   });
+}
+
+// Keep pagination in the client; the server remains authoritative for filters,
+// ownership and coverage. Never turn a bounded or interrupted scan into "all".
+export async function collectReadPages(request, execute, { maxPages = 20, timeoutMs = 20_000, now = Date.now } = {}) {
+  const field = { visits_list: 'visits', saves_list: 'saved', trips_list: 'collections', reservations_list: 'reservations' }[request.capability];
+  if (!field || !Number.isInteger(maxPages) || maxPages < 1 || maxPages > 100) {
+    throw new CliError('invalid_option', '--all supports history lists with --max-pages from 1 to 100.', EXIT_CODES.usage);
+  }
+  const deadline = now() + timeoutMs;
+  const rows = [];
+  const cursors = new Set();
+  let cursor = request.arguments.cursor ?? null;
+  if (cursor) cursors.add(cursor);
+  let last;
+  let pages = 0;
+  let bytes = 0;
+  let reason = 'page_limit';
+  let recovery;
+  while (pages < maxPages) {
+    const remaining = deadline - now();
+    if (remaining <= 0) { reason = 'deadline'; break; }
+    let page;
+    try {
+      page = await execute({ ...request, arguments: { ...request.arguments, ...(cursor ? { cursor } : {}) } }, remaining);
+    } catch (error) {
+      if (!last) throw error;
+      reason = 'read_failed';
+      recovery = error instanceof CliError ? { code: error.code, retryable: error.retryable, user_action: error.userAction } : { code: 'read_failed' };
+      break;
+    }
+    const result = page?.result;
+    if (!result || !Array.isArray(result[field]) || !result.pagination ||
+      !['complete', 'partial'].includes(result.pagination.coverage_state) ||
+      !(result.next_cursor === null || (typeof result.next_cursor === 'string' && result.next_cursor.length > 0))) {
+      throw new CliError('invalid_response', 'Pearl returned an invalid history page.', EXIT_CODES.server);
+    }
+    const pageBytes = Buffer.byteLength(JSON.stringify(page), 'utf8');
+    if (bytes + pageBytes > MAX_RESPONSE_BYTES) { reason = 'size_limit'; break; }
+    bytes += pageBytes;
+    rows.push(...result[field]);
+    pages += 1;
+    last = page;
+    cursor = result.next_cursor;
+    if (!cursor) { reason = result.pagination.coverage_state === 'complete' ? null : (result.pagination.partial_reason || 'source_partial'); break; }
+    if (cursors.has(cursor)) { reason = 'cursor_loop'; break; }
+    cursors.add(cursor);
+  }
+  if (!last) throw new CliError('history_unavailable', 'No history page completed within the response budget.', EXIT_CODES.server, { retryable: true, userAction: 'retry' });
+  return {
+    ...last,
+    result: {
+      ...last.result,
+      [field]: rows,
+      next_cursor: cursor,
+      pagination: {
+        ...last.result.pagination,
+        coverage_state: reason === null ? 'complete' : 'partial',
+        returned_count: rows.length,
+        truncated: reason !== null,
+        partial_reason: reason,
+      },
+    },
+    traversal: { pages_fetched: pages, started_from_cursor: Boolean(request.arguments.cursor), ...(recovery ? { error: recovery } : {}) },
+  };
 }
 
 function validateSession(value, server) {
@@ -425,8 +498,11 @@ export async function loadSession(server, options = {}) {
     let next;
     try {
       next = await refreshImpl(current, { fetchImpl: options.fetchImpl, timeoutMs: options.timeoutMs });
-    } catch {
-      throw new CliError('refresh_failed', 'Pearl credentials expired. Run pearl login again.', EXIT_CODES.unauthenticated, { userAction: 'reconnect' });
+    } catch (error) {
+      if (error?.code === 'invalid_grant' || error?.status === 401 || error?.status === 403) {
+        throw new CliError('refresh_failed', 'Pearl authorization is no longer usable. Check your Pearl access, then reconnect if eligible.', EXIT_CODES.unauthenticated, { userAction: 'reconnect' });
+      }
+      throw new CliError('refresh_unavailable', 'Pearl could not refresh this connection. Try again; your stored connection was kept.', EXIT_CODES.network, { retryable: true, userAction: 'retry' });
     }
     await write(account, JSON.stringify(next));
     return next;
@@ -450,6 +526,15 @@ async function doctor({ server, authenticated, fetchImpl, timeoutMs, sessionLoad
     const session = await sessionLoader();
     const catalog = await runtimeCapabilities({ server, session, fetchImpl, timeoutMs });
     checks.push({ name: 'authenticated_catalog', ok: true, read_tool_count: catalog.capabilities.filter((item) => item.annotations?.readOnlyHint === true).length });
+    const available = new Set(catalog.capabilities.filter((item) => item.annotations?.readOnlyHint === true).map((item) => item.name));
+    checks.push({ name: 'workflows', ok: true, mode: 'read_only', available: {
+      search: available.has('venues_search'),
+      profile: available.has('profile_get'),
+      visits: available.has('visits_list'),
+      saves: available.has('saves_list'),
+      trips: available.has('trips_list') && available.has('trip_get'),
+      reservations: available.has('reservations_list') && available.has('reservation_get'),
+    }, message: 'The standalone Pearl CLI supports reads. Visit editing requires a reviewed host connection and separate permission.' });
   }
   return { ok: checks.every((check) => check.ok), server, checks };
 }
@@ -565,11 +650,15 @@ export async function runCli(argv = process.argv.slice(2), dependencies = {}) {
       } else {
         request = await aliasRequest(command, parsed.positionals, parsed.flags, dependencies.readFileImpl);
       }
-      result = await executeReadCapability({ server, session: await load(), ...request, fetchImpl, timeoutMs });
+      const execute = async (pageRequest, remaining = timeoutMs) => executeReadCapability({ server, session: await load(), ...pageRequest, fetchImpl, timeoutMs: remaining });
+      result = parsed.flags.all
+        ? await collectReadPages(request, execute, { timeoutMs, maxPages: parsed.flags['max-pages'] === undefined ? 20 : Number(parsed.flags['max-pages']) })
+        : await execute(request);
     }
 
     printOutput(result, parsed.flags.json === true, dependencies.stdout);
-    return command === 'doctor' && result.ok !== true ? EXIT_CODES.server : EXIT_CODES.success;
+    return (command === 'doctor' && result.ok !== true) || (parsed.flags.all && result.result.pagination.coverage_state !== 'complete')
+      ? EXIT_CODES.server : EXIT_CODES.success;
   } catch (error) {
     return printError(error, parsed?.flags?.json === true, dependencies.stderr);
   }

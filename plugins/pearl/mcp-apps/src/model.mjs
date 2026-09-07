@@ -624,6 +624,126 @@ function normalizeProfile(data) {
   };
 }
 
+const VISIT_FIELD_LABELS = { visited_at: "Visit date", recommended: "Recommended", score: "Score", comment: "Note", comment_visibility: "Note visibility" };
+function enumLabel(labels, key, fallback) {
+  return typeof key === "string" && Object.hasOwn(labels, key) ? labels[key] : fallback;
+}
+
+function visitValue(record, field) {
+  if (field === "visited_at") {
+    if (!record.visited_at) return "Date not recorded";
+    if (record.visited_at_has_day === false) {
+      const date = cleanText(record.visited_at, 80);
+      return /^\d{4}-\d{2}-\d{2}(?:T|$)/.test(date) && parseTemporal(date).display ? `${date.slice(0, 7)} (day not recorded)` : "Date not recorded";
+    }
+    return formatTemporal(record.visited_at)?.split(" · ")[0] || "Date not recorded";
+  }
+  if (field === "recommended") return record[field] === true ? "Yes" : record[field] === false ? "No" : "Not recorded";
+  if (field === "score") return typeof record[field] === "number" && record[field] >= 0 && record[field] <= 10 ? `${record[field]}/10` : "Not recorded";
+  if (field === "comment_visibility") return enumLabel({ inherit: "Visit sharing setting", public: "Public", friends: "Friends", only_me: "Only me" }, record[field], "Not recorded");
+  return cleanText(record[field], 2000) || "No note";
+}
+
+function normalizeVisitAction(data) {
+  const preview = isRecord(data.preview) ? data.preview : {};
+  const base = { state: "ready", kind: "visit_action", partial: false };
+  if (data.confirmation_required === true && isRecord(preview.before) && isRecord(preview.after) && preview.visit_id) {
+    const fields = new Set(arrayAt(preview, "fields").filter((field) => typeof field === "string"));
+    if (fields.has("visited_at_has_day")) fields.add("visited_at");
+    const changes = Object.entries(VISIT_FIELD_LABELS).filter(([key]) => fields.has(key)).map(([key, label]) => ({
+      label, before: visitValue(preview.before, key), after: visitValue(preview.after, key),
+    }));
+    return { ...base, title: "Review your visit update", subtitle: "Nothing has been changed. Confirm these exact changes in the conversation before saving.",
+      actionStage: "preview", expiresAt: formatDiningTimestamp(data.action_handle_expires_at),
+      partial: !changes.length || [...fields].some(field => !Object.hasOwn(VISIT_FIELD_LABELS, field) && field !== "visited_at_has_day"), items: [{ name: firstText(preview.venue, ["name"], 200) || "Your saved visit", changes,
+        warnings: preview.duplicate_warning ? ["Another visit may have this date. Review the duplicate warning in chat before confirming."] : [] }] };
+  }
+  if (data.confirmation_required === true && data.job_id && Array.isArray(data.items)) {
+    const items = data.items.slice(0, 20).filter(isRecord).map((item, index) => {
+      const input = isRecord(item.input) ? item.input : {};
+      const candidates = arrayAt(item, "candidates").filter(isRecord);
+      const candidate = typeof item.location_id === "string" && item.location_id
+        ? candidates.find((entry) => entry.location_id === item.location_id || entry.id === item.location_id) : undefined;
+      const match = enumLabel({ exact: "Exact match", suggested: "Suggested match — confirm the place", ambiguous: "Ambiguous match — choose a place in chat", rejected: "Place not matched", unmatched: "Place not matched" }, item.match_status, "Match needs review");
+      return { name: `Item ${index + 1}: ${firstText(input, ["name"], 200) || "Visit"}`, facts: [
+        { label: "Matched place", value: firstText(candidate, ["name"], 200) || (item.match_status === "exact" ? "Exact match returned — check the place in chat" : "Choose the correct place in chat") },
+        { label: "City", value: firstText(input, ["city"], 100) || "Not recorded" },
+        ...Object.entries(VISIT_FIELD_LABELS).filter(([key]) => key !== "comment_visibility").map(([key, label]) => ({ label, value: visitValue(input, key) })),
+      ], warnings: [match, "Confirm that you attended this visit.",
+        ...(item.existing_visit || arrayAt(item, "possible_duplicates").length || item.status === "duplicate_warning" ? ["Possible duplicate — separate confirmation required."] : [])] };
+    });
+    return { ...base, title: "Review your visit import", subtitle: "Nothing has been saved. Confirm attendance for each visit in chat. Suggested places and duplicates need separate review; ambiguous places must be resolved first.", actionStage: "preview", expiresAt: formatDiningTimestamp(data.action_handle_expires_at), items,
+      partial: data.items.length > 20 || items.length !== data.items.length };
+  }
+  if (data.status === "updated" && data.visit_id && isRecord(data.visit)) {
+    return { ...base, title: "Visit updated", subtitle: "Pearl returned a saved update receipt.", actionStage: "receipt",
+      items: [{ name: "Saved visit", facts: Object.entries(VISIT_FIELD_LABELS).map(([key, label]) => ({ label, value: visitValue(data.visit, key) })), warnings: [] }] };
+  }
+  if (data.job_id && Array.isArray(data.receipts)) {
+    const labels = { created: "Saved", replayed: "Previously saved — no duplicate added", skipped_unconfirmed_attendance: "Skipped — attendance not confirmed", skipped_duplicate: "Skipped — duplicate not confirmed", skipped_suggestion: "Skipped — suggested place not confirmed", duplicate_warning: "Not saved — duplicate needs review" };
+    const items = data.receipts.slice(0, 20).filter(isRecord).map((receipt, index) => ({
+      name: `Import item ${Number.isInteger(receipt.ordinal) && receipt.ordinal >= 0 && receipt.ordinal < 20 ? receipt.ordinal + 1 : index + 1}`,
+      facts: [{ label: "Result", value: enumLabel(labels, receipt.status, "Save result not confirmed") }], warnings: [],
+    }));
+    return { ...base, title: "Visit import results", subtitle: data.status === "needs_review"
+      ? "Some items still need review. Saved items will not be added again. Continue in chat for the remaining items."
+      : "Review each receipt below. Skipped items were not saved.", actionStage: "receipt", items,
+      partial: data.status === "needs_review" || data.receipts.length > 20 || items.length !== data.receipts.length };
+  }
+  return undefined;
+}
+
+function formatDiningTimestamp(value) {
+  const parsed = parseTemporal(value);
+  if (!parsed.hasTime) return "";
+  const zone = /(Z|[+-]\d{2}:\d{2})$/.exec(value)?.[1];
+  return `${parsed.display}${zone ? zone === "Z" ? " UTC" : ` UTC${zone}` : ""}`;
+}
+
+function normalizeDiningAvailability(data) {
+  if (!Array.isArray(data.slots) || !isRecord(data.venue) || !isRecord(data.query)) return undefined;
+  const status = ["available", "pending", "no_availability", "unknown"].includes(data.status) ? data.status : "unknown";
+  const venue = firstText(data.venue, ["name"], 120) || "Restaurant";
+  const date = formatTemporal(data.query.local_date);
+  const partySize = firstNumber(data.query, ["party_size"]);
+  const party = Number.isInteger(partySize) && partySize >= 1 && partySize <= 20 ? `${partySize} guests` : "";
+  const messages = {
+    available: "Options found. Availability can change; no table is held or booked.",
+    pending: "Pearl is still checking providers. Continue in chat to check again.",
+    no_availability: "Providers returned no matching tables for this request. Try another time, date, or party size.",
+    unknown: "Pearl could not confirm availability. This does not mean the restaurant is sold out.",
+  };
+  const items = status === "available" ? arrayAt(data, "slots").filter(isRecord).map((slot, index) => {
+    const provider = firstText(slot, ["platform"], 40);
+    const time = formatClock(slot.local_time);
+    const deposit = formatMinorPrice({ price: slot.deposit });
+    const cutoff = formatDiningTimestamp(slot.cancellation_cutoff_at);
+    return {
+      id: `dining-slot-${index}`, name: venue, journeyType: "availability", category: "Restaurant availability",
+      status: "available", start: date, time: time ? `${time} venue local time` : "", location: firstText(data.venue, ["city"], 80),
+      detail: firstText(slot, ["experience_name"], 160), score: formatMinorPrice(slot), stops: [], source: provider || "Pearl",
+      freshness: formatDiningTimestamp(slot.observed_at), freshnessLabel: "Checked",
+      facts: [
+        party ? { label: "Party", value: party } : undefined,
+        provider ? { label: "Provider", value: provider } : undefined,
+        slot.table_type ? { label: "Table", value: firstText(slot, ["table_type"], 80) } : undefined,
+        deposit ? { label: "Deposit", value: deposit } : undefined,
+        slot.prepayment_required === true ? { label: "Payment", value: "Prepayment required" }
+          : slot.payment_required === true ? { label: "Payment", value: "Payment required" } : undefined,
+        cutoff ? { label: "Cancellation cutoff", value: cutoff } : undefined,
+        slot.cancellation_policy ? { label: "Cancellation policy", value: firstText(slot, ["cancellation_policy"], 500) } : undefined,
+        slot.expires_at ? { label: "Offer expires", value: formatDiningTimestamp(slot.expires_at) } : undefined,
+      ].filter((fact) => fact?.value),
+    };
+  }) : [];
+  return {
+    state: items.length ? "ready" : "empty", kind: "availability", availabilityStatus: status,
+    title: `${venue} availability`, subtitle: [[date, party].filter(Boolean).join(" · "), messages[status]].filter(Boolean).join(". "),
+    emptyTitle: status === "pending" ? "Still checking" : status === "no_availability" ? "No matching tables" : "Availability not confirmed",
+    items, partial: false, refreshInProgress: data.refresh_in_progress === true,
+  };
+}
+
 function routeText(source) {
   const origin = firstText(source, ["origin", "origin_code", "departure_airport", "from"], 64);
   const destination = firstText(source, ["destination", "destination_code", "arrival_airport", "to"], 64);
@@ -698,7 +818,7 @@ function extractError(data, envelope) {
   if (!candidate) return undefined;
   const details = isRecord(candidate.details) ? candidate.details : {};
   const scopeCandidate = firstText(details, ["required_scope"], 80);
-  const requiredScope = /^[a-z]+:read$/.test(scopeCandidate) && PUBLIC_READ_SCOPES.has(scopeCandidate)
+  const requiredScope = (scopeCandidate === "visits:write" || (/^[a-z]+:read$/.test(scopeCandidate) && PUBLIC_READ_SCOPES.has(scopeCandidate)))
     ? scopeCandidate
     : "";
   const actionCandidate = firstText(candidate, ["user_action"], 40);
@@ -809,6 +929,12 @@ export function normalizeToolResult(envelope) {
   const profile = normalizeProfile(data);
   if (profile) return profile;
 
+  const visitAction = normalizeVisitAction(data);
+  if (visitAction) return visitAction;
+
+  const diningAvailability = normalizeDiningAvailability(data);
+  if (diningAvailability) return diningAvailability;
+
   const tripDetail = normalizeTripDetail(data);
   if (tripDetail) return tripDetail;
 
@@ -850,6 +976,9 @@ export function normalizeToolResult(envelope) {
 export function recoveryPrompt(error) {
   const safe = isRecord(error) ? error : {};
   const action = SAFE_USER_ACTIONS.has(safe.userAction) ? safe.userAction : "retry";
+  if (action === "grant_scope" && safe.requiredScope === "visits:write") {
+    return "Reconnect Pearl, approve access to add and edit visits, then review my pending request and any existing receipt before preparing it again.";
+  }
   return RECOVERY_PROMPTS[action];
 }
 

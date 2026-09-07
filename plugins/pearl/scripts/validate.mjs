@@ -7,7 +7,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const PLUGIN_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const EXPECTED_VERSION = "0.10.0";
+const EXPECTED_VERSION = "0.10.1";
 const EXPECTED_MCP_URL = "https://agent.joinpearl.co/mcp";
 const EXPECTED_REGISTRY_SCHEMA = "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json";
 const EXPECTED_REGISTRY_NAME = "io.github.Pearl-Passport/pearl-agent-plugin";
@@ -118,6 +118,8 @@ export const EXPECTED_PUBLIC_REPOSITORY_FILES = [
   "plugins/pearl/mcp-apps/src/model.mjs",
   "plugins/pearl/mcp-apps/src/styles.css",
   "plugins/pearl/mcp-apps/test/fixtures/flights.json",
+  "plugins/pearl/mcp-apps/test/fixtures/availability.json",
+  "plugins/pearl/mcp-apps/test/fixtures/visit-update.json",
   "plugins/pearl/mcp-apps/test/fixtures/journeys.json",
   "plugins/pearl/mcp-apps/test/fixtures/profile.json",
   "plugins/pearl/mcp-apps/test/fixtures/states-denied.json",

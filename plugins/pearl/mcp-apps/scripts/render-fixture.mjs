@@ -7,7 +7,7 @@ import { buildHtml } from "./build.mjs";
 
 const PACKAGE_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const FIXTURES = new Set([
-  "venues", "profile", "journeys", "flights",
+  "venues", "profile", "journeys", "flights", "availability", "visit-update",
   "states-empty", "states-denied", "states-expired", "states-partial",
 ]);
 const THEMES = new Set(["light", "dark"]);
