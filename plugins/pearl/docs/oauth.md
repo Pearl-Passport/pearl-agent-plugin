@@ -30,7 +30,12 @@ Reviewed ChatGPT, Codex, Claude, and Cursor registrations may additionally reque
 
 - `visits:write`
 
-That scope authorizes only the complete visit-import and visit-update preview/commit families returned through authenticated `tools/list`. It does not authorize visit deletion, reservation booking, reservation changes, cancellation, payment, or any other mutation. Existing grants and tokens are not widened; a member must reconnect and approve the new scope. Unknown clients, retired registrations, MCP Registry-generic clients, direct grok.com connectors, and the standalone Pearl CLI remain limited to the seven reads.
+Codex, Claude and Cursor may also request:
+
+- `saves:write`
+- `trips:write`
+
+These scopes authorize only the complete reviewed visit, saved-place and trip preview/commit pairs returned through authenticated `tools/list`. With all ten scopes those hosts receive 24 tools. ChatGPT remains on its submitted 18-tool/eight-scope contract; it cannot request the two new scopes. Existing grants and tokens are not widened: reconnect and approve new permissions. Unknown clients, retired registrations, MCP Registry-generic clients, direct grok.com connectors and the standalone Pearl CLI remain limited to the seven reads. No scope here authorizes visit deletion, provider booking, payment, photo uploads or other mutations.
 
 Pearl does not trust a self-reported host name. Static clients and stable hosted CIMD documents are matched exactly. Current Codex installations use a unique OpenAI-hosted CIMD URL, so Pearl accepts only this validated family shape: `https://chatgpt.com/oauth/codex/<opaque-id>/client.json`, with an exact metadata/client-ID match, no credentials, query, or fragment, and an RFC 8252 loopback callback declared by that document. Any mismatch fails closed.
 
@@ -60,7 +65,7 @@ Current Codex generates a unique `https://chatgpt.com/oauth/codex/<opaque-id>/cl
 
 Enter the exact public client in Advanced settings. Do not attempt an empty-client registration flow; the DCR endpoint remains disabled.
 
-After package `0.10.0` is activated, reconnect this connector to grant `visits:write`; existing Claude grants remain read-only until the member does so.
+Reconnect this connector for package `0.11.0` and approve `visits:write`, `saves:write` and `trips:write` as needed; existing grants retain their original permissions.
 
 ## Claude Code CIMD
 
@@ -72,7 +77,7 @@ claude mcp login plugin:pearl:pearl
 
 The installed plugin server is namespaced as `plugin:pearl:pearl`. Do not add `--client-id`, `--client-secret`, or `--callback-port` for the normal Claude Code flow.
 
-After package `0.10.0` is activated, reconnect the namespaced server to grant `visits:write`; existing grants are not widened.
+For package `0.11.0`, reconnect the namespaced server to grant `visits:write`, `saves:write` and `trips:write`; existing grants are not widened.
 
 If automatic CIMD discovery fails, Claude Code also supports a separately pre-registered public client. That fallback requires an operator to choose and register an exact callback such as `http://localhost:8080/callback`, then pass the matching public client ID and fixed port:
 
@@ -95,7 +100,7 @@ Do not reuse `pearl-claude-hosted`, do not pass `--client-secret`, and do not in
 | Desktop app redirect URI | `http://localhost:8787/callback` |
 | Token authentication | `none` |
 | PKCE | `S256` |
-| Scopes | `venues:read profile:read visits:read saves:read friends:read trips:read reservations:read visits:write` |
+| Scopes | `venues:read profile:read visits:read saves:read friends:read trips:read reservations:read visits:write saves:write trips:write` |
 
 Register both callbacks exactly. Grok Bot uses the hosted Cursor callback and does not receive a separate OAuth client.
 

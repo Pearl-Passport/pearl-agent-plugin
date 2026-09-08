@@ -77,7 +77,8 @@ test("visit and reservation guidance separates reviewed actions from provider bo
   assert.match(guide, /Book, hold, change or cancel.*Not available/);
   assert.match(guide, /before\/after preview then confirmation/);
   assert.match(guide, /host currently asserts human confirmation/);
-  assert.match(guide, /Live\s+availability and visit actions currently use text\/structured results, not cards/);
+  assert.match(guide, /Cards are presentation-only/);
+  assert.match(guide, /Save\/trip previews and receipts use structured text/);
 });
 
 test("the three host manifests share one logical MCP endpoint", async () => {
@@ -120,7 +121,9 @@ test("Cursor uses collision-resistant plugin and MCP identifiers with a secretle
       "friends:read",
       "trips:read",
       "reservations:read",
-      "visits:write"
+      "visits:write",
+      "saves:write",
+      "trips:write"
     ]
   });
   assert.equal(JSON.stringify(cursor).includes("CLIENT_SECRET"), false);
@@ -219,7 +222,7 @@ test("the public CLI is a read-only runtime projection with secretless trusted p
   assert.doesNotMatch(workflow, /NODE_AUTH_TOKEN|NPM_TOKEN|npm_[A-Za-z0-9]{20,}/);
 });
 
-test("the dated skill snapshot covers the 18 reviewed cross-host tools", async () => {
+test("the snapshot adds six save/trip tools while the ChatGPT submission retains eighteen", async () => {
   const submission = JSON.parse(await readFile(path.join(REPOSITORY_ROOT, "chatgpt-app-submission.json"), "utf8"));
   const snapshot = await readFile(path.join(ROOT, "skills", "pearl-concierge", "references", "capabilities.md"), "utf8");
   const publicTools = Object.keys(submission.tools);
@@ -237,9 +240,9 @@ test("the dated skill snapshot covers the 18 reviewed cross-host tools", async (
   assert.equal(publicTools.includes("reservations_availability"), true);
   assert.deepEqual(
     [...new Set([...snapshot.matchAll(/\b([A-Za-z0-9]+(?:_[A-Za-z0-9]+)*_(?:prepare|commit))\b/g)].map((match) => match[1]))].sort(),
-    ["visits_import_commit", "visits_import_prepare", "visits_update_commit", "visits_update_prepare"]
+    ["saves_change_commit", "saves_change_prepare", "trip_stops_update_commit", "trip_stops_update_prepare", "trips_create_commit", "trips_create_prepare", "visits_import_commit", "visits_import_prepare", "visits_update_commit", "visits_update_prepare"]
   );
-  assert.deepEqual([...new Set([...snapshot.matchAll(/\b([a-z-]+:write)\b/g)].map((match) => match[1]))], ["visits:write"]);
+  assert.deepEqual([...new Set([...snapshot.matchAll(/\b([a-z-]+:write)\b/g)].map((match) => match[1]))], ["visits:write", "saves:write", "trips:write"]);
   assert.doesNotMatch(snapshot, /reservations_(?:book|booking|cancel|change|modify)_(?:prepare|commit)/);
 });
 
@@ -259,7 +262,7 @@ test("hosted Claude documents the fixed public client and reviewed action scope"
     assert.equal(oauth.includes(`\`${scope}\``), true);
   }
   assert.match(claudeOAuthSection, /\bvisits:write\b/);
-  assert.doesNotMatch(claudeOAuthSection.replaceAll("visits:write", ""), /\b[a-z-]+:write\b/);
+  assert.doesNotMatch(["visits:write", "saves:write", "trips:write"].reduce((text, scope) => text.replaceAll(scope, ""), claudeOAuthSection), /\b[a-z-]+:write\b/);
   assert.match(liveValidator, /register\.status === 404/);
 });
 
@@ -295,7 +298,7 @@ test("Cursor Grok Bot setup is marketplace-gated with exact visit actions and no
   assert.match(oauth, /direct grok\.com custom connector is not a supported install path/);
   assert.deepEqual(
     [...new Set([...`${setup}\n${oauth}`.matchAll(/\b([a-z-]+:write)\b/g)].map((match) => match[1]))],
-    ["visits:write"]
+    ["visits:write", "saves:write", "trips:write"]
   );
   assert.doesNotMatch(`${setup}\n${oauth}`, /reservations_(?:book|booking|cancel|change|modify)_(?:prepare|commit)/);
 });

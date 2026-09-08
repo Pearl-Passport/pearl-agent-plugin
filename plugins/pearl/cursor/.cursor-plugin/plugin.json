@@ -1,7 +1,7 @@
 {
   "name": "pearl-cursor",
-  "version": "0.10.1",
-  "description": "Eligible Pearl Access members can discover places, review private travel activity, check live table availability, and confirm visit logging or edits.",
+  "version": "0.11.0",
+  "description": "Eligible Pearl Access members can discover places, review private travel activity, check live table availability, and confirm visit edits, saved places, and private trip plans.",
   "author": {
     "name": "Pearl LLC",
     "email": "hello@joinpearl.co"
@@ -31,7 +31,9 @@
           "friends:read",
           "trips:read",
           "reservations:read",
-          "visits:write"
+          "visits:write",
+          "saves:write",
+          "trips:write"
         ]
       }
     }

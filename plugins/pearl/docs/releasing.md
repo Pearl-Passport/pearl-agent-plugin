@@ -1,17 +1,17 @@
 # Versioning and release
 
-The Codex, Claude, and Cursor manifests, marketplace entries, package metadata, MCP Registry `server.json`, and validators use one semantic version. Package `0.10.1` keeps one shared backend and adds live reservation availability plus confirmed visit actions only for reviewed ChatGPT, Codex, Claude, and Cursor registrations.
+The Codex, Claude, and Cursor manifests, marketplace entries, package metadata, MCP Registry `server.json`, and validators use one semantic version. Package `0.11.0` keeps one shared backend and adds six confirmed save/trip tools for reviewed Codex, Claude and Cursor clients after fresh consent. ChatGPT keeps its submitted visit/availability contract.
 
 | Surface | Version | Release tag | Publication boundary |
 | --- | --- | --- | --- |
-| Codex, Claude, Cursor, and shared skill | `0.10.1` | `v0.10.1` | Separate host installation or review |
-| MCP Registry metadata | `0.10.1` | `v0.10.1` | Protected Registry OIDC job after the reviewed host-package release |
+| Codex, Claude, Cursor, and shared skill | `0.11.0` | `v0.11.0` | Separate host installation or review |
+| MCP Registry metadata | `0.11.0` | `v0.11.0` | Protected Registry OIDC job after the reviewed host-package release |
 | Pearl CLI | `1.0.0` | `cli-v1.0.0` | Protected npm Trusted Publishing job |
 
 The MCP Registry is in preview, so publishing may encounter breaking changes or a data reset. Repository availability and a successful Registry publish are not host approval.
 
 The standalone CLI has an independent `cli-vMAJOR.MINOR.PATCH` release stream.
-Its first candidate is `@joinpearl/cli` `1.0.0`. Do not publish it until Pearl
+Its first candidate is `@joinpearl/cli` `1.0.0`. Do not publish it to npm until Pearl
 has verified control of the `@joinpearl` npm scope, configured npm Trusted
 Publishing for this public repository, and protected the
 `pearl-cli-publish` GitHub environment with a required reviewer. No npm token
@@ -26,9 +26,9 @@ Use:
 ## Release checks
 
 1. Confirm runtime `tools/list` remains authoritative and manifests contain no tool allowlist.
-2. Confirm the 13 common reads plus `reservations_availability` and the four reviewed visit tools match the new OpenAI draft. Confirm only reviewed ChatGPT, Codex, Claude, and Cursor registrations can receive `visits:write`, and no reservation provider mutation is advertised.
+2. Confirm fresh reviewed Codex/Claude/Cursor grants expose 24 tools and ten scopes. ChatGPT must retain the submitted 18 tools/eight scopes, and the standalone CLI the 13 common reads/seven scopes. Existing grants are unchanged. No provider mutation may be advertised.
 3. Confirm `.mcp.json` contains one server URL and no headers or credentials, and that Cursor's marketplace source remains isolated at `plugins/pearl/cursor` so it cannot auto-discover that URL-only config.
-4. Confirm `server.json` uses the exact `2025-12-11` schema, case-sensitive GitHub namespace `io.github.Pearl-Passport/pearl-agent-plugin`, stable public repository ID `1343507179`, version `0.10.1`, and exactly one `streamable-http` remote with no headers, variables, credentials, or package declaration.
+4. Confirm `server.json` uses the exact `2025-12-11` schema, case-sensitive GitHub namespace `io.github.Pearl-Passport/pearl-agent-plugin`, stable public repository ID `1343507179`, version `0.11.0`, and exactly one `streamable-http` remote with no headers, variables, credentials, or package declaration.
 5. Confirm reviewed ChatGPT, Codex, Claude, and Cursor flows request the seven reads plus only `visits:write`; static clients use their exact public IDs/callbacks; Codex matches only the reviewed OpenAI-hosted CIMD family; and no flow has a client secret.
 6. Confirm Cursor's plugin and MCP IDs are both `pearl-cursor`, while Codex and Claude remain `pearl`, so cross-host discovery cannot shadow Cursor's static client.
 7. Confirm Claude Code CIMD uses its registered loopback hosts with an ephemeral port.
@@ -74,3 +74,15 @@ Use:
 18. For an MCP Registry release, first protect the `mcp-registry-publish` GitHub environment with a required Pearl reviewer and a deployment rule limited to reviewed `v*` release tags. The public workflow downloads `mcp-publisher` `v1.8.1` from the official Registry release, verifies its pinned SHA-256 checksum, validates `server.json`, confirms the tag and all host-package versions match, requires the tag commit to be on `main`, runs offline and live checks, and then authenticates with GitHub OIDC. It needs `id-token: write` and no PAT or dedicated secret. Trigger the protected job only from the matching published release or a deliberate manual dispatch of that existing tag. After publication, query the Registry for the exact name and version and compare its one remote URL byte-for-byte before calling the entry listed.
 
 A public repository, successful validation, or portal draft is not host approval. Do not claim listing or endorsement until the host approves the exact submitted release.
+
+## CLI GitHub asset while npm publication is pending
+
+For the plugin `v0.11.0` release, run the CLI checks and `npm pack` from the
+canonical `cli/pearl` package. Clean-install the resulting `joinpearl-cli-1.0.0.tgz`
+into a temporary prefix, run `pearl --version` and `pearl doctor --json`, and
+create `SHA256SUMS` for that exact tarball. Attach both files to the draft GitHub
+release before publishing. Download the published asset, verify its checksum,
+and repeat the clean install. This is a GitHub distribution, not npm publication;
+do not create a `cli-v*` tag or report npm availability until ownership and
+Trusted Publishing are verified. The normal `v*` plugin tag does not invoke the
+CLI npm publishing workflow.

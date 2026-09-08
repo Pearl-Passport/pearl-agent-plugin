@@ -15,9 +15,16 @@ const PUBLIC_READ_SCOPES = [
   "trips:read",
   "reservations:read"
 ];
-const CURSOR_SCOPES = [...PUBLIC_READ_SCOPES, "visits:write"];
+const VISIT_SCOPES = [...PUBLIC_READ_SCOPES, "visits:write"];
+const CURSOR_SCOPES = [...VISIT_SCOPES, "saves:write", "trips:write"];
 const EXPECTED_ADVERTISED_SCOPES = [...CURSOR_SCOPES].sort();
 const STATIC_HOST_CLIENTS = [
+  {
+    clientId: "pearl-cli",
+    callbacks: ["http://127.0.0.1:49155/oauth/callback"],
+    scopes: PUBLIC_READ_SCOPES,
+    deniedScopes: ["visits:write", "saves:write", "trips:write"]
+  },
   {
     clientId: "pearl-claude-hosted",
     callbacks: ["https://claude.ai/api/mcp/auth_callback"],
@@ -43,8 +50,8 @@ const STATIC_HOST_CLIENTS = [
     {
       clientId: "https://chatgpt.com/oauth/client.json",
       callbacks: ["https://chatgpt.com/connector_platform_oauth_redirect"],
-      scopes: CURSOR_SCOPES,
-      deniedScopes: [["validation", "write"].join(":")]
+      scopes: VISIT_SCOPES,
+      deniedScopes: ["saves:write", "trips:write"]
     },
     {
       clientId: "https://claude.ai/oauth/mcp-oauth-client-metadata",
@@ -106,7 +113,7 @@ assert(!("registration_endpoint" in auth), "authorization metadata must not adve
 assert(auth.token_endpoint_auth_methods_supported?.includes("none"), "authorization metadata must support public clients");
 assert(auth.code_challenge_methods_supported?.includes("S256"), "authorization metadata must require PKCE S256");
 assert(JSON.stringify([...(auth.scopes_supported ?? [])].sort()) === JSON.stringify(EXPECTED_ADVERTISED_SCOPES),
-  "authorization metadata must advertise exactly the common reads plus visits:write");
+  "authorization metadata must advertise the common reads plus reviewed visit/save/trip scopes");
 
 const resourceResponse = await request("/.well-known/oauth-protected-resource/mcp");
 assert(resourceResponse.status === 200, `protected-resource metadata returned ${resourceResponse.status}`);
@@ -114,7 +121,7 @@ const resource = await resourceResponse.json();
 assert(resource.resource === MCP_URL, `protected resource must be ${MCP_URL}`);
 assert(resource.authorization_servers?.length === 1 && resource.authorization_servers[0] === ORIGIN, "protected resource must use Pearl's one authorization server");
 assert(JSON.stringify([...(resource.scopes_supported ?? [])].sort()) === JSON.stringify(EXPECTED_ADVERTISED_SCOPES),
-  "protected-resource metadata must advertise exactly the common reads plus visits:write");
+  "protected-resource metadata must advertise the common reads plus reviewed visit/save/trip scopes");
 
 const mcpGet = await request("/mcp");
 assert(mcpGet.status === 405, `MCP GET must fail closed with 405, received ${mcpGet.status}`);
@@ -129,7 +136,7 @@ const initialize = await request("/mcp", {
     params: {
       protocolVersion: "2025-06-18",
       capabilities: {},
-      clientInfo: { name: "pearl-package-validator", version: "0.10.1" }
+      clientInfo: { name: "pearl-package-validator", version: "0.11.0" }
     }
   })
 });
@@ -157,7 +164,7 @@ if (REQUIRE_STATIC_HOST_CLIENTS) {
     for (const callback of callbacks) {
       await expectAuthorizationError(clientId, callback, scopes, "invalid_target");
     }
-    await expectAuthorizationError(clientId, callbacks[0], [...scopes, ...deniedScopes], "invalid_scope");
+    for (const scope of deniedScopes) await expectAuthorizationError(clientId, callbacks[0], [...scopes, scope], "invalid_scope");
   }
 }
 

@@ -17,7 +17,7 @@ Cursor and Claude require a public GitHub repository for third-party marketplace
    npm --prefix plugins/pearl run validate:host-clients-live
    ```
 
-The static-host validator intentionally supplies the wrong MCP resource. A correctly registered client and callback returns `invalid_target` before Pearl creates an authorization request. It verifies that each reviewed host accepts only the seven reads plus `visits:write` and rejects every other write scope.
+The static-host validator intentionally supplies the wrong MCP resource. A correctly registered client and callback returns `invalid_target` before Pearl creates an authorization request. It verifies that Codex/Claude/Cursor accept the seven reads plus `visits:write`, `saves:write` and `trips:write`, while ChatGPT accepts only the reads and visit scope. Unreviewed write scopes remain rejected.
 
 ## OpenAI app version
 
@@ -29,7 +29,7 @@ Prepare the new ChatGPT portal draft from the reviewed commit before backend act
 
 Cursor distributes marketplace plugins from public Git repositories and manually reviews updates. Submit the public repository at [Cursor Marketplace Publish](https://cursor.com/marketplace/publish) only after the shared gate passes.
 
-The repository contains the required `plugins/pearl/cursor/.cursor-plugin/plugin.json` and root `.cursor-plugin/marketplace.json`. Submit the marketplace entry `pearl-cursor`; the user-facing description and Pearl artwork remain branded Pearl. The submission must use public client ID `pearl-cursor`, no secret, exactly the two callbacks, the seven common read scopes, and only `visits:write` in addition, as recorded in [oauth.md](oauth.md). Test local installation in Cursor before applying; hosted Agents and Grok Bot require a separate hosted OAuth canary.
+The repository contains the required `plugins/pearl/cursor/.cursor-plugin/plugin.json` and root `.cursor-plugin/marketplace.json`. Submit the marketplace entry `pearl-cursor`; the user-facing description and Pearl artwork remain branded Pearl. The submission must use public client ID `pearl-cursor`, no secret, exactly the two callbacks, the seven common read scopes, and `visits:write`, `saves:write` and `trips:write` in addition, as recorded in [oauth.md](oauth.md). Test local installation in Cursor before applying; hosted Agents and Grok Bot require a separate hosted OAuth canary.
 
 Do not claim Cursor approval, listing, endorsement, or availability until the reviewed release is visible in Cursor's marketplace.
 
@@ -51,3 +51,5 @@ For connector review, prepare public setup/privacy/support documentation, a stab
 The MCP Registry is a distinct discovery channel, not a Codex, Claude, Cursor, or OpenAI approval path. The public repository exports one root `server.json` with the `2025-12-11` schema, case-sensitive GitHub namespace `io.github.Pearl-Passport/pearl-agent-plugin`, and the same URL-only Streamable HTTP remote. Publish only through the protected GitHub OIDC workflow described in [releasing.md](releasing.md); never add a PAT, static header, client secret, or tool inventory to registry metadata. Verify the exact name, version, and remote after publication before calling it listed.
 
 Do not claim Anthropic approval, official-marketplace inclusion, connector-directory listing, or endorsement until Anthropic confirms the exact reviewed release.
+
+Package 0.11.0 does not change the pending ChatGPT submission. Save/trip scope and tool additions apply only to the separately reviewed Codex, Claude and Cursor clients; preserve the submitted ChatGPT version during its review.

@@ -7,7 +7,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const PLUGIN_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const EXPECTED_VERSION = "0.10.1";
+const EXPECTED_VERSION = "0.11.0";
 const EXPECTED_MCP_URL = "https://agent.joinpearl.co/mcp";
 const EXPECTED_REGISTRY_SCHEMA = "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json";
 const EXPECTED_REGISTRY_NAME = "io.github.Pearl-Passport/pearl-agent-plugin";
@@ -28,13 +28,20 @@ const PUBLIC_READ_SCOPES = [
   "trips:read",
   "reservations:read"
 ];
-const CURSOR_SCOPES = [...PUBLIC_READ_SCOPES, "visits:write"];
-const REVIEWED_ACTION_TOOLS = [
+const REVIEWED_WRITE_SCOPES = ["visits:write", "saves:write", "trips:write"];
+const CURSOR_SCOPES = [...PUBLIC_READ_SCOPES, ...REVIEWED_WRITE_SCOPES];
+const VISIT_ACTION_TOOLS = [
   "visits_import_commit",
   "visits_import_prepare",
   "visits_update_commit",
   "visits_update_prepare"
 ];
+const REVIEWED_ACTION_TOOLS = [
+  ...VISIT_ACTION_TOOLS,
+  "saves_change_prepare", "saves_change_commit",
+  "trips_create_prepare", "trips_create_commit",
+  "trip_stops_update_prepare", "trip_stops_update_commit"
+].sort();
 const PUBLIC_READ_TOOLS = [
   "venues_search",
   "venues_recommend",
@@ -291,7 +298,7 @@ export function validatePublicText(relative, contents) {
     const reviewedContents = kind === "unreleased tool contract"
       ? REVIEWED_ACTION_TOOLS.reduce((text, name) => text.replaceAll(name, ""), contents)
       : kind === "unreleased OAuth scope"
-        ? contents.replaceAll("visits:write", "")
+        ? REVIEWED_WRITE_SCOPES.reduce((text, scope) => text.replaceAll(scope, ""), contents)
         : contents;
     check(!pattern.test(reviewedContents), `${relative} contains a ${kind}`, errors);
   }
@@ -409,7 +416,7 @@ export async function validatePackage() {
   const cursorServer = cursor.mcpServers?.["pearl-cursor"];
   check(cursorServer?.url === EXPECTED_MCP_URL, "Cursor must use the same production MCP endpoint", errors);
   check(cursorServer?.auth?.CLIENT_ID === CURSOR_CLIENT_ID, `Cursor must use public client ${CURSOR_CLIENT_ID}`, errors);
-  check(JSON.stringify(cursorServer?.auth?.scopes) === JSON.stringify(CURSOR_SCOPES), "Cursor must request the seven public reads plus only visits:write", errors);
+  check(JSON.stringify(cursorServer?.auth?.scopes) === JSON.stringify(CURSOR_SCOPES), "Cursor must request the seven reads plus the three reviewed write scopes", errors);
   check(!Object.hasOwn(cursorServer?.auth ?? {}, "CLIENT_SECRET"), "Cursor must not contain CLIENT_SECRET", errors);
   check(![mcp, codex, claude, cursor].some(secretishJsonKey), "Tracked host manifests must not contain credential fields", errors);
   check(registry.$schema === EXPECTED_REGISTRY_SCHEMA, "MCP Registry metadata must use the reviewed 2025-12-11 schema", errors);
@@ -431,7 +438,7 @@ export async function validatePackage() {
   check(cursorMarket.name === "pearl-integrations" && cursorEntry?.source === "plugins/pearl/cursor", "Cursor marketplace must target its isolated source subtree with the host-specific identifier", errors);
   check(cursorEntry?.name === cursor.name, "Cursor marketplace and plugin identifiers must match", errors);
   check(cursorMarket.owner?.email === PUBLIC_CONTACT_EMAIL && cursorEntry?.author?.email === PUBLIC_CONTACT_EMAIL, `Cursor marketplace contacts must use ${PUBLIC_CONTACT_EMAIL}`, errors);
-  check([claudeEntry, codex, claude].every((entry) => !/(?:guarded|gated|write|cleanup|photo)/i.test(entry?.description ?? "")), "Public host descriptions must advertise only current read workflows", errors);
+  check([claudeEntry, codex, claude].every((entry) => !/(?:guarded|gated|write|cleanup|photo)/i.test(entry?.description ?? "")), "Public host descriptions must not advertise unreleased or internal workflows", errors);
   check(claude.description.includes("Eligible Pearl Access members"), "Claude plugin metadata must disclose Pearl Access eligibility", errors);
 
   const skill = await readFile(path.join(PLUGIN_ROOT, "skills/pearl-concierge/SKILL.md"), "utf8");
@@ -467,9 +474,9 @@ export async function validatePackage() {
   const documentedScopes = [...new Set(
     [...oauthGuide.matchAll(/`([a-z-]+:(?:read|write))`/g)].map((match) => match[1]),
   )];
-  check(JSON.stringify(documentedScopes) === JSON.stringify(CURSOR_SCOPES), "OAuth docs must list the seven common reads plus only visits:write for reviewed hosts", errors);
+  check(JSON.stringify(documentedScopes) === JSON.stringify(CURSOR_SCOPES), "OAuth docs must list the seven reads plus the three reviewed write scopes", errors);
   const documentedWriteScopes = [...`${setupGuide}\n${oauthGuide}`.matchAll(/\b([a-z-]+:write)\b/g)].map((match) => match[1]);
-  check(documentedWriteScopes.length > 0 && documentedWriteScopes.every((scope) => scope === "visits:write"), "Public setup may advertise only visits:write", errors);
+  check(documentedWriteScopes.length > 0 && documentedWriteScopes.every((scope) => REVIEWED_WRITE_SCOPES.includes(scope)), "Public setup may advertise only reviewed visit/save/trip scopes", errors);
   check(oauthGuide.includes("DCR endpoint remains disabled") && liveValidator.includes("register.status === 404"), "Documentation and live validation must keep DCR disabled", errors);
   check([setupGuide, oauthGuide].every((guide) => guide.includes("Anthropic-hosted CIMD") && guide.includes("localhost") && guide.includes("127.0.0.1") && /ephemeral (?:loopback )?port/.test(guide)), "Claude Code must document its CIMD loopback boundary", errors);
   check(setupGuide.includes("claude mcp login plugin:pearl:pearl") && setupGuide.includes("claude mcp get plugin:pearl:pearl") && !/--client-id|--client-secret|--callback-port/.test(setupGuide), "Claude Code must use its plugin-namespaced CIMD server without static overrides", errors);
@@ -508,19 +515,19 @@ export async function validatePackage() {
   check(publicToolNames.every((name) => capabilitySnapshot.includes(`\`${name}\``)), "The capability snapshot must describe every submitted tool", errors);
   check(PUBLIC_READ_TOOLS.every((name) => submission.tools?.[name]?.annotations?.readOnlyHint === true && submission.tools?.[name]?.annotations?.destructiveHint === false), "The 13 common reads must remain read-only and non-destructive", errors);
   check(submission.tools?.reservations_availability?.annotations?.readOnlyHint === true && submission.tools?.reservations_availability?.annotations?.destructiveHint === false, "Reservation availability must remain read-only and non-destructive", errors);
-  check(REVIEWED_ACTION_TOOLS.every((name) => submission.tools?.[name]?.annotations?.readOnlyHint === false), "Every submitted visit action must be annotated as a write", errors);
+  check(VISIT_ACTION_TOOLS.every((name) => submission.tools?.[name]?.annotations?.readOnlyHint === false), "Every submitted visit action must be annotated as a write", errors);
   check(submission.tools?.visits_update_commit?.annotations?.destructiveHint === true, "Visit update commit must be annotated destructive", errors);
   check(["visits_import_prepare", "visits_import_commit", "visits_update_prepare"].every((name) => submission.tools?.[name]?.annotations?.destructiveHint === false), "Preview tools and visit import commit must remain non-destructive", errors);
   const documentedActionTools = [...new Set(
     [...`${skill}\n${capabilitySnapshot}\n${setupGuide}\n${oauthGuide}`.matchAll(/\b([A-Za-z0-9]+(?:_[A-Za-z0-9]+)*_(?:prepare|commit))\b/g)]
       .map((match) => match[1]),
   )].sort();
-  check(JSON.stringify(documentedActionTools) === JSON.stringify(REVIEWED_ACTION_TOOLS), "Public docs must expose exactly the four reviewed visit tools", errors);
+  check(JSON.stringify(documentedActionTools) === JSON.stringify(REVIEWED_ACTION_TOOLS), "Public docs must expose exactly the ten reviewed action tools", errors);
   const publicWriteScopes = [...new Set(
     [...`${skill}\n${capabilitySnapshot}\n${setupGuide}\n${oauthGuide}`.matchAll(/\b([a-z-]+:write)\b/g)]
       .map((match) => match[1]),
   )];
-  check(publicWriteScopes.length === 1 && publicWriteScopes[0] === "visits:write", "Public docs must expose only the reviewed visits:write scope", errors);
+  check(JSON.stringify([...publicWriteScopes].sort()) === JSON.stringify([...REVIEWED_WRITE_SCOPES].sort()), "Public docs must expose only the reviewed visit/save/trip scopes", errors);
 
   for (const [relative, expectedHash] of EXPECTED_ASSETS) {
     const contents = await readFile(path.join(PLUGIN_ROOT, relative));

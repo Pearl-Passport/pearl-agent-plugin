@@ -8,11 +8,11 @@ Connect Pearl to your AI assistant to discover places and make plans informed by
 - Compare places with your preferences and match a venue by name and location.
 - Explore your taste profile, visit history, saved places, and friends.
 - Review your existing trips and reservations.
-- On supported connections, check table availability or preview logging/importing and editing visits.
+- On supported connections, check table availability, log or edit visits, save places, and create private trips or edit their stops.
 
-Features vary by app, connection, and permissions. Ask your assistant what Pearl actions are available before starting. Visit changes must show a preview and wait for your explicit confirmation.
+Features vary by app, connection, and permissions. Ask your assistant what Pearl actions are available before starting. All changes must show a preview and wait for your explicit confirmation.
 
-Booking, holding, changing, cancelling, or paying for reservations is not available through this MCP release. Trip creation, flight management, and visit deletion are also unavailable. Use Pearl or the reservation provider for supported actions outside the assistant. An availability result is not a booking.
+Booking, holding, changing, cancelling, or paying for reservations is not available through this MCP release. Flight management and visit deletion are also unavailable. Save and trip changes require a freshly connected Codex, Claude or Cursor integration; they are not in the submitted ChatGPT app. Use Pearl or the reservation provider for supported actions outside the assistant. An availability result is not a booking.
 
 ## Get connected
 
@@ -35,6 +35,7 @@ Marketplace availability varies by host. A public repository or a submitted appl
 - “Show my profile stats and explain the strongest patterns in my taste.”
 - “Show my complete visit history, including any additional pages.”
 - “Show my upcoming reservations and open the details of one.”
+- When available: “Preview saving this place and adding it to a private weekend trip.”
 - When available: “Preview logging my visit to [venue, city] on [date]. Wait for my confirmation.”
 
 For visit logging, check the place, date, and possible duplicates before confirming. A calendar invitation or reservation alone does not prove you attended.

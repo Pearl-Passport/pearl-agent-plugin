@@ -93,9 +93,19 @@ For a new visit or structured historical import:
 
 For an edit, first select one owned `visit_id` from `visits_list`. Call `visits_update_prepare` with only the fields the member asked to change, show the exact before/after preview, and wait for explicit confirmation. Then call `visits_update_commit` with the returned handle, `confirmed=true`, and a different new idempotency key. If the visit changed or the new date collides with another visit, stop and re-preview or obtain the additional duplicate-date confirmation required by the returned contract. These tools do not delete a visit or edit a provider reservation.
 
+## Saved places and trip planning
+
+Reviewed Codex, Claude and Cursor connections may additionally expose the complete save and trip pairs after fresh `saves:write` and `trips:write` consent. ChatGPT's submitted app does not include these six tools. Confirm every pair through authenticated `tools/list`; a missing tool or scope means unavailable.
+
+- To save or remove a place, resolve its canonical location ID with the read tools, call `saves_change_prepare` with the requested action, and show the exact venue and current/proposed saved state. After the member confirms that preview, call `saves_change_commit` with the returned handle, `confirmed=true`, and a new idempotency key. Never remove a newer save using an old preview.
+- To create a trip, call `trips_create_prepare` with only the requested name, dates and other supported fields. Show the private-trip preview and same-name warning; after confirmation, call `trips_create_commit` with the returned handle and a separate idempotency key. Creation adds no stops or bookings.
+- To add, move, swap or remove a stop, select an owned trip and stable stop/venue IDs from the read tools, then call `trip_stops_update_prepare`. Show the exact before/after venue, date, time and stop change. After confirmation, call `trip_stops_update_commit` with that handle and a new idempotency key. Respect reservation-linked stop restrictions; these tools never change a provider booking.
+
+The initiating request is not confirmation of a later preview. Every commit requires `confirmed=true` only after explicit current confirmation. Preserve the original commit key on retries and report the actual receipt. If state changed, prepare again and obtain a new confirmation; do not silently retry a different mutation. Never expose action handles in prose or claim success from a preview.
+
 ## Unavailable and future workflows
 
-Package `0.10.0` provides no mutations for saves, profile fields, friends, trips, reservations, collections, member-added venues, photos, or visit deletion/cleanup. Its only reviewed public mutations are the complete visit-import and visit-update pairs when live discovery exposes them to a reviewed ChatGPT, Codex, Claude, or Cursor connection. Dark trip code or UI guidance does not make trip creation available to a public client. Pearl also does not provide provider booking, modification, cancellation, messaging, payment, contact import, people matching, or taste-twin matching.
+Package `0.11.0` does not expose profile edits, friend changes, custom collection management, member-added venues, photos, visit deletion/cleanup, trip sharing/deletion/collaboration, or reservation changes. Provider booking, cancellation, messaging, payment, contact import, people matching, and taste-twin matching are unavailable.
 
 If a later reviewed release exposes a mutation in live discovery:
 

@@ -1,6 +1,6 @@
 # Pearl capability snapshot
 
-This public documentation snapshot is dated **2026-09-04** for package `0.10.0`. It is not a tool allowlist. The authenticated MCP `tools/list` response is authoritative and may vary by host, member, OAuth grant, or rollout.
+This public documentation snapshot is dated **2026-09-07** for package `0.11.0`. It is not a tool allowlist. The authenticated MCP `tools/list` response is authoritative and may vary by host, member, OAuth grant, or rollout.
 
 ## Current public read set
 
@@ -34,22 +34,33 @@ After coordinated server and host-version activation, reviewed ChatGPT, Codex, C
 
 These tools cannot delete visits, edit a provider reservation, book a table, or reuse another host's grant.
 
+## Reviewed saves and trips
+
+Codex, Claude and Cursor connections can receive six more tools after reconnecting for `saves:write` and `trips:write`: 24 tools with all ten scopes. ChatGPT keeps its submitted 18-tool/eight-scope contract. Existing grants are never widened. The standalone Pearl CLI remains on the 13 common reads.
+
+| Tool | Workflow | Boundary |
+| --- | --- | --- |
+| `saves_change_prepare` | Preview saving or removing one canonical place | Changes nothing; shows current and proposed saved state |
+| `saves_change_commit` | Apply the confirmed save change | Rejects stale saved-row identity; safe retries reuse the commit key |
+| `trips_create_prepare` | Preview one private trip | Changes nothing and warns about same-name trips |
+| `trips_create_commit` | Create the confirmed private trip | Adds no stops, sharing or bookings |
+| `trip_stops_update_prepare` | Preview add, move, swap or remove for an owned trip stop | Shows exact before/after; respects linked reservations |
+| `trip_stops_update_commit` | Apply the exact confirmed stop change | Rejects changed trip/stop state and never modifies a provider booking |
+
+All commits need an unexpired preview, explicit current confirmation and a separate idempotency key. A preview is not a successful change. Text previews and receipts work without a card; no new write buttons are required.
+
 ## Workflow availability matrix
 
 | Workflow | Current public package | Not currently available |
 | --- | --- | --- |
 | Search and recommendations | Search, new openings, and taste-aware recommendations | Booking actions |
 | Member-added places | Search and matching may return provenance only when explicitly supplied | Direct place creation and provenance-only filtering |
-| Saves and collections | Review existing saves and legacy trip/collection reads | Save/remove and collection management |
-| Trips | List trips and read stops | Create, edit, share, delete, collaborate, or book |
+| Saves and collections | Read saves; reviewed Codex/Claude/Cursor can confirm save/remove | Custom collection management |
+| Trips | Read trips; reviewed Codex/Claude/Cursor can create private trips and edit stops | Share, delete, collaborate, or book |
 | Reservations | List and read recorded reservation details; reviewed agent hosts can check live table availability after coordinated activation | Holding a slot, provider booking, changes, cancellation, messaging, or payment |
 | Visits and import | Review visits and match structured place evidence; reviewed agent hosts can preview/confirm imports and allowlisted edits after reconnecting for `visits:write` | Clean/delete visits and photo workflows |
 | Profile | Read available taste/profile signals | Profile, login, entitlement, privacy, or security changes |
 | Friends | Search privacy-filtered members and read friend/request state | Send, accept, decline, cancel, remove, block, or import contacts |
 | Matching | Match place names to canonical Pearl venues | People matching and taste-twin matching |
-
-## Conditional dark workflow
-
-The private application contains a guarded trip-creation preview/commit pair for separately approved internal canaries. It remains absent from every public registration and from the default runtime inventory. Even when an eligible connection exposes it, preview creates nothing, commit requires a fresh exact confirmation and a different idempotency key, and the created trip is private. It does not add stops, share the trip, or book travel.
 
 Unavailable does not mean approved, implemented, or scheduled. If a workflow is absent from the current `tools/list`, report it as unavailable and do not simulate it.
