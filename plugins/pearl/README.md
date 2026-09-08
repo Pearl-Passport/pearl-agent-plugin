@@ -6,11 +6,13 @@ Pearl's installable package gives Codex, Claude, Cursor, and Cursor's Grok Bot a
 
 `https://agent.joinpearl.co/mcp`
 
-The package contains host manifests, the Pearl Concierge skill, public setup documentation, brand assets, a presentation-only MCP Apps resource, and validation code. The MCP Apps resource remains attached only to reviewed reads. Reviewed ChatGPT, Codex, Claude, and Cursor connections can use confirmed visit imports/edits plus read-only live availability; those tools do not receive cards. The standalone Pearl CLI and unknown clients remain read-only. The package contains no application, database, OAuth server, MCP executor, deployment configuration, access token, or client secret.
+The package contains host manifests, the Pearl Concierge skill, public setup documentation, brand assets, presentation-only MCP Apps resources, and validation code. It contains no application, database, OAuth server, MCP executor, deployment configuration, access token or client secret.
 
 ## Current release
 
-Package `0.10.0` keeps one common 13-tool read set for every authenticated connection. Reviewed ChatGPT, Codex, Claude, and Cursor registrations may additionally discover read-only `reservations_availability` under `reservations:read`. Their four preview/commit visit tools appear only after the member reconnects and consents to `visits:write`. Current Codex uses host-controlled per-install CIMD identities, so Pearl recognizes only the exact official Codex CIMD family; it does not treat arbitrary OpenAI-source clients as eligible.
+Package `0.11.0` keeps the common 13 reads for every authenticated connection. Reviewed Codex, Claude and Cursor clients can also check table availability and use ten confirmed-action tools for visits, saved places and private trips: 24 tools with all ten scopes. Reconnect to approve the added save/trip permissions. ChatGPT retains its submitted 18-tool visit/availability contract. The standalone Pearl CLI and unknown clients remain read-only.
+
+Current Codex uses host-controlled per-install CIMD identities; Pearl accepts only the strictly validated official family. The same gateway and executor serve every host. Availability and visit preview/receipt cards remain presentation-only; save/trip previews and receipts use structured text.
 
 See the [capability snapshot](skills/pearl-concierge/references/capabilities.md) for the exact host matrix and honest unavailable-workflow labels. No host can book, hold, change, cancel, or pay for a reservation in this release. The package does not claim that a host has approved or listed Pearl.
 

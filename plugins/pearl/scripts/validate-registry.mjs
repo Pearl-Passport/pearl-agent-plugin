@@ -53,7 +53,7 @@ export function validateRegistryManifest(server, { expectedVersion } = {}) {
   check(server?.title === "Pearl", "server.json title must be Pearl", errors);
   check(typeof server?.description === "string" && server.description.length > 0 && server.description.length <= 100,
     "server.json description must be between 1 and 100 characters", errors);
-  check(/read-only/i.test(server?.description ?? ""), "server.json must disclose the read-only release boundary", errors);
+  check(/confirmed.*reviewed hosts/i.test(server?.description ?? ""), "server.json must disclose confirmation and reviewed-host boundaries", errors);
   check(/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(server?.version ?? ""), "server.json version must be semantic", errors);
   if (expectedVersion) check(server?.version === expectedVersion, `server.json version must match ${expectedVersion}`, errors);
   check(server?.websiteUrl === "https://joinpearl.co", "server.json must use Pearl's public website", errors);

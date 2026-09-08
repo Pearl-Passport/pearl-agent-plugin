@@ -25,14 +25,19 @@ validation. No client secret is used or stored.
 
 ## Install
 
-After Pearl has verified ownership of the `@joinpearl` npm scope and published
-the signed package:
+The read-only CLI is distributed with the versioned [Pearl v0.11.0 GitHub release](https://github.com/Pearl-Passport/pearl-agent-plugin/releases/tag/v0.11.0). Download and verify the release tarball before installing:
 
 ```bash
-npm install --global @joinpearl/cli
+curl -fLO https://github.com/Pearl-Passport/pearl-agent-plugin/releases/download/v0.11.0/joinpearl-cli-1.0.0.tgz
+curl -fLO https://github.com/Pearl-Passport/pearl-agent-plugin/releases/download/v0.11.0/SHA256SUMS
+shasum -a 256 -c SHA256SUMS && npm install --global ./joinpearl-cli-1.0.0.tgz
 pearl doctor --json
 pearl login
 ```
+
+npm registry publication is still pending publisher access. Do not assume
+`npm install --global @joinpearl/cli` is available yet. GitHub distribution uses
+the same validated package, read-only API and secure local credential storage.
 
 For development from this repository:
 

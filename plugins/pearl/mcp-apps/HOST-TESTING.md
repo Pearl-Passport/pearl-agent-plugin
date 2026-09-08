@@ -84,8 +84,10 @@ render; successful resource delivery alone is not a host canary pass.
 
 Run steps 2–8 below separately in ChatGPT, Codex, Claude web/desktop, Claude
 Code, and Cursor after the exact host version and backend eligibility are both
-active. Reconnect first so the grant includes `visits:write`. Record the
-authenticated `tools/list` result: it must contain 18 tools and no other write.
+active. Reconnect first so the grant includes the requested action scopes. Record the
+authenticated `tools/list` result: ChatGPT retains 18 tools with `visits:write`;
+Codex, Claude and Cursor receive 24 tools with the additional `saves:write` and
+`trips:write` permissions. Existing grants keep their original scopes.
 Unknown clients and the standalone Pearl CLI must still return only the 13
 common reads.
 
@@ -135,8 +137,9 @@ the hosted Grok Bot.
   independently verified Pearl human click. Disable auto-approval for commits;
   a host unable to stop for approval must remain read-only.
 
-- No visit write, availability, saves, friends, exact-reservation, dark, or
-  flight tool should claim a card in this release.
+- Only the twelve reviewed UI bindings may claim cards: eight reads including
+  availability, plus four model-only visit previews/receipts. Saves, trip writes,
+  friends, exact reservation detail and flight tools have no new card bindings.
 - The local flight fixture must show source and freshness or fare expiry when
   supplied, preserve overnight dates and currency, say it is read-only, and
   offer no booking action. Passing that fixture is not a public flight claim.
@@ -208,3 +211,16 @@ Check a full 2,000-character note, month-only date, twenty import items, ambiguo
 place, possible duplicate, partial import, saved/replayed/skipped receipts, empty
 receipt and recoverable error. Exact values must not be silently truncated; an
 unsupported or over-limit result must direct the user back to the conversation.
+
+## Save and trip host canary
+
+For each freshly authorized Codex, Claude and Cursor connection (including the
+separately installed hosted Grok Bot), verify save/remove and private trip
+create/add/move/swap/remove using disposable owned test data. Each prepare must
+show the exact proposed state and stop for explicit confirmation; commit must
+return a receipt reflected in Pearl. Repeat a commit with the same key and
+verify no duplicate change. Change a save or stop in Pearl between preview and
+commit and confirm the stale preview is rejected. Save/trip text results must
+remain usable without a card. No provider booking or payment action may run.
+ChatGPT must reject the new save/trip scopes, and the standalone CLI must remain
+read-only. Record actual host/version evidence separately from protocol CI.

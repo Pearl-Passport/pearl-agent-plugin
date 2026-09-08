@@ -9,8 +9,7 @@ for features, example prompts, cards, and troubleshooting.
 
 Pearl uses one authenticated MCP address: `https://agent.joinpearl.co/mcp`.
 Features depend on the connected app and the permissions you approve; the live
-MCP `tools/list` response is authoritative. Where available, visit logging and
-editing require a preview and your explicit confirmation. Table availability
+MCP `tools/list` response is authoritative. Where available, visit edits, saved places and private trip changes require a preview and your explicit confirmation. Reconnect Codex, Claude or Cursor to approve the new permissions; ChatGPT keeps its submitted visit-only action set. Table availability
 does not hold or book a reservation. This MCP release cannot book, change,
 cancel, or pay for reservations.
 
@@ -22,7 +21,7 @@ endorsed, or listed Pearl.
 ### Codex Desktop and CLI
 
 ```bash
-git clone --branch v0.10.1 --depth 1 https://github.com/Pearl-Passport/pearl-agent-plugin.git
+git clone --branch v0.11.0 --depth 1 https://github.com/Pearl-Passport/pearl-agent-plugin.git
 cd pearl-agent-plugin
 codex plugin marketplace add .
 codex plugin add pearl@pearl-integrations
@@ -32,7 +31,7 @@ codex mcp login pearl
 ### Claude Code
 
 ```bash
-git clone --branch v0.10.1 --depth 1 https://github.com/Pearl-Passport/pearl-agent-plugin.git
+git clone --branch v0.11.0 --depth 1 https://github.com/Pearl-Passport/pearl-agent-plugin.git
 cd pearl-agent-plugin
 claude plugin marketplace add .
 claude plugin install pearl@pearl-integrations
@@ -46,7 +45,7 @@ empty.
 ### Cursor desktop
 
 ```bash
-git clone --branch v0.10.1 --depth 1 https://github.com/Pearl-Passport/pearl-agent-plugin.git
+git clone --branch v0.11.0 --depth 1 https://github.com/Pearl-Passport/pearl-agent-plugin.git
 cd pearl-agent-plugin
 mkdir -p ~/.cursor/plugins/local
 test ! -e ~/.cursor/plugins/local/pearl-cursor

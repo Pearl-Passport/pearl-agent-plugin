@@ -45,18 +45,11 @@ Availability distinguishes `available`, `no_availability`, `pending` and
 hold or booking, and may expire. Booking changes and cancellation must be
 completed in Pearl or with the reservation provider where supported.
 
-## Cards and the next increment
+## Cards
 
-Current cards cover seven read tools, including reservation lists and trip
-details. Linked canonical venues can show public catalog photos; missing images
-show a neutral placeholder and never change the reservation's status. Live
-availability and visit actions currently use text/structured results, not cards.
+Current cards cover eight read tools, including table availability, plus the four visit preview/receipt tools. Cards are presentation-only: visit changes require the host's explicit confirmation flow. Save/trip previews and receipts use structured text; they do not require a card.
 
-Next: availability cards with freshness and honest status, then visit
-preview/confirmation/receipt cards using the existing action contract. A card
-must never auto-commit, bypass matching, widen scopes, or collect credentials.
-Adding those tool-to-UI bindings requires host metadata review and real-host
-canaries; they are not enabled by this photo update.
+Reviewed Codex, Claude and Cursor connections can additionally save/remove places, create private trips, and add/move/swap/remove trip stops after fresh save/trip permission. See the [capability reference](../skills/pearl-concierge/references/capabilities.md). ChatGPT's submitted contract remains the 18 tools described above.
 
 ## Acceptance checklist
 
