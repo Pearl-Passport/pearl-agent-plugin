@@ -1,6 +1,6 @@
 # Pearl for AI Agents · Quick Start & Tester Guide
 
-Connect Pearl to your AI assistant to discover places and make plans informed by your taste. An eligible Pearl Access membership is required.
+Connect Pearl to your AI assistant to discover places and make plans informed by your taste. An eligible Pearl membership is required. Creating trips and changing their stops requires Pearl Reserve or above, including Pearl Elite.
 
 ## What you can do
 
@@ -12,7 +12,7 @@ Connect Pearl to your AI assistant to discover places and make plans informed by
 
 Features vary by app, connection, and permissions. Ask your assistant what Pearl actions are available before starting. All changes must show a preview and wait for your explicit confirmation.
 
-Booking, holding, changing, cancelling, or paying for reservations is not available through this MCP release. Flight management and visit deletion are also unavailable. Save and trip changes require a freshly connected Codex, Claude or Cursor integration; they are not in the submitted ChatGPT app. Use Pearl or the reservation provider for supported actions outside the assistant. An availability result is not a booking.
+Booking, holding, changing, cancelling, or paying for reservations is not available through this MCP release. Reservation watchers, flight management and visit deletion are also unavailable. Save and trip changes require a freshly connected Codex, Claude or Cursor integration; they are not in the submitted ChatGPT app. Use Pearl or the reservation provider for supported actions outside the assistant. An availability result is not a booking.
 
 ## Get connected
 

@@ -36,6 +36,8 @@ test("the member quick start is concise, public-safe, and explains revocation", 
   assert.match(guide, /Settings → Account → Connected apps/);
   assert.match(guide, /https:\/\/app\.joinpearl\.co\/settings\/connected-apps/);
   assert.match(guide, /wait for your explicit confirmation/);
+  assert.match(guide, /Pearl Reserve or above, including Pearl Elite/);
+  assert.match(guide, /Reservation watchers, flight management and visit deletion are also unavailable/);
   assert.match(guide, /does not mean a host has approved or listed Pearl/);
 });
 
