@@ -9,7 +9,7 @@ Choose **Revoke** to stop that app's access; this does not delete your Pearl dat
 
 Pearl uses one authenticated Streamable HTTP MCP endpoint: `https://agent.joinpearl.co/mcp`. The host manifests are thin adapters over that connection and the shared Pearl Concierge skill.
 
-Before setup, sign in to a Pearl account that is eligible for Pearl Access. The server independently enforces admission, live Access eligibility, and OAuth scopes; installing this package cannot widen access.
+Before setup, sign in to a Pearl account that is eligible for Pearl Reserve or Elite. The server independently enforces admission, live membership eligibility, and OAuth scopes; installing this package cannot widen access.
 
 The live MCP `tools/list` response decides what the authenticated connection can use. Package `0.11.0` gives reviewed Codex, Claude and Cursor connections confirmed visit, saved-place and private-trip actions after fresh consent. ChatGPT keeps its submitted visit/availability contract. All reviewed hosts can read table availability. Unknown clients, MCP Registry-generic clients, direct grok.com connectors, and the standalone Pearl CLI remain read-only. Missing workflows must be reported as unavailable.
 

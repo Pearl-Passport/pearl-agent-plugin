@@ -13,6 +13,7 @@ will only execute tools whose runtime annotation is `readOnlyHint: true`.
 
 ## Requirements
 
+- An eligible Pearl Reserve or Elite membership
 - Node.js 22 or newer
 - macOS Keychain or Linux Secret Service
 - a Pearl account eligible for Agent connections

@@ -41,6 +41,28 @@ test("the member quick start is concise, public-safe, and explains revocation", 
   assert.match(guide, /does not mean a host has approved or listed Pearl/);
 });
 
+test("listing copy uses the Reserve and Elite membership names without expanding OpenAI capabilities", async () => {
+  const codex = await json(".codex-plugin/plugin.json");
+  const claude = await json(".claude-plugin/plugin.json");
+  const cursor = await json("cursor/.cursor-plugin/plugin.json");
+  for (const description of [codex.interface.longDescription, claude.description, cursor.description]) {
+    assert.match(description, /Eligible Pearl Reserve and Elite members/);
+    assert.match(description, /Pearl Reserve or above, including Pearl Elite/);
+    assert.match(description, /connection/i);
+  }
+  const submission = JSON.parse(await readFile(path.join(REPOSITORY_ROOT, "chatgpt-app-submission.json"), "utf8"));
+  const description = submission.app_info.description;
+  assert.match(description, /Pearl Reserve and Elite members/);
+  assert.match(description, /preview and explicit confirmation/);
+  assert.match(description, /those actions are not included in this OpenAI plugin version/);
+  assert.match(description, /Availability does not hold or book a table/);
+  assert.match(description, /visit photo uploads are not included/);
+  assert.equal(Object.keys(submission.tools).length, 18);
+  for (const tool of ["saves_change_commit", "trips_create_commit", "trip_stops_update_commit", "visits_photos_upload_complete"]) {
+    assert.equal(submission.tools[tool], undefined, `${tool} needs separate OpenAI capability approval`);
+  }
+});
+
 test("public repository validation rejects inventory drift and private metadata", () => {
   assert.deepEqual(validatePublicFileInventory(EXPECTED_PUBLIC_REPOSITORY_FILES), []);
   assert.match(
@@ -254,7 +276,7 @@ test("hosted Claude documents the fixed public client and reviewed action scope"
   const oauth = await readFile(path.join(ROOT, "docs", "oauth.md"), "utf8");
   const liveValidator = await readFile(path.join(ROOT, "scripts", "validate-live.mjs"), "utf8");
   const claudeOAuthSection = oauth.match(/## Claude web and desktop Chat[\s\S]*?(?=\n## Claude Code CIMD)/)?.[0] ?? "";
-  assert.match(claude.description, /Eligible Pearl Access members/);
+  assert.match(claude.description, /Eligible Pearl Reserve and Elite members/);
   for (const document of [setup, oauth]) {
     assert.match(document, /pearl-claude-hosted/);
     assert.match(document, /OAuth Client Secret[^\n]*(?:Leave|leave)[^\n]*empty/);

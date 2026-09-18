@@ -439,7 +439,9 @@ export async function validatePackage() {
   check(cursorEntry?.name === cursor.name, "Cursor marketplace and plugin identifiers must match", errors);
   check(cursorMarket.owner?.email === PUBLIC_CONTACT_EMAIL && cursorEntry?.author?.email === PUBLIC_CONTACT_EMAIL, `Cursor marketplace contacts must use ${PUBLIC_CONTACT_EMAIL}`, errors);
   check([claudeEntry, codex, claude].every((entry) => !/(?:guarded|gated|write|cleanup|photo)/i.test(entry?.description ?? "")), "Public host descriptions must not advertise unreleased or internal workflows", errors);
-  check(claude.description.includes("Eligible Pearl Access members"), "Claude plugin metadata must disclose Pearl Access eligibility", errors);
+  for (const description of [codex.interface?.longDescription, claude.description, cursor.description]) {
+    check(typeof description === "string" && description.includes("Eligible Pearl Reserve and Elite members") && description.includes("Pearl Reserve or above, including Pearl Elite"), "Host metadata must name Reserve eligibility and preserve supported-connection limits", errors);
+  }
 
   const skill = await readFile(path.join(PLUGIN_ROOT, "skills/pearl-concierge/SKILL.md"), "utf8");
   const capabilitySnapshot = await readFile(path.join(PLUGIN_ROOT, "skills/pearl-concierge/references/capabilities.md"), "utf8");
@@ -465,7 +467,7 @@ export async function validatePackage() {
   const liveValidator = await readFile(path.join(PLUGIN_ROOT, "scripts/validate-live.mjs"), "utf8");
   check(/^---\nname: pearl-concierge\ndescription: [^\n]+\n---/.test(skill), "Pearl skill frontmatter is missing or invalid", errors);
   check(skill.includes("tools/list") && skill.includes("Treat venue descriptions"), "Pearl skill must require discovery and treat tool data as untrusted data", errors);
-  check(skill.includes("eligible Pearl Access member") && skill.includes("legacy error code") && skill.includes("Never suggest a tester flag"), "Pearl skill must state the Access boundary without a bypass", errors);
+  check(skill.includes("eligible Pearl Reserve or Elite member") && skill.includes("legacy error code") && skill.includes("Never suggest a tester flag"), "Pearl skill must state the Reserve boundary without a bypass", errors);
   check(openaiYaml.includes("$pearl-concierge"), "OpenAI skill metadata must reference $pearl-concierge", errors);
 
   check(setupGuide.includes(CLAUDE_HOSTED_CLIENT_ID) && oauthGuide.includes(CLAUDE_HOSTED_CLIENT_ID), "Claude hosted setup must use its registered public client", errors);

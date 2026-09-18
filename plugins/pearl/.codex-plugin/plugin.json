@@ -21,7 +21,7 @@
   "interface": {
     "displayName": "Pearl",
     "shortDescription": "Plan with your Pearl profile",
-    "longDescription": "Pearl helps eligible Access members search and match trusted places, discover openings, get taste-aware recommendations, review private travel context, check table availability, and explicitly confirm visit edits, saved places, and private trip plans.",
+    "longDescription": "Eligible Pearl Reserve and Elite members can discover and compare places, explore their taste profile and activity summaries, check table availability, and confirm visit or saved-place changes on supported connections. Creating private trips and changing their stops requires Pearl Reserve or above, including Pearl Elite. Features depend on the connection and permissions; availability does not book a table.",
     "developerName": "Pearl LLC",
     "category": "Travel",
     "capabilities": [

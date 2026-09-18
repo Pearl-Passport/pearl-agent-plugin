@@ -3,7 +3,7 @@
   "name": "pearl",
   "displayName": "Pearl",
   "version": "0.11.0",
-  "description": "Eligible Pearl Access members can discover places, review private travel activity, check table availability, and confirm visit edits, saved places, and private trip plans.",
+  "description": "Eligible Pearl Reserve and Elite members can discover places, explore their taste and activity, check table availability, and confirm visit or saved-place changes. Creating trips and changing their stops requires Pearl Reserve or above, including Pearl Elite. Features depend on connection permissions.",
   "author": {
     "name": "Pearl LLC",
     "email": "hello@joinpearl.co",

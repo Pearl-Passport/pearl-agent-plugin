@@ -13,7 +13,7 @@
       "name": "pearl",
       "source": "./plugins/pearl",
       "version": "0.11.0",
-      "description": "Pearl discovery, private travel context, live table availability, and confirmed visit actions for eligible Pearl Access members",
+      "description": "Pearl discovery, private travel context, live table availability, and confirmed visit actions for eligible Pearl Reserve and Elite members",
       "category": "productivity",
       "tags": ["pearl", "travel", "venues"]
     }
