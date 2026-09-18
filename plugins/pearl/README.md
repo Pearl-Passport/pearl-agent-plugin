@@ -2,6 +2,8 @@
 
 New to Pearl? Start with the [Quick Start & Tester Guide](docs/quick-start.md).
 
+Eligible Pearl Reserve and Elite members can connect. Available actions depend on the connection's permissions and live tool inventory.
+
 Pearl's installable package gives Codex, Claude, Cursor, and Cursor's Grok Bot a thin host integration for one authenticated Streamable HTTP MCP endpoint:
 
 `https://agent.joinpearl.co/mcp`

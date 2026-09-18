@@ -4,7 +4,7 @@
   "app_info": {
     "display_name": "Pearl",
     "subtitle": "Plan with your Pearl profile",
-    "description": "Pearl helps eligible Access members search and match trusted places, discover new and upcoming openings, get personalized recommendations, review their private Pearl profile and travel activity, check restaurant table availability without booking, and preview then confirm visit logging or edits in ChatGPT.",
+    "description": "Pearl helps eligible Pearl Reserve and Elite members discover and compare places, explore their taste profile and activity summaries, review visits, saved places, trips and reservations, check restaurant table availability, and log or edit attended visits after a preview and explicit confirmation. Features depend on the connection and permissions. Creating trips and changing their stops requires Pearl Reserve or above, including Pearl Elite, on supported connections; those actions are not included in this OpenAI plugin version. Availability does not hold or book a table. Reservation watchers, booking, changes, cancellations, payments, flight management and visit photo uploads are not included.",
     "category": "TRAVEL"
   },
   "tools": {

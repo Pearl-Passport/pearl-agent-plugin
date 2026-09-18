@@ -2,7 +2,7 @@
 
 Connect Pearl to Codex, Claude, Cursor, and supported AI apps to find places,
 explore your taste, and review your visits, saved places, trips, and reservations.
-An eligible Pearl Access membership is required.
+Eligible Pearl Reserve and Elite members can connect.
 
 Start with the [Quick Start & Tester Guide](plugins/pearl/docs/quick-start.md)
 for features, example prompts, cards, and troubleshooting.
