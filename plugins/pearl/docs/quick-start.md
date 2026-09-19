@@ -14,11 +14,11 @@ Features vary by app, connection, and permissions. Ask your assistant what Pearl
 
 ## Membership and permissions
 
-Eligible Pearl Reserve and Elite members can use the actions above when their connection supports them. Private trip creation and stop changes are supported on freshly connected Codex, Claude and Cursor integrations, not this OpenAI version.
+Save and trip changes require a freshly connected Codex, Claude or Cursor integration. They are not included in the current ChatGPT version.
 
 Membership does not unlock unsupported actions. Reconnect to approve new permissions; existing connections do not gain them automatically.
 
-Booking, holding, changing, cancelling, or paying for reservations is not available through this MCP release. Reservation watchers, flight management and visit deletion are also unavailable. Visit photo uploads are not included. Save and trip changes require a freshly connected Codex, Claude or Cursor integration; they are not in the OpenAI plugin version described here. Use Pearl or the reservation provider for supported actions outside the assistant. An availability result is not a booking.
+Booking, holding, changing, cancelling, or paying for reservations is not available through this MCP release. Reservation watchers, flight management and visit deletion are also unavailable. Visit photo uploads are not included. Use Pearl or the reservation provider for supported actions outside the assistant. An availability result is not a booking.
 
 ## Get connected
 
@@ -26,6 +26,8 @@ Booking, holding, changing, cancelling, or paying for reservations is not availa
 2. Choose **Connect** or **Authenticate** and sign in to the Pearl account you want to use.
 3. Review the requested permissions, then start a new conversation.
 4. Ask: “Use Pearl to show my profile and tell me which actions are available.”
+
+The approval screen names the app and lists what it can access. Choose **Allow connection** only if those permissions match what you want, or **Not now** to decline. Connecting an app is not permission to book or spend.
 
 Pearl's connection address is `https://agent.joinpearl.co/mcp`.
 
@@ -60,6 +62,7 @@ In Pearl, open **Settings → Account → Connected apps**, or [open Connected A
 - **Expired connection or missing features:** reconnect from your AI app and review the permissions. Do not add permissions your connection does not offer.
 - **Two Pearl entries:** use the intended Pearl connection in a fresh conversation.
 - **No card or photo:** check the text result; presentation varies by app and available images.
+- **Watchers or automatic booking:** these actions are not available through this connection yet. Manage them in Pearl where supported.
 
 Never paste passwords, sign-in codes, access tokens, or payment details into a conversation or support screenshot. Share only the app name, what you tried, and a redacted error message.
 
