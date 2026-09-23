@@ -19,7 +19,7 @@ function inlineModel(source) {
 }
 
 function inlineApp(source, brandMark) {
-  return source.replace(/^import \{ normalizeToolResult, recoveryPrompt \} from "\.\/model\.mjs";\n/, "")
+  return source.replace(/^import \{ normalizeToolResult, providerLabel, recoveryPrompt \} from "\.\/model\.mjs";\n/, "")
     .replace('"__PEARL_BRAND_MARK__"', JSON.stringify(`data:image/png;base64,${brandMark.toString("base64")}`));
 }
 
@@ -38,12 +38,16 @@ export async function buildHtml() {
     readFile(path.join(PACKAGE_ROOT, "src", "styles.css"), "utf8"),
     readFile(path.join(PACKAGE_ROOT, "src", "model.mjs"), "utf8"),
     readFile(path.join(PACKAGE_ROOT, "src", "app.mjs"), "utf8"),
-    readFile(path.join(PACKAGE_ROOT, "..", "assets", "icon.png")),
+    // A 56px (2x the 28px render) derivative of the approved assets/icon.png
+    // (assets/ holds only 500x500 host icons);
+    // the 256px master would be about a third of the whole resource.
+    readFile(path.join(PACKAGE_ROOT, "src", "brand-mark-56.png")),
   ]);
   assertEmbeddable("styles.css", styles);
   assertEmbeddable("model.mjs", modelSource);
   assertEmbeddable("app.mjs", appSource);
-  if (brandMark.subarray(0, 8).toString("hex") !== "89504e470d0a1a0a" || brandMark.length > 64 * 1024) {
+  if (brandMark.subarray(0, 8).toString("hex") !== "89504e470d0a1a0a" || brandMark.length > 8 * 1024
+    || brandMark.readUInt32BE(16) !== 56 || brandMark.readUInt32BE(20) !== 56) {
     throw new Error("Pearl's approved inline mark must remain a bounded PNG");
   }
   const script = `${inlineModel(modelSource)}\n${inlineApp(appSource, brandMark)}`;

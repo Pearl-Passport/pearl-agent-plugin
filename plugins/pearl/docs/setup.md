@@ -1,171 +1,98 @@
-# Install Pearl in Codex, Claude, and Cursor
+# Connect Pearl to your AI app
 
-For a short feature overview, example prompts, and help, see the
-[Quick Start & Tester Guide](quick-start.md).
+Eligible Pearl Reserve and Elite members can connect. Sign in to that Pearl account when your app asks. For features and example prompts, see the [Quick Start & Tester Guide](quick-start.md).
 
-To manage an existing connection, open **Settings → Account → Connected apps**
-in Pearl, or [open Connected Apps](https://app.joinpearl.co/settings/connected-apps).
-Choose **Revoke** to stop that app's access; this does not delete your Pearl data.
+Every app connects to the same Pearl address: `https://agent.joinpearl.co/mcp`. What you can do depends on the app and the permissions you approve. Changes such as logging a visit, saving a place or editing a trip always show a preview and wait for your confirmation. No app can book, hold, change, cancel or pay for a reservation.
 
-Pearl uses one authenticated Streamable HTTP MCP endpoint: `https://agent.joinpearl.co/mcp`. The host manifests are thin adapters over that connection and the shared Pearl Concierge skill.
-
-Before setup, sign in to a Pearl account that is eligible for Pearl Reserve or Elite. The server independently enforces admission, live membership eligibility, and OAuth scopes; installing this package cannot widen access.
-
-The live MCP `tools/list` response decides what the authenticated connection can use. Package `0.11.0` gives reviewed Codex, Claude and Cursor connections confirmed visit, saved-place and private-trip actions after fresh consent. ChatGPT keeps its submitted visit/availability contract. All reviewed hosts can read table availability. Unknown clients, MCP Registry-generic clients, direct grok.com connectors, and the standalone Pearl CLI remain read-only. Missing workflows must be reported as unavailable.
+Operators and host reviewers: see [Host registration and review](host-operators.md).
 
 ## ChatGPT
 
-Install Pearl from its ChatGPT app listing after OpenAI approves and publishes the exact version, or use the owner/reviewer test link for a portal draft. A backend deployment does not update ChatGPT's scanned tool snapshot: adding these five tools requires a new portal scan, version test, and submission or publish step.
+**Status:** the published ChatGPT app can search places, read your Pearl history, check table availability, and log or edit visits. Saving places and changing trips are not in the ChatGPT app yet; ask for the Pearl link and finish those in Pearl.
 
-After the submitted ChatGPT app version is approved and available, reconnect Pearl to request `visits:write`; existing grants keep their original scopes. Save/trip writes are not included in that submission. In a new chat, select the single Pearl app and run the host canaries below. Never keep both a legacy private Pearl connector and the reviewed Pearl app enabled in the same test chat.
+1. In ChatGPT, open **Apps**, search for **Pearl**, and choose **Connect**. If Pearl isn't listed for your account, use Codex, Claude or Cursor instead.
+2. Approve the permissions, then start a new chat and select Pearl.
 
-## Codex Desktop and CLI
+Use one Pearl entry per chat. If you also added Pearl as a custom connector earlier, turn one of them off.
 
-From a clone of the distribution repository:
+## Codex (desktop and CLI)
 
 ```bash
-codex plugin marketplace add .
+codex plugin marketplace add Pearl-Passport/pearl-agent-plugin
 codex plugin add pearl@pearl-integrations
 codex mcp login pearl
 ```
 
-Codex Desktop and CLI share the same user configuration. Start a new task after installation so the skill and tools load.
+Codex signs in with its own OpenAI-hosted identity; there is no client ID to paste. Start a new task, then ask: `Use $pearl-concierge to show my saved places and recommend one for my next trip.` Check with `codex plugin list` and `codex mcp list`.
 
-Verify:
+- **Update:** `codex plugin marketplace upgrade pearl-integrations`, then start a new task.
+- **Remove:** `codex plugin remove pearl@pearl-integrations` and `codex plugin marketplace remove pearl-integrations`.
 
-```bash
-codex plugin list
-codex mcp list
-```
+## Claude web and desktop
 
-Then ask: `Use $pearl-concierge to show my saved places and recommend one for my next trip.`
-
-For package `0.11.0`, run `codex mcp login pearl` again to grant `visits:write`, `saves:write` and `trips:write`. Current Codex uses a unique OpenAI-hosted CIMD identity shaped as `https://chatgpt.com/oauth/codex/<opaque-id>/client.json` for each installation; Pearl validates that identity and its loopback callback rather than embedding a shared Codex client ID in `.mcp.json`.
-
-## Claude web and desktop Chat
-
-Claude Chat uses Pearl as a remote custom connector; it does not load the Claude Code skill.
+Claude chat uses Pearl as a custom connector.
 
 1. Open **Customize → Connectors → Add custom connector**.
 2. Name it `Pearl` and enter `https://agent.joinpearl.co/mcp`.
 3. Open **Advanced settings** and enter OAuth Client ID `pearl-claude-hosted`.
-4. For **OAuth Client Secret**, **leave the field empty**.
-5. Add the connector and complete Pearl authorization.
+4. OAuth Client Secret: **leave it empty**.
+5. Add the connector and sign in to Pearl.
 
-Use this exact callback when registering the public client:
-
-`https://claude.ai/api/mcp/auth_callback`
-
-Pearl keeps Dynamic Client Registration disabled. Do not leave the client ID blank and do not paste a bearer token into the URL or settings.
-
-For package `0.11.0`, reconnect Pearl to request `visits:write`, `saves:write` and `trips:write`; existing grants keep their original permissions.
+Never paste a token into the URL or settings. Connectors are served live, so there is nothing to update. To remove Pearl, delete the connector in **Customize → Connectors**.
 
 ## Claude Code
 
 ```bash
-claude plugin marketplace add .
+claude plugin marketplace add Pearl-Passport/pearl-agent-plugin
 claude plugin install pearl@pearl-integrations
-claude
-```
-
-In the new session, run `/reload-plugins`, then:
-
-```bash
 claude mcp login plugin:pearl:pearl
 ```
 
-Claude Code namespaces plugin-provided servers as `plugin:<plugin>:<server>`, so the installed server is `plugin:pearl:pearl`. Claude Code uses Anthropic-hosted CIMD with an ephemeral loopback port on the registered `localhost` or `127.0.0.1` callback. Do not add a static client ID, secret, or fixed callback-port override. Verify with `/mcp`, `claude mcp list`, or `claude mcp get plugin:pearl:pearl`.
+Start a new session (or run `/reload-plugins`), then invoke `/pearl:pearl-concierge` or just ask about places, visits, saves, trips or reservations. Check the connection with `/mcp` or `claude mcp get plugin:pearl:pearl`. Do not add a client ID or secret.
 
-Invoke `/pearl:pearl-concierge`, or ask Claude to use Pearl Concierge for venue discovery, matching, profile context, visits, saves, friends, trips, or reservations.
+- **Update:** Claude Code refreshes third-party marketplaces automatically. To update now, run `claude plugin marketplace update pearl-integrations` and `claude plugin update pearl@pearl-integrations`, then restart.
+- **Remove:** `claude plugin uninstall pearl@pearl-integrations` and `claude plugin marketplace remove pearl-integrations`.
 
-For package `0.11.0`, log in again to grant `visits:write`, `saves:write` and `trips:write`; existing grants keep their original permissions.
+## Cursor
 
-## Cursor IDE, Cloud Agents, and Cursor Grok Bot
+Use the first option that is available to you.
 
-Package `0.11.0` supports these visit/availability workflows across reviewed ChatGPT, Codex, Claude, and Cursor registrations. Read-only live availability can appear under an existing `reservations:read` grant after coordinated activation; the visit actions require a new authorization for `visits:write`:
+- **Cursor Marketplace:** if Pearl is listed, open **Customize**, find **Pearl**, and choose **Install**.
+- **Team marketplace:** a Cursor team admin can open **Dashboard → Plugins & MCPs → Team Marketplaces → Add Marketplace**, choose **Import from Repo** with `https://github.com/Pearl-Passport/pearl-agent-plugin`, and turn on **Enable Auto Refresh** so updates arrive automatically.
+- **Local install (Cursor desktop only):**
 
-- review committed Pearl visits with `visits_list`;
-- preview and explicitly confirm a new visit or a structured historical visit import;
-- preview and explicitly confirm an edit to one owned visit;
-- check current restaurant table availability for a canonical Pearl venue without holding or booking it;
-- list existing linked or imported Pearl reservations with `reservations_list`;
-- open one returned reservation with `reservation_get`; and
-- use the other ten public read tools for venues, profile, saves, friends, and trips.
+  ```bash
+  git clone --depth 1 https://github.com/Pearl-Passport/pearl-agent-plugin.git ~/pearl-agent-plugin
+  mkdir -p ~/.cursor/plugins/local
+  rsync -a --delete ~/pearl-agent-plugin/plugins/pearl/cursor/ ~/.cursor/plugins/local/pearl-cursor/
+  ```
 
-It does **not** hold, book, change, cancel, or pay for reservations. Editing a Pearl visit is not editing a provider reservation, and a reservation returned by Pearl is an existing member record, not proof that Pearl or Cursor made the booking.
+  To update, run `git -C ~/pearl-agent-plugin pull --ff-only` and the same `rsync` line. To remove, run `rm -rf ~/.cursor/plugins/local/pearl-cursor`.
 
-Existing Cursor grants and tokens keep their old scope, so open the Pearl plugin, choose reconnect/authenticate, and approve the updated request before testing. Do not add a client secret.
+Restart Cursor or run **Developer: Reload Window**, open **Customize → Plugins**, enable **Pearl Cursor**, and choose **Authenticate**. Do not add a client secret.
 
-### Test the package locally in Cursor desktop
+## Cursor Grok Bot
 
-For a local Cursor IDE canary:
-
-```bash
-mkdir -p ~/.cursor/plugins/local
-test ! -e ~/.cursor/plugins/local/pearl-cursor
-cp -R plugins/pearl/cursor ~/.cursor/plugins/local/pearl-cursor
-```
-
-Restart Cursor or run **Developer: Reload Window**, open **Customize → Plugins**, enable **Pearl Cursor**, and select **Authenticate**. After authorization, the Pearl Cursor detail view must show exactly one MCP. The authenticated inventory should contain the common 13 reads, `reservations_availability`, and the four reviewed visit tools and six save/trip tools (24 tools total with all ten scopes); `tools/list` is the authority if the host summarizes the count differently.
-
-Cursor's `cursor agent mcp` commands inspect the user-level MCP configuration, not a locally installed marketplace plugin. Use those commands only when testing a separate manual `~/.cursor/mcp.json` entry; they are not the verification path for this package.
-
-The Cursor plugin and MCP server both use the host-specific identifier `pearl-cursor`. Keep that identifier unchanged: it prevents a Claude Code installation named `pearl` from shadowing Cursor's static OAuth configuration when Cursor discovers other host plugins.
-
-The Cursor wrapper uses public client ID `pearl-cursor`, no client secret, and these exact callbacks:
-
-```text
-https://www.cursor.com/agents/mcp/oauth/callback
-http://localhost:8787/callback
-```
-
-The HTTPS callback covers hosted Agents and Grok Bot; the fixed loopback callback covers the Cursor desktop app. Grok Bot uses the same Cursor account and plugin catalog, not a separate repository or OAuth client.
-
-### Add Pearl to Cursor Grok Bot after marketplace listing
-
-A local folder under `~/.cursor/plugins/local` is visible only to the local Cursor development host. It does not make Pearl available to a hosted Grok Bot. Grok Bot can install Pearl only after Cursor lists the reviewed plugin in its Marketplace, or after an eligible team administrator provisions the reviewed repository through a team marketplace.
-
-Once Pearl is visible to the member's Cursor account:
+A local folder on your computer does not make Pearl available to a hosted Grok Bot. Grok Bot can use Pearl once it is in the Cursor Marketplace or your team marketplace.
 
 1. Open **Grok Bot → Plugins**. On mobile, open the account menu and select **Plugins**.
-2. Search for **Pearl**, choose **Add**, and complete Pearl authorization in the browser.
-3. If Grok Bot remains on **Waiting for authorization**, choose **Reopen** and finish the same authorization request; do not reuse an old Pearl authorization URL.
-4. Confirm Pearl appears under **Installed**. Team members who see **Disabled by team admin** need their Cursor administrator to allow the plugin or MCP server.
-5. Start a fresh Bot and run the read canaries below.
+2. Search for **Pearl**, choose **Add**, and sign in to Pearl in the browser.
+3. If Grok Bot stays on **Waiting for authorization**, choose **Reopen** and finish that request; don't reuse an old Pearl sign-in link.
+4. If you see **Disabled by team admin**, ask your Cursor administrator to allow Pearl.
 
-```text
-Use Pearl to show my five most recent committed visits.
-Use Pearl to list my upcoming Pearl reservations, then open one reservation I own.
-Use Pearl to check table availability at [venue] on [date] for [party size]. Do not book anything.
-Use Pearl to log a visit to [venue] on [date]. Show me the exact preview and wait for my confirmation before committing it.
-Use Pearl to change the note on visit [visit ID]. Show the before/after preview and wait for my confirmation.
-Use Pearl to book the available table.
-```
+The consumer app at grok.com is a different host from Cursor Grok Bot; adding Pearl directly at grok.com is not supported yet.
 
-The first three requests are reads. Availability must distinguish `available`, `no_availability`, `pending`, and `unknown`; unknown never means sold out. The next two must stop after preview until the member explicitly confirms that exact change, then return a durable receipt and tolerate a safe retry without duplication. The final request is a negative canary: package `0.11.0` must say provider booking is unavailable and must not imply that a table was held or booked.
+## When new features arrive: reconnect
 
-### Do not confuse Cursor Grok Bot with grok.com
+Existing connections keep the permissions you approved at the time. If Pearl can read your history but says it can't log a visit, save a place or change a trip, reconnect Pearl in your app and approve the new permission:
 
-The consumer and Business product at `grok.com` has its own custom MCP connector flow. It is a different host from Cursor Grok Bot. Pearl has not registered or reviewed a static xAI OAuth client, and Pearl keeps Dynamic Client Registration disabled, so do not add `https://agent.joinpearl.co/mcp` directly at `grok.com/connectors` yet. Supporting that host requires a separate exact callback/client registration and OAuth canary; never reuse `pearl-cursor` or add a client secret.
+- Codex: `codex mcp login pearl`
+- Claude Code: `claude mcp login plugin:pearl:pearl`
+- Claude web and desktop: disconnect and reconnect the Pearl connector
+- Cursor and Grok Bot: open the Pearl plugin and choose **Authenticate** or **Reconnect**
 
-## Visit and import requests
+Reconnecting never unlocks features your membership or app doesn't include.
 
-Only reviewed ChatGPT, Codex, Claude, and Cursor connections can commit an import or edit a visit in `0.11.0`, and only when live discovery exposes the complete pair after fresh `visits:write` consent. Calendar or email evidence must come through the host's separately authorized connector, be minimized to structured venue/date/location fields, and never include raw message bodies, attendee lists, unrelated text, or credentials. A calendar event or reservation is evidence, not attendance: the member must review the matched place and explicitly confirm which entries they actually attended. See the [Pearl Concierge skill](../skills/pearl-concierge/SKILL.md).
+## Manage or revoke access
 
-## Validate
-
-```bash
-npm --prefix plugins/pearl test
-npm --prefix plugins/pearl run validate
-npm --prefix plugins/pearl run validate:live
-```
-
-See [oauth.md](oauth.md) for the exact public-client boundaries and [releasing.md](releasing.md) for release checks.
-
-For host-review prerequisites and the separate Claude plugin/connector paths, see [submission.md](submission.md).
-
-## Save and trip checks
-
-After reconnecting a reviewed Codex, Claude or Cursor connection for `saves:write` and `trips:write`, try “Preview saving this place” and “Preview a private trip for my weekend, then help me add a stop.” Check the exact preview and explicitly confirm before each change. Try add, move, swap and remove through the same preview flow. A missing companion tool means the action is unavailable. Existing ChatGPT app and CLI grants do not gain these actions.
-
-Confirm a receipt is returned and the change appears in Pearl. If a response is interrupted, retry only with the same commit key; if the preview is stale, obtain a new preview and confirmation. Test in each actual host; a backend protocol test does not prove its confirmation UI or marketplace availability.
+In Pearl, open **Settings → Account → Connected apps**, or [open Connected Apps](https://app.joinpearl.co/settings/connected-apps), and choose **Revoke**. This stops that app's access and does not delete your Pearl data.

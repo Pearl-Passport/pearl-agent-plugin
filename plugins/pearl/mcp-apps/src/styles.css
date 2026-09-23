@@ -150,22 +150,36 @@ button:focus-visible,
   box-shadow: var(--pearl-ui-shadow);
 }
 
+/* Inside a host frame the widget is already bordered: no second card frame. */
+:root[data-display-mode="inline"] .app-shell {
+  padding: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
+}
+
+:root[data-display-mode="inline"] .panel {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
 .panel-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: var(--pearl-ui-space-12);
+  row-gap: 6px;
   padding: var(--pearl-ui-space-24);
   border-bottom: 1px solid var(--pearl-ui-border-soft);
 }
 
 .header-copy { min-width: 0; }
+.panel-header > .count-pill { grid-column: 3; justify-self: end; }
+.panel-header > .subtitle { grid-column: 1 / -1; }
 
 .eyebrow {
   display: flex;
   align-items: center;
   gap: var(--pearl-ui-space-8);
-  margin: 0 0 var(--pearl-ui-space-12);
+  margin: 0 0 2px;
   color: var(--pearl-ui-accent);
   font-size: 11px;
   font-weight: 600;
@@ -176,7 +190,7 @@ button:focus-visible,
 h1, h2, h3, p { margin-top: 0; }
 
 h1 {
-  margin-bottom: 4px;
+  margin-bottom: 0;
   font: 500 var(--pearl-ui-heading-size)/var(--pearl-ui-heading-line) var(--pearl-ui-font);
   letter-spacing: -0.4px;
 }
@@ -211,6 +225,14 @@ h1 {
 }
 
 .count-pill { flex: 0 0 auto; }
+
+/* Status is one short phrase; never let it break mid-word inside a card. */
+.status-pill {
+  flex: 0 0 auto;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
 
 .chip.accent {
   border-color: transparent;
@@ -524,7 +546,8 @@ h1 {
 @media (hover: hover) and (pointer: fine) {
   .button:hover:not([disabled]) { background: var(--pearl-ui-action-hover); }
   .button.secondary:hover:not([disabled]) { background: var(--pearl-ui-secondary-hover); color: var(--pearl-ui-text); }
-  button.result-card:hover { border-color: var(--pearl-ui-text); }
+  .card-action:hover:not([disabled]) { background: var(--pearl-ui-secondary-hover); }
+  .compare-toggle[aria-pressed="true"]:hover:not([disabled]) { background: var(--pearl-ui-action-hover); }
 }
 .button.secondary:active:not([disabled]) { background: var(--pearl-ui-secondary-hover); color: var(--pearl-ui-text); }
 
@@ -546,33 +569,97 @@ h1 {
   box-shadow: none;
 }
 
-button.result-card {
-  width: 100%;
-  min-height: 88px;
-  /* Buttons otherwise center their content when a taller sibling grows the row. */
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  justify-content: flex-start;
-  color: inherit;
-  text-align: left;
-  cursor: pointer;
-  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
-}
-
-
-
-button.result-card[aria-pressed="true"] {
+.result-card.is-selected {
   border-color: var(--pearl-ui-accent);
   box-shadow: inset 0 0 0 1px var(--pearl-ui-accent);
 }
 
+/* Actions sit at the foot of the card so photos stay top-aligned. */
+.result-card:has(.card-actions) { display: flex; flex-direction: column; }
+.result-card > .card-actions { margin-top: auto; }
+
 .item-heading {
   display: flex;
   align-items: flex-start;
-  justify-content: space-between;
   gap: 10px;
 }
+
+.item-title-block { flex: 1 1 auto; min-width: 0; }
+
+.venue-monogram {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  background: var(--pearl-ui-subtle);
+  color: var(--pearl-ui-text-secondary);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.result-card.has-photo .venue-monogram { display: none; }
+
+.top-pick {
+  display: inline-block;
+  margin-bottom: 4px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--pearl-ui-action);
+  color: var(--pearl-ui-action-fg);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 18px;
+}
+
+.card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding-top: 12px;
+}
+
+.result-card > .card-actions,
+.journey-card > .card-actions {
+  margin-top: 12px;
+  border-top: 1px solid var(--pearl-ui-border-soft);
+}
+
+.card-action {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 6px 14px;
+  border: 1px solid transparent;
+  border-radius: var(--pearl-ui-radius-action);
+  background: var(--pearl-ui-subtle);
+  color: var(--pearl-ui-text);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
+  cursor: pointer;
+}
+
+.card-action.link::after { content: "\2197"; margin-left: 4px; }
+.card-action[disabled] { cursor: default; opacity: 0.6; }
+.compare-toggle { margin-left: auto; }
+
+.compare-toggle[aria-pressed="true"] {
+  background: var(--pearl-ui-action);
+  color: var(--pearl-ui-action-fg);
+}
+
+.ranking-note {
+  margin: 12px 0 0;
+  color: var(--pearl-ui-text-secondary);
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.panel-actions { padding-top: 0; margin-top: 12px; }
 
 .item-title {
   min-width: 0;
@@ -689,19 +776,24 @@ button.result-card[aria-pressed="true"] {
 
 .journey-detail { margin: 10px 0 0; color: var(--pearl-ui-text-secondary); }
 
+/* One card boundary keeps the full before/after review readable on phones. */
+.action-review { min-width: 0; }
+.action-change { min-width: 0; margin-top: var(--pearl-ui-space-16); }
+.action-change > .journey-kicker { margin-bottom: var(--pearl-ui-space-8); }
+.action-change > .journey-facts { margin-top: 0; }
+
+/* Facts are a hairline two-column list, not a grid of nested boxes. */
 .journey-facts {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+  column-gap: 16px;
   margin: 12px 0 0;
 }
 
 .journey-fact {
   min-width: 0;
-  padding: 9px 10px;
-  border: 1px solid var(--pearl-ui-border-soft);
-  border-radius: var(--pearl-ui-radius-sm);
-  background: var(--pearl-ui-canvas);
+  padding: 7px 0;
+  border-top: 1px solid var(--pearl-ui-border-soft);
 }
 
 .journey-fact dt {
@@ -711,6 +803,12 @@ button.result-card[aria-pressed="true"] {
 }
 
 .journey-fact dd { min-width: 0; margin: 2px 0 0; font-weight: 600; overflow-wrap: anywhere; }
+
+.journey-price-label {
+  display: block;
+  color: var(--pearl-ui-text-secondary);
+  font: 600 11px/16px var(--pearl-ui-font);
+}
 
 .journey-price {
   margin: 12px 0 0;
@@ -1048,7 +1146,11 @@ button.result-card[aria-pressed="true"] {
 
 @media (max-width: 539px) {
   .panel-header, .content { padding: var(--pearl-ui-space-16); }
-  .panel-header { flex-wrap: wrap; }
+  /* One row: small mark beside the title; the count is visible in the cards. */
+  .eyebrow { display: none; }
+  .brand-mark { width: 24px; height: 24px; }
+  h1 { font-size: 20px; line-height: 24px; }
+  .count-pill:not(.action-status) { display: none; }
   .count-pill { max-width: 100%; }
   .status-banner { margin-inline: var(--pearl-ui-space-16); }
 }
@@ -1074,9 +1176,8 @@ button.result-card[aria-pressed="true"] {
   .app-shell { padding: 8px; }
   .panel-header { padding: 15px 14px 12px; gap: 10px; }
   .content { padding: 14px; }
-  .count-pill { display: none; }
-  h1 { font-size: 20px; line-height: 24px; }
   .button { width: 100%; }
+  .compare-toggle { margin-left: 0; }
   .metrics-grid { grid-template-columns: minmax(0, 1fr); }
   .journey-heading { align-items: flex-start; }
   .journey-heading > .status-pill { max-width: 42%; }
@@ -1095,12 +1196,10 @@ button.result-card[aria-pressed="true"] {
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
   }
-
-  button.result-card:hover { transform: none; }
 }
 
 @media (forced-colors: active) {
-  .panel, .result-card, .journey-card, .journey-fact, .comparison, .comparison-card, .count-pill, .chip, .status-pill,
+  .panel, .result-card, .journey-card, .comparison, .comparison-card, .count-pill, .chip, .status-pill,
   .metric-card, .facet-card, .taste-pattern-card, .taste-insight-card, .constraint-item,
   .profile-section, .profile-questions, .media {
     border: 1px solid CanvasText;
@@ -1109,5 +1208,6 @@ button.result-card[aria-pressed="true"] {
   .button { forced-color-adjust: auto; border: 1px solid ButtonText; }
   .button:not(.secondary) { background: ButtonText; color: ButtonFace; }
   .button.secondary { background: ButtonFace; color: ButtonText; }
-  button.result-card[aria-pressed="true"] { outline: 3px solid Highlight; }
+  .card-action { forced-color-adjust: auto; border: 1px solid ButtonText; }
+  .compare-toggle[aria-pressed="true"] { outline: 3px solid Highlight; }
 }

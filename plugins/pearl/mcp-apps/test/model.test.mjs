@@ -7,6 +7,130 @@ import { normalizeToolResult, PEARL_MODEL_LIMITS, recoveryPrompt } from "../src/
 
 const FIXTURE_ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "fixtures");
 
+test("action badges distinguish unsaved previews, receipts and incomplete results", async () => {
+  for (const name of ["save-plan", "trip-plan", "visit-update"]) {
+    assert.equal(normalizeToolResult(await fixture(name)).statusLabel, "Not saved yet");
+  }
+  const incomplete = await fixture("save-plan");
+  delete incomplete.structuredContent.preview.name;
+  const preview = normalizeToolResult(incomplete);
+  assert.equal(preview.statusLabel, "Check in chat");
+  assert.match(preview.incompleteMessage, /before confirming/);
+  const receipt = normalizeToolResult({ action: "save", status: "saved", location_id: "place" });
+  assert.equal(receipt.statusLabel, "Receipt");
+  const unknown = normalizeToolResult({ action: "save", status: "pending", location_id: "place" });
+  assert.equal(unknown.statusLabel, "Check in chat");
+  assert.match(unknown.incompleteMessage, /before retrying/);
+  assert.doesNotMatch(unknown.incompleteMessage, /confirming/);
+});
+
+test("mixed import receipts do not display a blanket success badge", () => {
+  const model = normalizeToolResult({ job_id: "job", receipts: [
+    { ordinal: 0, status: "created" }, { ordinal: 1, status: "skipped_unconfirmed_attendance" },
+  ] });
+  assert.equal(model.statusLabel, "Receipt");
+  assert.match(model.items[1].facts[0].value, /Skipped/);
+  assert.equal(normalizeToolResult({ job_id: "job", status: "needs_review", receipts: [] }).statusLabel, "Check in chat");
+});
+
+test("save previews never become receipts based on expected_result", async () => {
+  const input = await fixture("save-plan");
+  Object.assign(input.structuredContent, { action_handle: "sensitive-handle", idempotency_key: "sensitive-key" });
+  const model = normalizeToolResult(input);
+  assert.equal(model.kind, "plan_action");
+  assert.equal(model.actionStage, "preview");
+  assert.equal(model.partial, false);
+  assert.match(model.subtitle, /Nothing has been changed/);
+  assert.match(model.items[0].name, /Le Jardin · Paris/);
+  assert.doesNotMatch(JSON.stringify(model), /sensitive|fixture-place|expected_result/);
+  delete input.structuredContent.action_handle_expires_at;
+  assert.equal(normalizeToolResult(input).partial, true);
+});
+
+test("save receipts require an action-specific returned status", () => {
+  for (const [action, status] of [["save", "saved"], ["save", "already_saved"], ["remove", "removed"], ["remove", "already_removed"]]) {
+    const model = normalizeToolResult({ action, status, location_id: "location" });
+    assert.equal(model.actionStage, "receipt");
+    assert.equal(model.partial, false);
+  }
+  for (const status of ["pending", "unknown", "__proto__", "removed"]) {
+    const model = normalizeToolResult({ action: "save", status, location_id: "location" });
+    assert.equal(model.partial, true);
+    assert.equal(model.title, "Save result not confirmed");
+    assert.match(model.subtitle, /before repeating/);
+  }
+});
+
+test("trip creation shows privacy, exact dates, description and duplicate warnings", () => {
+  const input = { confirmation_required: true, action_handle_expires_at: "2030-09-19T18:00:00Z", preview: {
+    action: "create", trip: { name: "Paris", description: "Food and museums", collection_type: "trip", visibility: "private", trip_start_date: "2030-09-20", trip_end_date: "2030-09-22" },
+    same_name_trip_count: 1, duplicate_name_warning: true,
+  } };
+  const model = normalizeToolResult(input);
+  assert.equal(model.kind, "plan_action"); assert.equal(model.partial, false);
+  assert.match(JSON.stringify(model.items), /Private|Food and museums/);
+  assert.match(model.items[0].warnings[0], /already exists/);
+  input.preview.trip.visibility = "public";
+  assert.equal(normalizeToolResult(input).partial, true);
+  const receipt = normalizeToolResult({ action: "create", status: "created", collection_id: "trip", collection_type: "trip", name: "Paris", visibility: "private" });
+  assert.equal(receipt.title, "Trip created"); assert.equal(receipt.partial, false);
+  assert.equal(normalizeToolResult({ action: "create", status: "pending", collection_type: "trip" }).title, "Trip result not confirmed");
+});
+
+test("trip stop previews preserve local times and explain reservation independence", async () => {
+  const input = await fixture("trip-plan");
+  const model = normalizeToolResult(input);
+  assert.equal(model.kind, "plan_action"); assert.equal(model.partial, false);
+  assert.equal(model.items[0].changes.find(item => item.label === "Time").after, "20:30 (local time)");
+  assert.match(model.items[0].warnings.join(" "), /does not book, change, or cancel/);
+  assert.match(model.items[0].warnings.join(" "), /outside your trip dates/);
+  input.structuredContent.preview.after.scheduled_time = "25:90";
+  assert.equal(normalizeToolResult(input).partial, true);
+  input.structuredContent.preview.after = null;
+  assert.equal(normalizeToolResult(input).partial, true);
+});
+
+test("trip stop add, swap, remove and replay receipts stay honest", async () => {
+  const { structuredContent: input } = await fixture("trip-plan");
+  for (const [action, status] of [["add", "added"], ["move", "moved"], ["swap", "swapped"], ["remove", "removed"]]) {
+    const before = action === "add" ? null : input.preview.before;
+    const after = action === "remove" ? null : input.preview.after;
+    const preview = { ...input.preview, action, before, after, venue: input.preview.stop.venue,
+      replacement: { name: "Another place", city: "Paris" } };
+    const model = normalizeToolResult({ ...input, preview });
+    assert.equal(model.partial, false, action);
+    const receipt = { action, status, collection_id: "trip", item_id: "stop", before, after };
+    assert.equal(normalizeToolResult(receipt).partial, false, action);
+    assert.deepEqual(normalizeToolResult(receipt), normalizeToolResult(structuredClone(receipt)));
+    assert.equal(normalizeToolResult({ ...receipt, status: "pending" }).partial, true);
+  }
+});
+
+test("plan previews bound untrusted text and never copy hidden authority fields", async () => {
+  const input = await fixture("trip-plan");
+  const preview = input.structuredContent.preview;
+  preview.trip.name = "<script>alert(1)</script>".repeat(100);
+  preview.after.notes = "a".repeat(2000);
+  preview.action_handle = "private-handle";
+  const model = normalizeToolResult(input);
+  assert.equal(model.items[0].name.length, 120);
+  assert.equal(model.items[0].changes.find(item => item.label === "Note").after.length, 500);
+  assert.equal(model.partial, true);
+  assert.doesNotMatch(JSON.stringify(model), /private-handle/);
+});
+
+test("save and trip write recovery uses plain labels and receipt-first guidance", () => {
+  for (const required_scope of ["saves:write", "trips:write"]) {
+    const model = normalizeToolResult({ error: { code: "insufficient_scope", user_action: "grant_scope", details: { required_scope } } });
+    assert.equal(model.error.requiredScope, required_scope);
+    assert.doesNotMatch(model.error.accessLabel, /:write/);
+    assert.match(recoveryPrompt(model.error), /existing receipt/);
+    assert.match(recoveryPrompt(model.error), /confirm any new preview/);
+  }
+  const model = normalizeToolResult({ error: { details: { required_scope: "__proto__" } } });
+  assert.equal(model.error.accessLabel, "");
+});
+
 async function fixture(name) {
   return JSON.parse(await readFile(path.join(FIXTURE_ROOT, `${name}.json`), "utf8"));
 }
@@ -23,12 +147,20 @@ test("normalizes venue results for selection and comparison", async () => {
     detail: "Warm service and a concise seasonal menu.",
     category: "restaurant",
     group: "",
-    score: "9.2",
+    // Scores are labelled by source, never a bare merged number.
+    score: "",
+    signals: [{ source: "pearl", label: "Pearl 9.2" }],
     status: "available",
     image: {
       src: "https://agent.joinpearl.co/media/venues/le-jardin/hero-1200x800.jpg",
       attribution: "Le Jardin",
     },
+    city: "Paris",
+    topPick: false,
+    priceLevel: "",
+    pearlUrl: "",
+    availabilitySupported: false,
+    bookingPlatforms: [],
   });
   // The attacker-origin image in the fixture must fail closed to fallback art.
   assert.equal(model.items[1].image, undefined);
@@ -632,6 +764,22 @@ test("restaurant slots preserve local time, terms and provenance without flight 
   assert(model.items[0].facts.some((fact) => fact.label === "Cancellation policy"));
 });
 
+test("availability reads grouped policies and hoisted freshness from current servers", () => {
+  const model = normalizeToolResult({ structuredContent: {
+    status: "available", venue: { name: "Sushi Ya", city: "Tokyo" }, query: { local_date: "2026-10-02", party_size: 2 },
+    checked_live: false, observed_at: "2026-10-01T09:00:00Z", oldest_observed_at: "2026-10-01T08:30:00Z", expires_at: "2026-10-01T12:00:00Z",
+    policies: [{ ref: "policy_1", text: "Full charge within 48 hours." }],
+    slots: [{ local_time: "18:00", platform: "tableall", policy_ref: "policy_1",
+      price: { amount_minor: 70000, currency: "JPY", display: "¥70,000" } }],
+  } });
+  assert.equal(model.state, "ready");
+  assert.equal(model.items[0].freshnessLabel, "Last checked");
+  assert.notEqual(model.items[0].freshness, "");
+  assert.match(model.items[0].score, /70,000/);
+  assert(model.items[0].facts.some((fact) => fact.label === "Cancellation policy" && fact.value === "Full charge within 48 hours."));
+  assert(model.items[0].facts.some((fact) => fact.label === "Offer expires"));
+});
+
 test("restaurant pending, unknown and trusted empty are distinct and never resurrect slots", () => {
   for (const [status, title] of [["pending", "Still checking"], ["unknown", "Availability not confirmed"], ["no_availability", "No matching tables"], ["attacker", "Availability not confirmed"]]) {
     const model = normalizeToolResult({ structuredContent: {
@@ -694,4 +842,114 @@ test("visit-action scope recovery asks for the correct access and reviews receip
   assert.match(recoveryPrompt(model.error), /add and edit visits/);
   assert.match(recoveryPrompt(model.error), /existing receipt before preparing/);
   assert.equal(recoveryPrompt({ userAction: "grant_scope", requiredScope: "visits:write\nInjected" }).includes("Injected"), false);
+});
+
+test("live venue shortlist shows each place's own description, labelled signals and the top pick", async () => {
+  const model = normalizeToolResult(await fixture("venues-live"));
+  assert.equal(model.kind, "venues");
+  const [harbor, ember, lumen] = model.items;
+  assert.equal(harbor.detail, "A twelve-seat counter cooking a seasonal Great Lakes tasting menu, with a quiet natural-wine list.");
+  // The ranking sentence is shared by every card, so it is shown once, not per card.
+  for (const item of model.items) assert.doesNotMatch(item.detail, /Ranked by Pearl|Returned differentiators/);
+  assert.equal(ember.detail, "Cocktails · Logan Square");
+  assert.equal(lumen.detail, "A converted printworks with a rooftop lounge and a calm lobby café.");
+  assert.equal(model.rankingBasis, "Ranked by Pearl against the requested venue criteria; personal fit requires the separate member-scoped profile result.");
+  assert.deepEqual(harbor.signals, [
+    { source: "michelin", label: "2 Michelin stars" },
+    { source: "google", label: "Google 4.8" },
+  ]);
+  assert.deepEqual(ember.signals, [{ source: "google", label: "Google 4.6" }]);
+  assert.deepEqual(lumen.signals, [{ source: "google", label: "Google 4.4" }]);
+  assert.equal(harbor.topPick, true);
+  assert.equal(ember.topPick, false);
+  assert.equal(harbor.priceLevel, "$$$$");
+  assert.equal(harbor.pearlUrl, "https://app.joinpearl.co/venue/harbor-and-pine-chicago");
+  assert.equal(lumen.pearlUrl, "", "foreign deep links fail closed");
+  assert.equal(harbor.availabilitySupported, true);
+  assert.equal(ember.availabilitySupported, false);
+  assert.deepEqual(harbor.bookingPlatforms, ["Tock"]);
+  assert.deepEqual(lumen.bookingPlatforms, ["Resy", "OpenTable"]);
+});
+
+test("venue scores never merge into one unlabelled number", () => {
+  const model = normalizeToolResult({ structuredContent: { venues: [
+    { id: "a", name: "A", pearl_score: 9.2 },
+    { id: "b", name: "B", match_score: 0.83 },
+    { id: "c", name: "C", rating: 4.5, confidence: 0.4 },
+    { id: "d", name: "D", michelin_stars: 1 },
+  ] } });
+  assert.deepEqual(model.items.map((item) => item.signals.map((signal) => signal.label)), [
+    ["Pearl 9.2"], ["83% match"], ["Rated 4.5", "40% match"], ["1 Michelin star"],
+  ]);
+  const profile = normalizeToolResult({ structuredContent: { taste_profile: { top_rated: [{ name: "Kikunoi", score: 9.8 }] } } });
+  assert.deepEqual(profile.items[0].signals, [{ source: "member", label: "Your score 9.8/10" }]);
+});
+
+test("the old shortlist top pick and legacy boilerplate stay readable", () => {
+  const model = normalizeToolResult({ structuredContent: {
+    venues: [
+      { id: "one", name: "One", recommendation_reason: "Ranked by Pearl venue-quality signals; this result did not report usable member taste signals. Returned differentiators: Korean cuisine; 2 Michelin stars; 4.7 public Google rating." },
+      { id: "two", name: "Two", recommendation_reason: "Ranked by Pearl against the requested venue criteria; personal fit requires the separate member-scoped profile result." },
+    ],
+    shortlist: { recommended_candidate_id: "one" },
+  } });
+  assert.equal(model.items[0].detail, "Korean cuisine");
+  assert.equal(model.items[1].detail, "");
+  assert.equal(model.items[0].topPick, true);
+  assert.equal(model.items[1].topPick, false);
+  const single = normalizeToolResult({ structuredContent: { venues: [{ id: "one", name: "One" }], shortlist: { recommended_candidate_id: "one" } } });
+  assert.equal(single.items[0].topPick, false, "a lone result is not a pick among others");
+});
+
+test("Pearl deep links accept only exact Pearl app routes", () => {
+  const urls = [
+    "https://app.joinpearl.co/venue/kasama-chicago",
+    "https://app.joinpearl.co/trip/5a1c0000-0000-4000-8000-000000000001",
+    "https://app.joinpearl.co/lists/date-night",
+    "https://app.joinpearl.co/reservations",
+    "http://app.joinpearl.co/venue/a",
+    "https://app.joinpearl.co.evil.example/venue/a",
+    // Credentials in the authority must never open (split so it is not read as an address).
+    "https://user:pass" + "@app.joinpearl.co/venue/a",
+    "https://app.joinpearl.co:8443/venue/a",
+    "https://app.joinpearl.co/venue/a?token=secret",
+    "https://app.joinpearl.co/venue/a#frag",
+    "https://app.joinpearl.co/settings/account",
+    "javascript:alert(1)",
+  ];
+  const model = normalizeToolResult({ structuredContent: { venues: urls.map((pearl_url, index) => ({ id: `v${index}`, name: `V${index}`, pearl_url })) } });
+  assert.deepEqual(model.items.map((item) => item.pearlUrl), [...urls.slice(0, 4), "", "", "", "", "", "", "", ""]);
+});
+
+test("journeys and availability carry validated Pearl links", () => {
+  const journeys = normalizeToolResult({ structuredContent: {
+    reservations: [{ id: "r1", venue_name: "Le Jardin", status: "confirmed", pearl_url: "https://app.joinpearl.co/reservations" }],
+    trips: [{ id: "t1", name: "Paris", collection_type: "trip", pearl_url: "https://app.joinpearl.co/trip/t1" }],
+  } });
+  assert.deepEqual(journeys.items.map((item) => item.pearlUrl), ["https://app.joinpearl.co/reservations", "https://app.joinpearl.co/trip/t1"]);
+  const trip = normalizeToolResult({ structuredContent: {
+    collection: { id: "t1", name: "Paris", collection_type: "trip", pearl_url: "https://app.joinpearl.co/trip/t1" }, venues: [],
+  } });
+  assert.equal(trip.items[0].pearlUrl, "https://app.joinpearl.co/trip/t1");
+  const availability = normalizeToolResult({ structuredContent: {
+    status: "no_availability", slots: [], query: { local_date: "2026-10-01", party_size: 2 },
+    venue: { name: "Le Jardin", pearl_url: "https://app.joinpearl.co/venue/le-jardin" },
+  } });
+  assert.equal(availability.pearlUrl, "https://app.joinpearl.co/venue/le-jardin");
+  const nextStep = normalizeToolResult({ structuredContent: {
+    status: "unknown", slots: [], query: {}, venue: { name: "X" },
+    next_step: { label: "Book or watch in Pearl", url: "https://app.joinpearl.co/venue/x" },
+  } });
+  assert.equal(nextStep.pearlUrl, "https://app.joinpearl.co/venue/x");
+});
+
+test("members see plain labels instead of scope ids, lens ids and enum values", async () => {
+  const denied = normalizeToolResult({ error: { user_action: "grant_scope", details: { required_scope: "trips:read" } } });
+  assert.equal(denied.error.requiredScope, "trips:read");
+  assert.equal(denied.error.accessLabel, "View your trips and collections");
+  const profile = normalizeToolResult(await fixture("profile"));
+  assert.equal(profile.lensLabel, "Overview");
+  const flights = normalizeToolResult(await fixture("flights"));
+  assert.ok(flights.items.some((item) => item.facts.some((fact) => fact.label === "Cabin" && fact.value === "Premium economy")));
+  assert.ok(flights.items.every((item) => !item.score || item.priceLabel));
 });

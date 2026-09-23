@@ -58,8 +58,14 @@ test("build is deterministic and self-contained", async () => {
 
 test("V1 uses the approved Pearl mark and keeps asset/network boundaries unchanged", async () => {
   const html = await buildHtml();
-  const mark = await readFile(path.join(PACKAGE_ROOT, "..", "assets", "icon.png"));
+  // The 56px derivative (2x its 28px render), never the 256px master.
+  const mark = await readFile(path.join(PACKAGE_ROOT, "src", "brand-mark-56.png"));
   assert.ok(html.includes(`data:image/png;base64,${mark.toString("base64")}`));
+  assert.equal(mark.readUInt32BE(16), 56);
+  assert.equal(mark.readUInt32BE(20), 56);
+  const master = await readFile(path.join(PACKAGE_ROOT, "..", "assets", "icon.png"));
+  assert.ok(!html.includes(master.toString("base64").slice(0, 200)));
+  assert.ok(Buffer.byteLength(html) < 180 * 1024, "the resource stays well under its old 209 KB size");
   assert.doesNotMatch(html, /__PEARL_BRAND_MARK__/);
   assert.match(html, /font-src 'none'/);
   assert.match(html, /connect-src 'none'/);
@@ -96,8 +102,8 @@ test("resource response is versioned, correctly typed, and deny-by-default", asy
   const response = createPearlMcpAppResource();
   assert.equal(response.contents.length, 1);
   const content = response.contents[0];
-  assert.equal(PEARL_MCP_APP_VERSION, "1.5.5");
-  assert.equal(content.uri, "ui://pearl/concierge/v11/index.html");
+  assert.equal(PEARL_MCP_APP_VERSION, "1.5.7");
+  assert.equal(content.uri, "ui://pearl/concierge/v13/index.html");
   assert.equal(content.mimeType, PEARL_MCP_APP_MIME_TYPE);
   assert.equal(content.text, html);
   assert.equal(content.text, PEARL_MCP_APP_ARTIFACT_HTML);
@@ -165,6 +171,8 @@ test("installed ChatGPT v4 snapshot keeps loading the current artifact", () => {
 
 test("bounded previous card URIs serve the current reviewed artifact", () => {
   assert.deepEqual(PEARL_MCP_APP_COMPATIBILITY_RESOURCE_URIS, [
+    "ui://pearl/concierge/v12/index.html",
+    "ui://pearl/concierge/v11/index.html",
     "ui://pearl/concierge/v10/index.html",
   "ui://pearl/concierge/v9/index.html",
   "ui://pearl/concierge/v8/index.html",
@@ -191,7 +199,7 @@ test("bounded previous card URIs serve the current reviewed artifact", () => {
   );
 });
 
-test("only supported read and visit-action result shapes opt into the UI", () => {
+test("only supported read and reviewed action result shapes opt into the UI", () => {
   assert.deepEqual(PEARL_MCP_APP_TOOL_NAMES, [
     "venues_search",
     "venues_recommend",
@@ -202,9 +210,11 @@ test("only supported read and visit-action result shapes opt into the UI", () =>
     "reservations_list",
     "reservations_availability",
     "visits_import_prepare", "visits_import_commit", "visits_update_prepare", "visits_update_commit",
+    "saves_change_prepare", "saves_change_commit", "trips_create_prepare", "trips_create_commit",
+    "trip_stops_update_prepare", "trip_stops_update_commit",
   ]);
   for (const name of PEARL_MCP_APP_TOOL_NAMES) assert.equal(pearlMcpAppSupportsTool(name), true);
-  const writeTool = ["saves", "change", "prepare"].join("_");
+  const writeTool = ["profile", "update", "prepare"].join("_");
   for (const name of ["places_match", "reservation_get", writeTool, "venue_get"]) {
     assert.equal(pearlMcpAppSupportsTool(name), false);
   }
@@ -216,7 +226,10 @@ test("fixture harness simulates the standard parent bridge", async () => {
   assert.match(harness, /ui\/notifications\/initialized/);
   assert.match(harness, /ui\/notifications\/tool-result/);
   assert.match(harness, /readOnlyHint: true/);
-  assert.match(harness, /button\.result-card/);
+  assert.match(harness, /button\.compare-toggle/);
+  assert.match(harness, /openLinks: \{\}/);
+  assert.match(harness, /ui\/open-link/);
+  assert.doesNotMatch(buildFixtureHarness(await buildHtml(), { structuredContent: {} }, "light", { openLinks: false }), /openLinks: \{\}/);
 });
 
 test("fixture harness can simulate a retained ChatGPT compatibility result", async () => {
@@ -325,8 +338,10 @@ test("journey fixtures support light and dark standard bridge previews", async (
   }
 });
 
-test("visit action tools are visible only to the model and cards cannot execute them", async () => {
-  for (const name of ["visits_import_prepare", "visits_import_commit", "visits_update_prepare", "visits_update_commit"]) {
+test("reviewed action tools are visible only to the model and cards cannot execute them", async () => {
+  for (const name of ["visits_import_prepare", "visits_import_commit", "visits_update_prepare", "visits_update_commit",
+    "saves_change_prepare", "saves_change_commit", "trips_create_prepare", "trips_create_commit",
+    "trip_stops_update_prepare", "trip_stops_update_commit"]) {
     assert.deepEqual(withPearlMcpAppMeta({ name })._meta.ui.visibility, ["model"]);
   }
   const html = await buildHtml();

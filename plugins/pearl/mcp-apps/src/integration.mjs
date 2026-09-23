@@ -4,13 +4,15 @@ import {
   PEARL_MCP_APP_ARTIFACT_SHA256,
 } from "./artifact.generated.mjs";
 
-export const PEARL_MCP_APP_VERSION = "1.5.5";
-// Visit preview and receipt bindings introduce a new metadata version.
-export const PEARL_MCP_APP_RESOURCE_URI = "ui://pearl/concierge/v11/index.html";
+export const PEARL_MCP_APP_VERSION = "1.5.7";
+// Clear action states and compact review layout introduce new artifact bytes.
+export const PEARL_MCP_APP_RESOURCE_URI = "ui://pearl/concierge/v13/index.html";
 // ChatGPT can retain tools/list metadata for an already-open conversation.
 // Keep the bounded reviewed resource history readable so those conversations
 // load the current artifact instead of silently dropping the card.
 export const PEARL_MCP_APP_COMPATIBILITY_RESOURCE_URIS = Object.freeze([
+  "ui://pearl/concierge/v12/index.html",
+  "ui://pearl/concierge/v11/index.html",
   "ui://pearl/concierge/v10/index.html",
   "ui://pearl/concierge/v9/index.html",
   "ui://pearl/concierge/v8/index.html",
@@ -39,6 +41,8 @@ export const PEARL_MCP_APP_IMAGE_ORIGIN = PEARL_MCP_APP_DOMAIN;
 
 export const PEARL_MCP_APP_ACTION_TOOL_NAMES = Object.freeze([
   "visits_import_prepare", "visits_import_commit", "visits_update_prepare", "visits_update_commit",
+  "saves_change_prepare", "saves_change_commit", "trips_create_prepare", "trips_create_commit",
+  "trip_stops_update_prepare", "trip_stops_update_commit",
 ]);
 
 export const PEARL_MCP_APP_TOOL_NAMES = Object.freeze([
@@ -112,7 +116,7 @@ function createResourceDefinition(uri, compatibility = false) {
     descriptor: {
       uri,
       name: compatibility ? "Pearl Concierge (compatibility)" : "Pearl Concierge",
-      description: "A presentation for supported Pearl reads and visit previews and receipts; cards cannot execute mutations.",
+      description: "A presentation for supported Pearl reads and visit, save, and trip previews and receipts; cards cannot execute mutations.",
       mimeType: PEARL_MCP_APP_MIME_TYPE,
       _meta: artifactMeta,
     },

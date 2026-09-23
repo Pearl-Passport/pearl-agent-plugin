@@ -18,6 +18,39 @@ and OAuth recovery.
   flow separately with one designated disposable visit, then remove test data
   through the Pearl app because deletion is not an Agent capability.
 
+## Save and trip action cards (v13 / 1.5.7)
+
+Run only where the connected host's `tools/list` already includes these tools
+and the designated test account has explicitly granted the required access.
+Do not enable additional tools or scopes just to obtain a card. Use Pearl Reserve
+or Elite test membership. A host without cards must retain the full text flow.
+
+1. Ask to save a designated test venue. Check its name and city, current saved
+   state, and the “Nothing has been changed” preview. Confirm explicitly in chat;
+   verify the receipt and the resulting saved state in Pearl.
+2. Ask to create a uniquely named private test trip with dates and a description.
+   Confirm the preview in chat, check the receipt and trip in Pearl. A duplicate
+   name must produce a warning, not silently select or overwrite an existing trip.
+3. Add a test stop, then reschedule, replace, and remove it in separate confirmed
+   steps. Check before/after dates and local times. Out-of-trip dates need a
+   warning. No step may create, change, or cancel a reservation.
+4. Decline a preview and let another expire: nothing should change. For timeout
+   or unknown results, inspect the existing receipt before preparing a new action.
+   A replay must not create a second trip, stop, or saved place.
+5. Test missing access and revoked authorization. Recovery should request chat
+   review, never execute a write from the card. No handles or credentials should
+   appear in visible cards, screenshots, or host test notes.
+6. Clean up only the designated test data through Pearl and revoke test grants.
+
+UI check: previews say “Not saved yet”, returned receipts say “Receipt”, and
+incomplete results say “Check in chat”. A receipt badge is not a claim that every
+import item succeeded. Before/after values and warnings must remain visible at
+320px, without horizontal scrolling or a second nested card border. Cards must
+not contain a write/confirm button; confirmation stays in the conversation.
+
+Record each host separately as pass, failed, or not tested. Local fixture/browser
+passes are not evidence of live host rendering, deployment, or marketplace approval.
+
 ## Host and viewport matrix
 
 Run the read prompts in ChatGPT web and desktop. Repeat the venue comparison and

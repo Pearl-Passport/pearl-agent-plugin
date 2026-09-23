@@ -18,25 +18,33 @@ endorsed, or listed Pearl.
 
 ## Install
 
+Install from this GitHub repository so your app can pull updates. Full per-app
+steps, including ChatGPT and Claude web, are in
+[Connect Pearl to your AI app](plugins/pearl/docs/setup.md).
+
 ### Codex Desktop and CLI
 
 ```bash
-git clone --branch v0.11.0 --depth 1 https://github.com/Pearl-Passport/pearl-agent-plugin.git
-cd pearl-agent-plugin
-codex plugin marketplace add .
+codex plugin marketplace add Pearl-Passport/pearl-agent-plugin
 codex plugin add pearl@pearl-integrations
 codex mcp login pearl
 ```
 
+Update with `codex plugin marketplace upgrade pearl-integrations`. Remove with
+`codex plugin remove pearl@pearl-integrations`.
+
 ### Claude Code
 
 ```bash
-git clone --branch v0.11.0 --depth 1 https://github.com/Pearl-Passport/pearl-agent-plugin.git
-cd pearl-agent-plugin
-claude plugin marketplace add .
+claude plugin marketplace add Pearl-Passport/pearl-agent-plugin
 claude plugin install pearl@pearl-integrations
 claude mcp login plugin:pearl:pearl
 ```
+
+Claude Code refreshes the marketplace automatically; to update now, run
+`claude plugin marketplace update pearl-integrations` and
+`claude plugin update pearl@pearl-integrations`. Remove with
+`claude plugin uninstall pearl@pearl-integrations`.
 
 For Claude web/desktop Chat, add `https://agent.joinpearl.co/mcp` as a custom
 connector, enter public client ID `pearl-claude-hosted`, and leave Client Secret
@@ -44,17 +52,19 @@ empty.
 
 ### Cursor desktop
 
+Install Pearl from the Cursor Marketplace or your team marketplace when it is
+listed there. Otherwise, install it locally:
+
 ```bash
-git clone --branch v0.11.0 --depth 1 https://github.com/Pearl-Passport/pearl-agent-plugin.git
-cd pearl-agent-plugin
+git clone --depth 1 https://github.com/Pearl-Passport/pearl-agent-plugin.git ~/pearl-agent-plugin
 mkdir -p ~/.cursor/plugins/local
-test ! -e ~/.cursor/plugins/local/pearl-cursor
-cp -R plugins/pearl/cursor ~/.cursor/plugins/local/pearl-cursor
+rsync -a --delete ~/pearl-agent-plugin/plugins/pearl/cursor/ ~/.cursor/plugins/local/pearl-cursor/
 ```
 
-Reload Cursor, enable **Pearl Cursor** in **Customize**, and authenticate.
-A local install does not automatically reach hosted Cloud Agents or Grok Bot.
-See [host setup](plugins/pearl/docs/setup.md) for hosted access and reconnecting.
+Reload Cursor, enable **Pearl Cursor** in **Customize**, and authenticate. To
+update, run `git -C ~/pearl-agent-plugin pull --ff-only` and the same `rsync`
+line; to remove, delete `~/.cursor/plugins/local/pearl-cursor`. A local install
+does not reach hosted Cloud Agents or Grok Bot.
 
 ## Manage access
 
@@ -66,7 +76,7 @@ Never share passwords, sign-in codes, access tokens, or payment details in chat.
 
 ## Developer reference
 
-- [Host setup](plugins/pearl/docs/setup.md) and [OAuth configuration](plugins/pearl/docs/oauth.md)
+- [Host registration and review](plugins/pearl/docs/host-operators.md) and [OAuth configuration](plugins/pearl/docs/oauth.md)
 - [Capability reference](plugins/pearl/skills/pearl-concierge/references/capabilities.md)
 - [Standalone CLI](cli/pearl/README.md)
 - [Release instructions](plugins/pearl/docs/releasing.md) and [source provenance](SOURCE.md)

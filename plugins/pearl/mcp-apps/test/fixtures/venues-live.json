@@ -1,0 +1,86 @@
+{
+  "structuredContent": {
+    "venues": [
+      {
+        "id": "4f7c2b1e-8a1d-4c55-9f0e-2d6b1c3a5e01",
+        "name": "Harbor & Pine",
+        "rank": 1,
+        "type": "restaurant",
+        "slug": "harbor-and-pine-chicago",
+        "city": "Chicago",
+        "neighborhood": "West Loop",
+        "cuisine": "New American",
+        "vibes": ["intimate", "tasting menu"],
+        "tags": ["tasting menu", "intimate"],
+        "description": "A twelve-seat counter cooking a seasonal Great Lakes tasting menu, with a quiet natural-wine list.",
+        "hero_image_url": "https://agent.joinpearl.co/api/v1/venue-images/4f7c2b1e-8a1d-4c55-9f0e-2d6b1c3a5e01/card",
+        "michelin_stars": 2,
+        "google_rating": 4.8,
+        "price_level": 4,
+        "address": "1100 W Fulton Market, Chicago",
+        "hours": "Wed–Sun 17:30–22:00",
+        "recommendation_reason": "New American cuisine; intimate; West Loop.",
+        "top_pick": true,
+        "pearl_url": "https://app.joinpearl.co/venue/harbor-and-pine-chicago",
+        "availability_supported": true,
+        "booking_platforms": ["tock"],
+        "fit_signals": [
+          { "category": "venue", "source": "pearl_catalog", "field": "michelin_stars", "value": 2 }
+        ]
+      },
+      {
+        "id": "4f7c2b1e-8a1d-4c55-9f0e-2d6b1c3a5e02",
+        "name": "Little Ember",
+        "rank": 2,
+        "type": "bar",
+        "slug": "little-ember-chicago",
+        "city": "Chicago",
+        "neighborhood": "Logan Square",
+        "cuisine": null,
+        "vibes": ["cocktails"],
+        "tags": ["cocktails"],
+        "description": null,
+        "hero_image_url": null,
+        "michelin_stars": null,
+        "google_rating": 4.6,
+        "price_level": 2,
+        "recommendation_reason": "Ranked by Pearl against the requested venue criteria; personal fit requires the separate member-scoped profile result. Returned differentiators: cocktails; Logan Square; 4.6 public Google rating.",
+        "pearl_url": "https://app.joinpearl.co/venue/little-ember-chicago",
+        "availability_supported": false,
+        "booking_platforms": []
+      },
+      {
+        "id": "4f7c2b1e-8a1d-4c55-9f0e-2d6b1c3a5e03",
+        "name": "Hotel Lumen",
+        "rank": 3,
+        "type": "hotel",
+        "slug": "hotel-lumen-chicago",
+        "city": "Chicago",
+        "neighborhood": "River North",
+        "description": "A converted printworks with a rooftop lounge and a calm lobby café.",
+        "hero_image_url": null,
+        "michelin_stars": 0,
+        "google_rating": 4.4,
+        "recommendation_reason": "Ranked by Pearl against the requested venue criteria; personal fit requires the separate member-scoped profile result.",
+        "pearl_url": "https://evil.example/venue/hotel-lumen-chicago",
+        "availability_supported": true,
+        "booking_platforms": ["resy", "opentable"]
+      }
+    ],
+    "returned_count": 3,
+    "total_count": 14,
+    "top_pick": { "id": "4f7c2b1e-8a1d-4c55-9f0e-2d6b1c3a5e01" },
+    "shortlist": {
+      "schema_version": 2,
+      "mode": "criteria_search",
+      "ranking_basis": "Ranked by Pearl against the requested venue criteria; personal fit requires the separate member-scoped profile result.",
+      "recommended_candidate_id": "4f7c2b1e-8a1d-4c55-9f0e-2d6b1c3a5e01",
+      "evidence_categories": {
+        "request": { "status": "applied", "source": "tool_arguments" },
+        "venue": { "status": "applied", "source": "pearl_catalog" },
+        "profile": { "status": "not_applied", "source": "profile_get" },
+        "social": { "status": "not_used", "source": null }
+      }
+    }
+  }
+}

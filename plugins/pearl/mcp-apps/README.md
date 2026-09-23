@@ -6,14 +6,14 @@ journey family for trip indexes, day-grouped trip stops, reservations, and
 flight or availability result shapes without owning
 authentication, storage, network access, or Pearl business logic. The canonical
 source now wires one versioned resource into both production MCP protocol paths
-for eight supported reads and four visit action tools. Venue and profile cards have rendered
+for eight supported reads and ten existing action tools. Venue and profile cards have rendered
 successfully in ChatGPT developer mode; public directory availability still
 depends on OpenAI review and publication.
 
 The primary integration is the open MCP Apps contract:
 
 - tool metadata uses `_meta.ui.resourceUri`;
-- read tools declare `ui.visibility: ["model", "app"]`; visit action tools declare `["model"]`;
+- read tools declare `ui.visibility: ["model", "app"]`; action tools declare `["model"]`;
 - the resource uses `text/html;profile=mcp-app`;
 - the iframe uses the `ui/*` JSON-RPC bridge over `postMessage`;
 - the resource CSP allows only Pearl-hosted venue images, with no API network,
@@ -52,9 +52,9 @@ helpers. Both protocol implementations register that same definition and return
 fresh copies of its same read payload.
 
 Published/installed host snapshots can outlive the last few UI releases. Keep
-the exact v4 URI pinned alongside v10/v9/v8/v7/v6/v5 compatibility aliases until host
+the exact v4 URI pinned alongside v12/v11/v10/v9/v8/v7/v6/v5 compatibility aliases until host
 refresh is verified; a live ChatGPT canary still requested v4 on 2026-09-04.
-All aliases return the current v11 artifact with identical authentication and
+All aliases return the current v13 artifact with identical authentication and
 CSP. This does not load old code or accept arbitrary resource URLs.
 
 The supported read list is `venues_search`, `venues_recommend`,
@@ -62,12 +62,27 @@ The supported read list is `venues_search`, `venues_recommend`,
 `reservations_list`, plus the client-gated `reservations_availability`. These are read-only tools whose output
 shapes the renderer handles. Profile results render member-scoped activity
 counts, taste facets, top cities, and fixed follow-up questions without adding
-a profile mutation. Place matching, visit-list reads, saves, friends, exact-reservation,
-other writes and other gated tools remain data-only. The four reviewed visit
-import/update prepare/commit tools also receive presentation metadata after
-their existing gates. Their visibility is model-only: cards never invoke a
+a profile mutation. Place matching, visit-list reads, saved-place reads, friends,
+exact-reservation, other writes and other gated tools remain data-only. The four
+reviewed visit import/update tools and six existing save/trip prepare/commit tools
+receive presentation metadata after their existing gates. Their visibility is model-only: cards never invoke a
 mutation. OpenAI connections receive the optional output-template alias;
 other hosts receive the portable field.
+
+The v12 / 1.5.6 presentation adds `saves_change_prepare/commit`,
+`trips_create_prepare/commit`, and `trip_stops_update_prepare/commit`. Previews
+show the place, private trip details, or before/after itinerary changes; duplicate
+names and dates outside the trip are called out. A receipt requires a matching
+returned status, not an expected result. Unknown or incomplete results direct
+the member back to chat before retrying. Cards never book or cancel reservations.
+The existing host inventory and consent gates still apply: these bindings do not
+make a tool available to another host or update a submitted marketplace snapshot.
+The v13 / 1.5.7 refinement labels action cards as “Not saved yet”, “Receipt”,
+or “Check in chat” instead of a result count. Receipts never imply every import
+item was saved. Single-boundary review cards retain all before/after details
+and warnings with more usable space on phones. Incomplete previews ask for
+review before confirmation; incomplete receipts ask for verification before retry.
+Real-host v13 rendering remains unverified until the canary below is completed.
 
 Trip and reservation reads use the unified journey family. Restaurant availability
 has a dedicated dining presentation with venue-local times, party size, provider,
@@ -106,7 +121,7 @@ that exact tool read-only; otherwise it sends a fixed user follow-up message.
 
 ## Design and accessibility
 
-The `1.5.5` / `v11` presentation adapts onboarding V1's neutral ink, cream,
+The `1.5.7` / `v13` presentation adapts onboarding V1's neutral ink, cream,
 flat surfaces, pill actions, and spacing. A repository-only drift test compares
 the mapped values with canonical `--ds-*` tokens. Accessible secondary ink
 and strong focus are retained. See [TOKENS.md](TOKENS.md) for the mapping and

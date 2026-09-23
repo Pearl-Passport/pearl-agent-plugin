@@ -1,0 +1,10 @@
+{
+  "structuredContent": {
+    "confirmation_required": true,
+    "action_handle_expires_at": "2030-09-19T18:00:00Z",
+    "preview": {
+      "action": "save", "location_id": "fixture-place", "name": "Le Jardin",
+      "city": "Paris", "country": "France", "currently_saved": false, "expected_result": "saved"
+    }
+  }
+}

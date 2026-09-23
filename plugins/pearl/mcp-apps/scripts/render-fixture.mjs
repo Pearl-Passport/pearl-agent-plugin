@@ -7,14 +7,16 @@ import { buildHtml } from "./build.mjs";
 
 const PACKAGE_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const FIXTURES = new Set([
-  "venues", "profile", "journeys", "flights", "availability", "visit-update",
+  "venues", "venues-live", "profile", "journeys", "flights", "availability", "visit-update",
+  "save-plan", "trip-plan",
   "states-empty", "states-denied", "states-expired", "states-partial",
 ]);
 const THEMES = new Set(["light", "dark"]);
 
-export function buildFixtureHarness(appHtml, fixture, theme, { compare = false, compatibilityFallback = false } = {}) {
+export function buildFixtureHarness(appHtml, fixture, theme, { compare = false, compatibilityFallback = false, actionTool = false, openLinks = true } = {}) {
   if (typeof appHtml !== "string" || !fixture || typeof fixture !== "object" || !THEMES.has(theme)
-    || typeof compare !== "boolean" || typeof compatibilityFallback !== "boolean") {
+    || typeof compare !== "boolean" || typeof compatibilityFallback !== "boolean" || typeof actionTool !== "boolean"
+    || typeof openLinks !== "boolean") {
     throw new TypeError("A built app, fixture object, and light/dark theme are required");
   }
   const appLiteral = JSON.stringify(appHtml).replace(/<\//g, "<\\/");
@@ -40,6 +42,8 @@ export function buildFixtureHarness(appHtml, fixture, theme, { compare = false, 
     const compatibilityFallback = ${JSON.stringify(compatibilityFallback)};
     const frame = document.getElementById("preview");
     window.__pearlFixtureMessages = [];
+    window.__pearlFixtureToolCalls = [];
+    window.__pearlFixtureOpenLinks = [];
     window.addEventListener("message", (event) => {
       if (event.source !== frame.contentWindow || event.data?.jsonrpc !== "2.0") return;
       const message = event.data;
@@ -50,16 +54,16 @@ export function buildFixtureHarness(appHtml, fixture, theme, { compare = false, 
           result: {
             protocolVersion: "2026-01-26",
             hostInfo: { name: "Pearl fixture host", version: "1.0.0" },
-            hostCapabilities: {},
+            hostCapabilities: ${openLinks ? "{ openLinks: {} }" : "{}"},
             hostContext: {
               theme,
               displayMode: "inline",
               platform: "web",
               toolInfo: {
                 tool: {
-                  name: "fixture_read",
+                  name: ${JSON.stringify(actionTool ? "trips_create_commit" : "fixture_read")},
                   inputSchema: { type: "object" },
-                  annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false }
+                  annotations: { readOnlyHint: ${!actionTool}, destructiveHint: false, idempotentHint: true, openWorldHint: false }
                 }
               }
             }
@@ -74,13 +78,19 @@ export function buildFixtureHarness(appHtml, fixture, theme, { compare = false, 
         }
         if (compare) {
           window.setTimeout(() => {
-            const cards = Array.from(frame.contentDocument?.querySelectorAll("button.result-card") || []).slice(0, 2);
+            const cards = Array.from(frame.contentDocument?.querySelectorAll("button.compare-toggle") || []).slice(0, 2);
             cards.forEach((card) => card.click());
           }, 50);
         }
       } else if (message.method === "ui/notifications/size-changed") {
         const height = Math.max(320, Math.min(2400, Number(message.params?.height) || 0));
         frame.style.height = height + "px";
+      } else if (message.method === "tools/call") {
+        window.__pearlFixtureToolCalls.push(message.params);
+        event.source.postMessage({ jsonrpc: "2.0", id: message.id, error: { code: -32601, message: "Fixture cannot execute tools" } }, "*");
+      } else if (message.method === "ui/open-link") {
+        window.__pearlFixtureOpenLinks.push(message.params);
+        event.source.postMessage({ jsonrpc: "2.0", id: message.id, result: {} }, "*");
       } else if (message.method === "ui/message") {
         window.__pearlFixtureMessages.push(message.params);
         event.source.postMessage({ jsonrpc: "2.0", id: message.id, result: {} }, "*");

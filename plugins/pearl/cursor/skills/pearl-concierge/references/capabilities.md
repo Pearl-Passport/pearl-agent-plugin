@@ -1,6 +1,6 @@
 # Pearl capability snapshot
 
-This public documentation snapshot is dated **2026-09-07** for package `0.11.0`. It is not a tool allowlist. The authenticated MCP `tools/list` response is authoritative and may vary by host, member, OAuth grant, or rollout.
+This public documentation snapshot describes the current package. It is not a tool allowlist. The authenticated MCP `tools/list` response is authoritative and may vary by host, member, OAuth grant, or rollout.
 
 ## Current public read set
 
@@ -20,6 +20,15 @@ This public documentation snapshot is dated **2026-09-07** for package `0.11.0`.
 | `reservations_list` | List reservations recorded in Pearl with exact-total pagination | Does not book, change, or cancel a reservation |
 | `reservation_get` | Read one selected reservation by returned source and ID | Does not expose booking credentials or provider actions |
 
+## Read details
+
+- `profile_get`: use only returned counts such as visits, cities, saves and ranked city frequency. Check `history_coverage` and describe counts as authoritative only when its exact-count fields say so. When `analytics` is present, keep each insight's coverage, freshness, confidence, sample size and evidence-source labels, but summarize rather than recite them. Use `lens: "exploration"` for revisit or exploration analysis; other lenses may intentionally skip the full-history scan. `lens: "recommendation"` returns relevant constraints automatically.
+- `visits_list`: for complete recent history, follow `next_cursor` with unchanged filters until `pagination.coverage_state` is `complete`. For favorites pass `sort: "score"`, optionally with `city`, `category`/`cuisine`, `trip` or `min_score`. Those filtered paths can be intentionally bounded. Request full notes only when needed, and use an exact `visit_id` lookup to verify one visit.
+- `saves_list`: follow `next_cursor` with unchanged `query` and `city` for all saves.
+- `trips_list`: totals and per-trip stop counts are exact for the active member-owned index. `trip_get` reads one trip's stops.
+- `reservations_list` then `reservation_get`: pass both the returned `source` and `id`.
+- `reservations_availability`: results carry a freshness signal. When `checked_live` is `false` the slots are cached and must be described with their observed time. Link `booking_url` or `pearl_url` so the member can book; availability never holds a table.
+
 ## Reviewed agent-host additions
 
 After coordinated server and host-version activation, reviewed ChatGPT, Codex, Claude, and Cursor registrations add read-only availability under `reservations:read`. Their two complete confirmed-action families appear only after the member reconnects and grants `visits:write`. Pearl recognizes exact registered principals plus the narrowly validated current OpenAI Codex CIMD client-ID family; it does not trust a client merely because it reports an OpenAI, Anthropic, or Cursor source. Unknown clients, MCP Registry-generic clients, retired registrations, direct grok.com connections, and the standalone Pearl CLI remain on the common read set.
@@ -34,9 +43,11 @@ After coordinated server and host-version activation, reviewed ChatGPT, Codex, C
 
 These tools cannot delete visits, edit a provider reservation, book a table, or reuse another host's grant.
 
+Existing grants are never widened. A member who connected before a permission existed sees the reads but not the new preview/commit pair; reconnecting Pearl and approving the permission adds it. Reconnecting never bypasses membership eligibility or a host's reviewed tool set.
+
 ## Reviewed saves and trips
 
-Codex, Claude and Cursor connections can receive six more tools after reconnecting for `saves:write` and `trips:write`: 24 tools with all ten scopes. ChatGPT keeps its submitted 18-tool/eight-scope contract. Existing grants are never widened. The standalone Pearl CLI remains on the 13 common reads.
+Codex, Claude and Cursor connections can receive six more tools after reconnecting for `saves:write` and `trips:write`: 24 tools with all ten scopes. ChatGPT keeps its submitted 18-tool/eight-scope contract. On ChatGPT, offer the returned Pearl link so the member can save a place or change a trip in Pearl. These actions are not part of the current ChatGPT app. Existing grants are never widened. The standalone Pearl CLI remains on the 13 common reads.
 
 | Tool | Workflow | Boundary |
 | --- | --- | --- |

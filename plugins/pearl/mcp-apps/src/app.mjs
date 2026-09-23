@@ -1,6 +1,7 @@
-import { normalizeToolResult, recoveryPrompt } from "./model.mjs";
+import { normalizeToolResult, providerLabel, recoveryPrompt } from "./model.mjs";
 
-// Replaced at build time with the exact approved assets/icon.png. No fetch.
+// Replaced at build time with the approved 56px assets/icon-56.png (2x the
+// 28px render) derived from assets/icon.png. No fetch.
 const PEARL_BRAND_MARK = "__PEARL_BRAND_MARK__";
 const root = document.getElementById("app");
 const liveRegion = document.getElementById("live-status");
@@ -8,6 +9,7 @@ const pending = new Map();
 const selected = new Set();
 const hostState = {
   connected: false,
+  capabilities: {},
   context: {},
   toolInput: undefined,
   toolResultReceived: false,
@@ -150,42 +152,78 @@ function button(label, onClick, variant = "primary") {
   return node;
 }
 
-async function sendFixedHostMessage(text, actionButton) {
+async function sendFixedHostMessage(text, actionButton, sentLabel = "Question sent", sentAnnouncement = "Sent your taste question to the host.") {
   actionButton.disabled = true;
   try {
     await request("ui/message", {
       role: "user",
       content: [{ type: "text", text }],
     });
-    actionButton.textContent = "Question sent";
-    announce("Sent your taste question to the host.");
+    actionButton.textContent = sentLabel;
+    announce(sentAnnouncement);
   } catch {
     actionButton.disabled = false;
     announce("The host could not start that question. Continue in the conversation.");
   }
 }
 
+// Links leave the iframe only through the host: the MCP Apps ui/open-link
+// request when advertised, else ChatGPT's compatibility bridge. The model has
+// already reduced the URL to an exact Pearl app route.
+function canOpenLinks() {
+  return Boolean(hostState.capabilities?.openLinks) || typeof window.openai?.openExternal === "function";
+}
+
+async function openInPearl(url, actionButton) {
+  actionButton.disabled = true;
+  try {
+    if (hostState.capabilities?.openLinks) {
+      const result = await request("ui/open-link", { url });
+      if (result?.isError) throw new Error("Link declined");
+    } else {
+      await window.openai.openExternal({ href: url });
+    }
+    announce("Opened Pearl.");
+  } catch {
+    announce("The host could not open Pearl. Continue in the conversation.");
+  } finally {
+    actionButton.disabled = false;
+  }
+}
+
+function pearlLink(url, label, accessibleName) {
+  if (!url || !canOpenLinks()) return undefined;
+  const link = element("button", "card-action link", label);
+  link.type = "button";
+  if (accessibleName) link.setAttribute("aria-label", accessibleName);
+  link.addEventListener("click", () => openInPearl(url, link));
+  return link;
+}
+
 function header(model) {
   const node = element("header", "panel-header");
   const copy = element("div", "header-copy");
-  const eyebrow = element("p", "eyebrow");
   const mark = element("img", "brand-mark");
   mark.alt = "";
   mark.width = 28;
   mark.height = 28;
   mark.src = PEARL_BRAND_MARK;
+  // Below 540px the mark sits beside the title and the brand words drop out.
+  const eyebrow = element("p", "eyebrow");
   const brand = element("span", "brand-name", "Pearl");
   brand.append(element("span", "brand-role", "Concierge"));
-  eyebrow.append(mark, brand);
+  eyebrow.append(brand);
   copy.append(eyebrow);
   copy.append(element("h1", "", model.title));
-  copy.append(element("p", "subtitle", model.subtitle));
-  node.append(copy);
-  if (model.state === "ready" && model.kind === "profile" && model.lens) {
-    node.append(element("span", "count-pill", model.lens));
+  node.append(mark, copy);
+  if (model.state === "ready" && model.statusLabel) {
+    node.append(element("span", "count-pill action-status", model.statusLabel));
+  } else if (model.state === "ready" && model.kind === "profile" && model.lensLabel) {
+    node.append(element("span", "count-pill", model.lensLabel));
   } else if (model.state === "ready") {
     node.append(element("span", "count-pill", `${model.items.length} result${model.items.length === 1 ? "" : "s"}`));
   }
+  if (model.subtitle) node.append(element("p", "subtitle", model.subtitle));
   return node;
 }
 
@@ -205,43 +243,108 @@ function chip(label, accent = false) {
   return element("span", `chip${accent ? " accent" : ""}`, label);
 }
 
-function itemCard(item, index, selectable, showMedia = false) {
-  const node = element(selectable ? "button" : "article", "result-card");
-  const titleId = `result-title-${index}`;
-  if (showMedia) node.append(mediaFigure(item));
+function statusPill(value) {
+  const raw = String(value || "").toLowerCase();
+  const status = element("span", "status-pill", readableStatus(raw));
+  status.dataset.status = raw;
+  return status;
+}
+
+// Venue names are catalog data; they are bounded and quoted inside otherwise
+// fixed, model-mediated follow-ups. No card action can call a tool or write.
+function quotedPlace(item) {
+  const name = String(item.name || "").replace(/[\u201c\u201d"]/g, "").slice(0, 80);
+  const city = String(item.city || "").replace(/[\u201c\u201d"]/g, "").slice(0, 60);
+  return `“${name}”${city ? ` in ${city}` : ""}`;
+}
+
+function venueActions(item, selectable) {
+  const row = element("div", "card-actions");
+  const ask = element("button", "card-action", "Ask about this");
+  ask.type = "button";
+  ask.setAttribute("aria-label", `Ask about ${item.name}`);
+  ask.addEventListener("click", () => sendFixedHostMessage(
+    `Tell me more about ${quotedPlace(item)} from Pearl.`, ask, "Asked", `Asked the host about ${item.name}.`,
+  ));
+  row.append(ask);
+  if (item.availabilitySupported) {
+    const table = element("button", "card-action", "Check a table");
+    table.type = "button";
+    table.setAttribute("aria-label", `Check a table at ${item.name}`);
+    table.addEventListener("click", () => sendFixedHostMessage(
+      `Check table availability at ${quotedPlace(item)} with Pearl. Ask me for the date, time and party size if I have not given them. Do not book anything.`,
+      table, "Asked", `Asked the host to check a table at ${item.name}.`,
+    ));
+    row.append(table);
+  }
+  const link = pearlLink(item.pearlUrl, "Open in Pearl", `Open ${item.name} in Pearl`);
+  if (link) row.append(link);
   if (selectable) {
-    node.type = "button";
-    node.setAttribute("aria-pressed", selected.has(item.id) ? "true" : "false");
-    node.setAttribute("aria-labelledby", titleId);
-    node.addEventListener("click", () => {
+    const toggle = element("button", "card-action compare-toggle", "Compare");
+    toggle.type = "button";
+    toggle.setAttribute("aria-pressed", selected.has(item.id) ? "true" : "false");
+    toggle.setAttribute("aria-label", `Compare ${item.name}`);
+    toggle.addEventListener("click", () => {
       if (selected.has(item.id)) selected.delete(item.id);
       else if (selected.size < 3) selected.add(item.id);
       else announce("You can compare up to three places. Deselect one first.");
       renderCurrent();
       announce(`${selected.size} place${selected.size === 1 ? "" : "s"} selected for comparison.`);
     });
+    row.append(toggle);
+  }
+  return row;
+}
+
+function monogram(item) {
+  const node = element("span", "venue-monogram");
+  node.setAttribute("aria-hidden", "true");
+  const initial = String(item.name || "").trim().charAt(0);
+  node.textContent = initial ? initial.toUpperCase() : "·";
+  return node;
+}
+
+function itemCard(item, index, selectable, venue = false) {
+  const node = element("article", "result-card");
+  const titleId = `result-title-${index}`;
+  node.setAttribute("aria-labelledby", titleId);
+  if (venue && selected.has(item.id)) node.classList.add("is-selected");
+  // Only a real photo earns the 21:9 band; a missing or failed one collapses
+  // to a small monogram beside the title.
+  if (venue && item.image?.src) {
+    const figure = mediaFigure(item);
+    node.classList.add("has-photo");
+    figure.querySelector("img")?.addEventListener("error", () => {
+      figure.remove();
+      node.classList.remove("has-photo");
+    }, { once: true });
+    node.append(figure);
   }
 
   const top = element("div", "item-heading");
-  const heading = element(selectable ? "span" : "h2", "item-title", item.name);
+  if (venue) top.append(monogram(item));
+  const titleBlock = element("div", "item-title-block");
+  if (item.topPick) titleBlock.append(element("span", "top-pick", "Top pick"));
+  const heading = element("h2", "item-title", item.name);
   heading.id = titleId;
-  top.append(heading);
-  if (item.status) {
-    const status = element("span", "status-pill", item.status);
-    status.dataset.status = item.status;
-    top.append(status);
-  } else if (item.score) {
-    top.append(element("span", "status-pill", item.score));
-  }
+  titleBlock.append(heading);
+  top.append(titleBlock);
+  if (item.status) top.append(statusPill(item.status));
   node.append(top);
-  if (item.meta) node.append(element("p", "item-meta", item.meta));
+  const meta = [item.meta, item.priceLevel].filter(Boolean).join(" · ");
+  if (meta) node.append(element("p", "item-meta", meta));
   if (item.detail) node.append(element("p", "item-detail", item.detail));
-  const chips = [item.category, item.group, item.score && item.status ? item.score : ""].filter(Boolean);
-  if (chips.length) {
+  const labels = [
+    ...(item.category ? [[readableStatus(item.category), true]] : []),
+    ...(item.group ? [[item.group, false]] : []),
+    ...(item.signals || []).map((signal) => [signal.label, false]),
+  ];
+  if (labels.length) {
     const row = element("div", "chip-row");
-    chips.forEach((label, chipIndex) => row.append(chip(label, chipIndex === 0)));
+    labels.forEach(([label, accent]) => row.append(chip(label, accent)));
     node.append(row);
   }
+  if (venue) node.append(venueActions(item, selectable));
   return node;
 }
 
@@ -271,7 +374,7 @@ function journeyFacts(facts, maximum = 6) {
     if (!fact?.label || !fact?.value) continue;
     const row = element("div", "journey-fact");
     row.append(element("dt", "", fact.label));
-    row.append(element("dd", "", fact.value));
+    row.append(element("dd", "", fact.label === "Provider" ? providerLabel(fact.value) : fact.value));
     list.append(row);
   }
   return list.childElementCount ? list : undefined;
@@ -391,18 +494,28 @@ function journeyCard(item, index) {
   if (item.detail) card.append(element("p", "journey-detail", item.detail));
   const facts = journeyFacts(item.facts, item.journeyType === "availability" ? 8 : 6);
   if (facts) card.append(facts);
-  if (item.score) card.append(element("p", "journey-price", item.score));
+  if (item.score) {
+    const price = element("p", "journey-price");
+    price.append(element("span", "journey-price-label", item.priceLabel || "Price"), element("span", "", item.score));
+    card.append(price);
+  }
   const stops = stopList(item.stops);
   if (stops) card.append(stops);
 
   if (item.journeyType === "flight" || item.journeyType === "availability") {
     const provenance = element("footer", "journey-provenance");
-    provenance.append(element("span", "", `Source: ${item.source || "Pearl"}`));
+    provenance.append(element("span", "", `Source: ${providerLabel(item.source) || "Pearl"}`));
     if (item.freshness) provenance.append(element("span", "", `${item.freshnessLabel || "Updated"}: ${item.freshness}`));
     provenance.append(element("span", "", item.journeyType === "availability"
       ? "No table is held or booked · confirm terms with the provider"
       : "Read only · confirm fare and availability before booking"));
     card.append(provenance);
+  }
+  const link = pearlLink(item.pearlUrl, "Open in Pearl", `Open ${item.name} in Pearl`);
+  if (link) {
+    const actions = element("div", "card-actions");
+    actions.append(link);
+    card.append(actions);
   }
   return card;
 }
@@ -461,12 +574,20 @@ function comparison(items) {
   const grid = element("div", "comparison-grid");
   grid.setAttribute("role", "list");
   grid.dataset.count = String(picked.length);
+  const signal = (source) => (item) => item.signals?.find((entry) => entry.source === source)?.label || "";
+  // Rows every picked place shares add nothing to a comparison; show only
+  // the rows where the places differ.
   const fields = [
-    ["Location", (item) => item.meta || "Not provided"],
-    ["Category", (item) => item.category || "Not provided"],
-    ["Pearl context", (item) => item.detail || "Not provided"],
-    ["Signal", (item) => item.score || item.status || "Not provided"],
-  ];
+    ["Location", (item) => item.meta],
+    ["Type", (item) => item.category ? readableStatus(item.category) : ""],
+    ["Price", (item) => item.priceLevel],
+    ["Michelin", signal("michelin")],
+    ["Google rating", signal("google")],
+    ["Pearl score", signal("pearl")],
+    ["Match", signal("match")],
+    ["Tables", (item) => item.availabilitySupported ? "Pearl can check" : ""],
+    ["About", (item) => item.detail],
+  ].filter(([, valueFor]) => new Set(picked.map((item) => valueFor(item) || "")).size > 1);
   for (const item of picked) {
     const card = element("article", "comparison-card");
     card.setAttribute("role", "listitem");
@@ -476,7 +597,7 @@ function comparison(items) {
     for (const [label, valueFor] of fields) {
       const row = element("div", "comparison-row");
       row.append(element("dt", "", label));
-      row.append(element("dd", "comparison-value", valueFor(item)));
+      row.append(element("dd", "comparison-value", valueFor(item) || "—"));
       details.append(row);
     }
     card.append(details);
@@ -753,11 +874,11 @@ function errorContent(model) {
   const node = element("div", "error-state");
   node.append(stateIcon("alert"));
   node.append(element("p", "", model.subtitle));
-  if (model.error.requiredScope) {
-    node.append(element("p", "scope-note", `Required access: ${model.error.requiredScope === "visits:write" ? "Add and edit visits" : model.error.requiredScope}`));
+  if (model.error.requiredScope && model.error.accessLabel) {
+    node.append(element("p", "scope-note", `Required access: ${model.error.accessLabel}`));
   }
   const label = model.error.userAction === "reconnect" ? "Reconnect"
-    : model.error.userAction === "grant_scope" ? model.error.requiredScope === "visits:write" ? "Request visit access" : "Request read access"
+    : model.error.userAction === "grant_scope" ? model.error.requiredScope === "visits:write" ? "Request visit access" : model.error.requiredScope.endsWith(":write") ? "Review required access" : "Request read access"
     : "Try again";
   const action = button(label, () => recover(model, action));
   node.append(action);
@@ -768,12 +889,14 @@ function visitActionContent(model) {
   const list = element("div", "journey-list");
   for (const item of model.items) {
     const card = element("article", "journey-card");
-    const body = element("div", "profile-section");
+    const body = element("div", "action-review");
     body.append(element("h2", "journey-title", item.name));
     for (const warning of item.warnings || []) body.append(element("p", "journey-detail", warning));
     for (const change of item.changes || []) {
-      body.append(element("h3", "journey-kicker", change.label));
-      body.append(journeyFacts([{ label: "Before", value: change.before }, { label: "After", value: change.after }]));
+      const group = element("section", "action-change");
+      group.append(element("h3", "journey-kicker", change.label));
+      group.append(journeyFacts([{ label: "Before", value: change.before }, { label: "After", value: change.after }]));
+      body.append(group);
     }
     const facts = journeyFacts(item.facts, 8);
     if (facts) body.append(facts);
@@ -816,8 +939,8 @@ function renderCurrent() {
   const model = currentModel;
   const panel = element("section", "panel");
   panel.append(header(model));
-  if (model.partial) panel.append(banner(model.kind === "visit_action"
-    ? "This result is incomplete. Review the remaining items in the conversation before confirming or retrying."
+  if (model.partial) panel.append(banner(model.incompleteMessage
+    ? model.incompleteMessage
     : "Some results could not be loaded. The available items are still shown below."));
   if (model.expiresAt) panel.append(banner(`Preview expires: ${model.expiresAt}. Ask for a new preview if it expires.`));
   if (model.refreshInProgress) panel.append(banner("A provider check is still running. These are the currently returned options."));
@@ -828,15 +951,16 @@ function renderCurrent() {
     content.append(emptyContent(model));
   } else if (model.kind === "profile") {
     content.append(profileContent(model));
-  } else if (model.kind === "visit_action") {
+  } else if (["visit_action", "plan_action"].includes(model.kind)) {
     content.append(visitActionContent(model));
   } else if (["journeys", "flights", "availability"].includes(model.kind)) {
     content.append(journeyContent(model));
   } else {
-    if (model.kind === "venues") {
+    const comparable = model.kind === "venues" && model.items.length >= 2;
+    if (comparable) {
       const toolbar = element("div", "toolbar");
       toolbar.append(element("p", "toolbar-copy", selected.size < 2
-        ? "Select two or three places to compare."
+        ? "Select up to three places to compare."
         : `${selected.size} places selected.`));
       if (selected.size) {
         toolbar.append(button("Clear selection", () => {
@@ -849,10 +973,17 @@ function renderCurrent() {
     }
     const grid = element("div", "results-grid");
     grid.dataset.density = model.items.length >= 3 ? "wide" : "regular";
-    model.items.forEach((item, index) => grid.append(itemCard(item, index, model.kind === "venues", model.kind === "venues")));
+    model.items.forEach((item, index) => grid.append(itemCard(item, index, comparable, model.kind === "venues")));
     content.append(grid);
-    const compare = model.kind === "venues" ? comparison(model.items) : undefined;
+    const compare = comparable ? comparison(model.items) : undefined;
     if (compare) content.append(compare);
+    if (model.rankingBasis) content.append(element("p", "ranking-note", model.rankingBasis));
+  }
+  const modelLink = pearlLink(model.pearlUrl, "Open in Pearl", "Open this restaurant in Pearl");
+  if (modelLink) {
+    const actions = element("div", "card-actions panel-actions");
+    actions.append(modelLink);
+    content.append(actions);
   }
   panel.append(content);
   root.replaceChildren(panel);
@@ -995,7 +1126,7 @@ async function connect() {
   showLoading();
   try {
     const initialized = await request("ui/initialize", {
-      appInfo: { name: "Pearl Concierge", version: "1.5.5" },
+      appInfo: { name: "Pearl Concierge", version: "1.5.7" },
       appCapabilities: { availableDisplayModes: ["inline"] },
       protocolVersion: "2026-01-26",
     }, 5_000);
@@ -1003,6 +1134,9 @@ async function connect() {
       throw new Error("Invalid MCP Apps initialize response");
     }
     applyHostContext(initialized.hostContext);
+    hostState.capabilities = initialized.hostCapabilities && typeof initialized.hostCapabilities === "object"
+      ? initialized.hostCapabilities
+      : {};
     hostState.connected = true;
     notify("ui/notifications/initialized");
     observeSize();

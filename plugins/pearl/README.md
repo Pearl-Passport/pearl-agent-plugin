@@ -29,7 +29,7 @@ reservation boundaries, see [Visits and reservations](docs/visits-and-reservatio
 - `.mcp.json`: the single shared URL-only Codex and Claude connection; Cursor's isolated thin wrapper uses the same endpoint with its required static public client.
 - `server.json`: the MCP Registry preview entry for the same remote URL; it contains no headers, credentials, package runtime, or tool inventory.
 - `skills/pearl-concierge/`: the canonical discovery-first workflow skill for Codex and Claude; Cursor ships a byte-for-byte validated mirror under its isolated source subtree.
-- `docs/`: host setup, OAuth, and release instructions.
+- `docs/`: member setup, host registration and review, OAuth, and release instructions.
 - `assets/`: approved Pearl marketplace artwork; see [assets/README.md](assets/README.md). Cursor's isolated source contains a hash-validated logo mirror.
 - `mcp-apps/`: the dependency-free, versioned inline UI resource and integration helpers. It adds no tools, auth, network endpoint, or business logic; see [mcp-apps/README.md](mcp-apps/README.md).
 - `scripts/` and `test/`: zero-dependency validation.
@@ -61,7 +61,8 @@ The official MCP Registry is in preview. Keeping `server.json` in the package do
 
 Never add credentials, environment files, authorization headers, private implementation details, or member data to this package. Report vulnerabilities privately to `hello@joinpearl.co` with `[Security]` in the subject line.
 
-- Setup: [docs/setup.md](docs/setup.md)
+- Member setup: [docs/setup.md](docs/setup.md)
+- Host registration and review: [docs/host-operators.md](docs/host-operators.md)
 - OAuth: [docs/oauth.md](docs/oauth.md)
 - Releases: [docs/releasing.md](docs/releasing.md)
 - Host submission: [docs/submission.md](docs/submission.md)

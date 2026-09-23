@@ -36,12 +36,15 @@ const EXPECTED_FILES = [
   "scripts/validate.mjs",
   "src/app.mjs",
   "src/artifact.generated.mjs",
+  "src/brand-mark-56.png",
   "src/integration.mjs",
   "src/model.mjs",
   "src/styles.css",
   "test/fixtures/flights.json",
   "test/fixtures/availability.json",
   "test/fixtures/visit-update.json",
+  "test/fixtures/trip-plan.json",
+  "test/fixtures/save-plan.json",
   "test/fixtures/journeys.json",
   "test/fixtures/profile.json",
   "test/fixtures/states-denied.json",
@@ -49,6 +52,7 @@ const EXPECTED_FILES = [
   "test/fixtures/states-expired.json",
   "test/fixtures/states-partial.json",
   "test/fixtures/venues.json",
+  "test/fixtures/venues-live.json",
   "test/integration.test.mjs",
   "test/model.test.mjs",
 ].sort();
@@ -165,6 +169,7 @@ async function validate() {
     "ui/notifications/size-changed",
     "ui/resource-teardown",
     "ui/message",
+    "ui/open-link",
     "tools/call",
   ]) check(first.includes(required), `MCP Apps bridge is missing ${required}`, errors);
   check(first.includes("event.source !== window.parent"), "postMessage receiver must pin event.source to the parent", errors);
@@ -238,10 +243,14 @@ async function validate() {
     "Surfaces must remain opaque under reduced transparency", errors);
   check(css.includes("prefers-contrast: more"),
     "Surfaces must retain a high-contrast variant", errors);
-  const approvedMark = await readFile(path.join(PACKAGE_ROOT, "..", "assets", "icon.png"));
+  const approvedMark = await readFile(path.join(PACKAGE_ROOT, "src", "brand-mark-56.png"));
   check(first.includes(`data:image/png;base64,${approvedMark.toString("base64")}`)
     && !first.includes("__PEARL_BRAND_MARK__"),
     "Widget must inline the exact approved Pearl mark without a new origin", errors);
+  check(approvedMark.readUInt32BE(16) === 56 && approvedMark.readUInt32BE(20) === 56 && approvedMark.length <= 8 * 1024,
+    "Widget must inline the pre-sized 56px mark, not the 256px master", errors);
+  const masterMark = await readFile(path.join(PACKAGE_ROOT, "..", "assets", "icon.png"));
+  check(!first.includes(masterMark.toString("base64").slice(0, 200)), "Widget must not inline the 256px master mark", errors);
   check(first.includes(`appInfo: { name: "Pearl Concierge", version: "${PEARL_MCP_APP_VERSION}" }`),
     "UI initialization version must match its resource package", errors);
   check(css.includes(".media-fallback") && css.includes(".media-credit") && css.includes(".media-image"),

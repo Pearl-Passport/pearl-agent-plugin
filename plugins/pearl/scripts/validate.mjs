@@ -7,7 +7,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const PLUGIN_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const EXPECTED_VERSION = "0.11.0";
+const EXPECTED_VERSION = "0.11.1";
 const EXPECTED_MCP_URL = "https://agent.joinpearl.co/mcp";
 const EXPECTED_REGISTRY_SCHEMA = "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json";
 const EXPECTED_REGISTRY_NAME = "io.github.Pearl-Passport/pearl-agent-plugin";
@@ -107,6 +107,7 @@ export const EXPECTED_PUBLIC_REPOSITORY_FILES = [
   "plugins/pearl/cursor/skills/pearl-concierge/agents/openai.yaml",
   "plugins/pearl/cursor/skills/pearl-concierge/references/capabilities.md",
   "plugins/pearl/docs/oauth.md",
+  "plugins/pearl/docs/host-operators.md",
   "plugins/pearl/docs/quick-start.md",
   "plugins/pearl/docs/releasing.md",
   "plugins/pearl/docs/setup.md",
@@ -121,12 +122,15 @@ export const EXPECTED_PUBLIC_REPOSITORY_FILES = [
   "plugins/pearl/mcp-apps/scripts/validate.mjs",
   "plugins/pearl/mcp-apps/src/app.mjs",
   "plugins/pearl/mcp-apps/src/artifact.generated.mjs",
+  "plugins/pearl/mcp-apps/src/brand-mark-56.png",
   "plugins/pearl/mcp-apps/src/integration.mjs",
   "plugins/pearl/mcp-apps/src/model.mjs",
   "plugins/pearl/mcp-apps/src/styles.css",
   "plugins/pearl/mcp-apps/test/fixtures/flights.json",
   "plugins/pearl/mcp-apps/test/fixtures/availability.json",
   "plugins/pearl/mcp-apps/test/fixtures/visit-update.json",
+  "plugins/pearl/mcp-apps/test/fixtures/save-plan.json",
+  "plugins/pearl/mcp-apps/test/fixtures/trip-plan.json",
   "plugins/pearl/mcp-apps/test/fixtures/journeys.json",
   "plugins/pearl/mcp-apps/test/fixtures/profile.json",
   "plugins/pearl/mcp-apps/test/fixtures/states-denied.json",
@@ -134,6 +138,7 @@ export const EXPECTED_PUBLIC_REPOSITORY_FILES = [
   "plugins/pearl/mcp-apps/test/fixtures/states-expired.json",
   "plugins/pearl/mcp-apps/test/fixtures/states-partial.json",
   "plugins/pearl/mcp-apps/test/fixtures/venues.json",
+  "plugins/pearl/mcp-apps/test/fixtures/venues-live.json",
   "plugins/pearl/mcp-apps/test/integration.test.mjs",
   "plugins/pearl/mcp-apps/test/model.test.mjs",
   "plugins/pearl/package.json",
@@ -458,7 +463,12 @@ export async function validatePackage() {
     "Cursor's packaged Pearl Concierge skill must be a byte-for-byte mirror of the canonical skill",
     errors
   );
-  const setupGuide = await readFile(path.join(PLUGIN_ROOT, "docs/setup.md"), "utf8");
+  // Member steps live in setup.md and registration detail in host-operators.md;
+  // the host-setup checks below apply to the pair.
+  const setupGuide = [
+    await readFile(path.join(PLUGIN_ROOT, "docs/setup.md"), "utf8"),
+    await readFile(path.join(PLUGIN_ROOT, "docs/host-operators.md"), "utf8")
+  ].join("\n");
   const oauthGuide = await readFile(path.join(PLUGIN_ROOT, "docs/oauth.md"), "utf8");
   const releaseGuide = await readFile(path.join(PLUGIN_ROOT, "docs/releasing.md"), "utf8");
   const submissionGuide = await readFile(path.join(PLUGIN_ROOT, "docs/submission.md"), "utf8");
