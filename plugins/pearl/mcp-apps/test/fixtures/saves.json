@@ -1,0 +1,10 @@
+{
+  "structuredContent": {
+    "saved": [
+      { "id": "7c9e6679-7425-40de-944b-e07fc1f90ae7", "name": "Le Bernardin", "slug": "le-bernardin", "type": "restaurant", "city": "New York", "country": "United States", "michelin_stars": 3, "w50_ranking": null, "pearl_url": "https://app.joinpearl.co/venue/le-bernardin" },
+      { "id": "0b5c3f1e-8d2a-4c6b-9e7f-1a2b3c4d5e6f", "name": "Attaboy", "slug": "attaboy", "type": "bar", "city": "New York", "country": "United States", "michelin_stars": 0, "w50_ranking": 34, "pearl_url": "https://app.joinpearl.co/venue/attaboy" }
+    ],
+    "next_cursor": "opaque-cursor",
+    "pagination": { "coverage_state": "partial", "page_size": 2, "returned_count": 2, "returned_through": 2, "total_count": 14, "total_count_is_exact": true, "coverage_ratio": 0.14, "truncated": true, "partial_reason": "page_limit" }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "structuredContent": {
+    "id": "9f8e7d6c-5b4a-4321-8765-0fedcba98765",
+    "source": "user_reservations",
+    "location_id": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+    "venue_name": "Le Bernardin",
+    "reservation_at": "2026-10-15T00:30:00+00:00",
+    "timezone": "America/New_York",
+    "local_time_label": "Wed 14 Oct, 8:30 PM EDT",
+    "status": "confirmed",
+    "pearl_url": "https://app.joinpearl.co/reservations"
+  }
+}

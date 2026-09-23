@@ -1,0 +1,99 @@
+{
+  "structuredContent": {
+    "venue": {
+      "location_id": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+      "name": "Le Bernardin",
+      "type": "restaurant",
+      "slug": "le-bernardin",
+      "pearl_url": "https://app.joinpearl.co/venue/le-bernardin",
+      "city": "New York",
+      "country": "United States",
+      "neighborhood": "Midtown",
+      "address": "155 W 51st St, New York, NY 10019",
+      "latitude": 40.7615,
+      "longitude": -73.9818,
+      "phone": "+1 212-554-1515",
+      "website": "https://www.le-bernardin.com",
+      "description": "Eric Ripert's seafood temple, three Michelin stars since 2005.",
+      "cuisine": "French · Seafood",
+      "price_tier": 4
+    },
+    "opening": {
+      "status": "open",
+      "open_now": false,
+      "as_of": "2026-09-23T02:00:00Z",
+      "timezone": "America/New_York",
+      "summary": "Mon–Sat dinner",
+      "weekly_intervals": [],
+      "hours_by_day": {
+        "Mon": [
+          "5:00 PM–10:30 PM"
+        ],
+        "Tue": [
+          "5:00 PM–10:30 PM"
+        ],
+        "Wed": [
+          "5:00 PM–10:30 PM"
+        ],
+        "Thu": [
+          "12:00 PM–2:30 PM",
+          "5:00 PM–10:30 PM"
+        ],
+        "Fri": [
+          "12:00 PM–2:30 PM",
+          "5:00 PM–11:00 PM"
+        ],
+        "Sat": [
+          "5:00 PM–11:00 PM"
+        ]
+      },
+      "open_date": null,
+      "open_date_precision": null
+    },
+    "booking": {
+      "availability": "not_checked",
+      "platform": "resy",
+      "url": "https://resy.com/cities/ny/le-bernardin",
+      "interaction_mode": "online",
+      "policy": null,
+      "difficulty": 4,
+      "walk_in_only": false
+    },
+    "pearl_context": {
+      "vibe": "Hushed, formal, immaculate.",
+      "best_for": "Celebrations and business dinners",
+      "ordering_tips": "Chef's tasting with the wine pairing",
+      "dress_code": "Jacket preferred",
+      "parking": null,
+      "tags": [],
+      "points": 1800,
+      "awards": {
+        "total": 6,
+        "michelin_stars": 3,
+        "michelin_keys": 0,
+        "worlds_50_best": false,
+        "worlds_50_best_rank": null
+      },
+      "community": {
+        "average_score": 9.1,
+        "scored_visit_count": 40,
+        "recommend_percentage": 95,
+        "visit_count": 120,
+        "google_rating": 4.7,
+        "google_review_count": 4200
+      }
+    },
+    "member_context": {
+      "saved": true,
+      "visit_count": 2,
+      "latest_visit_id": "a1b2c3d4-0000-4000-8000-000000000001",
+      "latest_visited_at": "2026-09-01",
+      "latest_score": 9.5
+    },
+    "people": {
+      "current_affiliations": [],
+      "count": 0,
+      "privacy_note": "Public venue-affiliated people only; private member visitor identities are not returned."
+    }
+  }
+}

@@ -220,6 +220,8 @@ function header(model) {
     node.append(element("span", "count-pill action-status", model.statusLabel));
   } else if (model.state === "ready" && model.kind === "profile" && model.lensLabel) {
     node.append(element("span", "count-pill", model.lensLabel));
+  } else if (model.state === "ready" && model.kind === "venue_detail") {
+    if (model.openLabel) node.append(element("span", "count-pill", model.openLabel));
   } else if (model.state === "ready") {
     node.append(element("span", "count-pill", `${model.items.length} result${model.items.length === 1 ? "" : "s"}`));
   }
@@ -243,9 +245,9 @@ function chip(label, accent = false) {
   return element("span", `chip${accent ? " accent" : ""}`, label);
 }
 
-function statusPill(value) {
+function statusPill(value, label = "") {
   const raw = String(value || "").toLowerCase();
-  const status = element("span", "status-pill", readableStatus(raw));
+  const status = element("span", "status-pill", label || readableStatus(raw));
   status.dataset.status = raw;
   return status;
 }
@@ -329,7 +331,7 @@ function itemCard(item, index, selectable, venue = false) {
   heading.id = titleId;
   titleBlock.append(heading);
   top.append(titleBlock);
-  if (item.status) top.append(statusPill(item.status));
+  if (item.status) top.append(statusPill(item.status, item.statusLabel));
   node.append(top);
   const meta = [item.meta, item.priceLevel].filter(Boolean).join(" · ");
   if (meta) node.append(element("p", "item-meta", meta));
@@ -617,16 +619,22 @@ function percentage(value) {
     : "";
 }
 
-function evidenceRow(evidence, label = "Evidence") {
-  if (!evidence) return undefined;
-  const values = [
+function evidenceParts(evidence) {
+  if (!evidence) return [];
+  return [
     evidence.confidence ? `${titleCase(evidence.confidence)} confidence` : "",
     evidence.coverage ? `${titleCase(evidence.coverage)} coverage` : "",
     evidence.freshness ? `${titleCase(evidence.freshness)} freshness` : "",
     evidence.asOf ? `As of ${evidence.asOf}` : "",
     evidence.sampleSize !== undefined ? `${evidence.sampleSize} signals` : "",
   ].filter(Boolean);
-  if (!values.length) return undefined;
+}
+
+// The profile states its overall evidence once; a section repeats it only
+// when its own evidence differs (for example a smaller sample).
+function evidenceRow(evidence, label = "Evidence", shared = "") {
+  const values = evidenceParts(evidence);
+  if (!values.length || values.join("|") === shared) return undefined;
   const row = element("p", "evidence-row");
   row.setAttribute("aria-label", label);
   values.forEach((value, index) => {
@@ -636,7 +644,7 @@ function evidenceRow(evidence, label = "Evidence") {
   return row;
 }
 
-function insightCard(title, insight, headline, facts = []) {
+function insightCard(title, insight, headline, facts = [], shared = "") {
   const card = element("article", "taste-insight-card");
   card.append(element("h3", "insight-title", title));
   if (headline) card.append(element("strong", "insight-value", headline));
@@ -651,13 +659,12 @@ function insightCard(title, insight, headline, facts = []) {
     }
     card.append(list);
   }
-  const evidence = evidenceRow(insight?.evidence, `${title} evidence`);
+  const evidence = evidenceRow(insight?.evidence, `${title} evidence`, shared);
   if (evidence) card.append(evidence);
   return card;
 }
 
-function analyticsContent(analytics) {
-  const fragment = document.createDocumentFragment();
+function evidenceSection(analytics) {
   const evidence = element("section", "profile-section taste-evidence");
   evidence.append(element("h2", "section-title", "Taste evidence"));
   const summary = element("div", "evidence-summary");
@@ -676,27 +683,38 @@ function analyticsContent(analytics) {
   const overall = evidenceRow(analytics.overallEvidence, "Overall taste evidence freshness");
   if (overall) evidence.append(overall);
   else if (analytics.generatedAt) evidence.append(element("p", "evidence-row", `Generated ${analytics.generatedAt}`));
-  fragment.append(evidence);
+  return evidence;
+}
 
-  if (analytics.strongestPatterns.length) {
-    const patterns = element("section", "profile-section");
-    patterns.append(element("h2", "section-title", "Strongest patterns"));
-    const grid = element("div", "taste-pattern-grid");
-    grid.setAttribute("role", "list");
-    for (const pattern of analytics.strongestPatterns) {
-      const card = element("article", "taste-pattern-card");
-      card.setAttribute("role", "listitem");
-      if (pattern.kind) card.append(element("span", "pattern-kind", pattern.kind));
-      card.append(element("h3", "insight-title", pattern.label));
-      if (pattern.detail) card.append(element("p", "insight-detail", pattern.detail));
-      const patternEvidence = evidenceRow(pattern.evidence, `${pattern.label} evidence`);
-      if (patternEvidence) card.append(patternEvidence);
-      grid.append(card);
-    }
-    patterns.append(grid);
-    fragment.append(patterns);
+function patternsSection(analytics, shared) {
+  if (!analytics.strongestPatterns.length) return undefined;
+  const patterns = element("section", "profile-section");
+  patterns.append(element("h2", "section-title", "Strongest patterns"));
+  const grid = element("div", "taste-pattern-grid");
+  grid.setAttribute("role", "list");
+  for (const pattern of analytics.strongestPatterns) {
+    const card = element("article", "taste-pattern-card");
+    card.setAttribute("role", "listitem");
+    if (pattern.kind) card.append(element("span", "pattern-kind", pattern.kind));
+    card.append(element("h3", "insight-title", pattern.label));
+    if (pattern.detail) card.append(element("p", "insight-detail", pattern.detail));
+    const patternEvidence = evidenceRow(pattern.evidence, `${pattern.label} evidence`, shared);
+    if (patternEvidence) card.append(patternEvidence);
+    grid.append(card);
   }
+  patterns.append(grid);
+  return patterns;
+}
 
+function insightsSection(analytics, overallShared) {
+  // Insights usually rest on the same visit history: state that evidence once
+  // above the cards and keep only rows that differ.
+  const keys = [analytics.travel, analytics.revisit, analytics.exploration, analytics.savesToVisits]
+    .filter(Boolean).map((insight) => evidenceParts(insight.evidence).join("|")).filter(Boolean);
+  const counts = new Map();
+  for (const key of keys) counts.set(key, (counts.get(key) || 0) + 1);
+  const [common, commonCount = 0] = [...counts].sort((a, b) => b[1] - a[1])[0] || [];
+  const shared = commonCount >= 2 ? common : overallShared;
   const insightGrid = element("section", "taste-insight-grid");
   insightGrid.setAttribute("aria-label", "Pearl taste analytics");
   if (analytics.travel) {
@@ -704,7 +722,7 @@ function analyticsContent(analytics) {
       ? ""
       : `${analytics.travel.citiesVisited} ${analytics.travel.citiesVisited === 1 ? "city" : "cities"}`;
     const topCities = analytics.travel.topCities.map((city) => `${city.city} (${city.count})`).join(", ");
-    insightGrid.append(insightCard("Travel footprint", analytics.travel, headline, [["Top cities", topCities]]));
+    insightGrid.append(insightCard("Travel footprint", analytics.travel, headline, [["Top cities", topCities]], shared));
   }
   if (analytics.revisit) {
     const headline = analytics.revisit.repeatVisits === undefined
@@ -713,13 +731,13 @@ function analyticsContent(analytics) {
     insightGrid.append(insightCard("Revisit behavior", analytics.revisit, headline, [
       ["Unique venues", analytics.revisit.uniqueVenues],
       ["Repeat share", percentage(analytics.revisit.repeatShare)],
-    ]));
+    ], shared));
   }
   if (analytics.exploration) {
     insightGrid.append(insightCard("Exploration style", analytics.exploration, analytics.exploration.classification, [
       ["Unique venue share", percentage(analytics.exploration.uniqueVenueShare)],
       ["Cities", analytics.exploration.citiesVisited],
-    ]));
+    ], shared));
   }
   if (analytics.savesToVisits) {
     const headline = analytics.savesToVisits.ratio === undefined
@@ -728,88 +746,42 @@ function analyticsContent(analytics) {
     insightGrid.append(insightCard("Saves to visits", analytics.savesToVisits, headline, [
       ["Saved places", analytics.savesToVisits.savedCount],
       ["Visits", analytics.savesToVisits.totalVisits],
-    ]));
+    ], shared));
   }
-  if (insightGrid.childElementCount) fragment.append(insightGrid);
-
-  if (analytics.constraints.length) {
-    const constraints = element("section", "profile-section taste-constraints");
-    constraints.append(element("h2", "section-title", "Returned constraints"));
-    constraints.append(element("p", "toolbar-copy", "Use these member-provided constraints when evaluating a relevant venue; accommodation is not guaranteed."));
-    const list = element("div", "constraint-list");
-    for (const constraint of analytics.constraints) {
-      const item = element("article", "constraint-item");
-      item.append(element("strong", "", constraint.label));
-      if (constraint.detail) item.append(element("p", "insight-detail", constraint.detail));
-      const constraintEvidence = evidenceRow(constraint.evidence, `${constraint.label} constraint evidence`);
-      if (constraintEvidence) item.append(constraintEvidence);
-      list.append(item);
-    }
-    constraints.append(list);
-    fragment.append(constraints);
+  if (!insightGrid.childElementCount) return undefined;
+  const wrapper = element("div", "taste-insights");
+  const groupEvidence = shared !== overallShared ? element("p", "evidence-row") : undefined;
+  if (groupEvidence) {
+    groupEvidence.setAttribute("aria-label", "Evidence for the insights below");
+    shared.split("|").forEach((value, index) => {
+      if (index) groupEvidence.append(element("span", "evidence-separator", "·"));
+      groupEvidence.append(element("span", "", value));
+    });
+    wrapper.append(groupEvidence);
   }
-  return fragment;
+  wrapper.append(insightGrid);
+  return wrapper;
 }
 
-function profileContent(model) {
-  const container = element("div", "profile-layout");
-  if (model.metrics.length) {
-    const metrics = element("section", "metrics-grid");
-    metrics.setAttribute("aria-label", "Pearl profile statistics");
-    for (const metric of model.metrics) {
-      const card = element("article", "metric-card");
-      card.append(element("strong", "metric-value", metric.value));
-      card.append(element("span", "metric-label", metric.label));
-      metrics.append(card);
-    }
-    container.append(metrics);
+function constraintsSection(analytics, shared) {
+  if (!analytics.constraints.length) return undefined;
+  const constraints = element("section", "profile-section taste-constraints");
+  constraints.append(element("h2", "section-title", "Returned constraints"));
+  constraints.append(element("p", "toolbar-copy", "Use these member-provided constraints when evaluating a relevant venue; accommodation is not guaranteed."));
+  const list = element("div", "constraint-list");
+  for (const constraint of analytics.constraints) {
+    const item = element("article", "constraint-item");
+    item.append(element("strong", "", constraint.label));
+    if (constraint.detail) item.append(element("p", "insight-detail", constraint.detail));
+    const constraintEvidence = evidenceRow(constraint.evidence, `${constraint.label} constraint evidence`, shared);
+    if (constraintEvidence) item.append(constraintEvidence);
+    list.append(item);
   }
+  constraints.append(list);
+  return constraints;
+}
 
-  if (model.analytics) container.append(analyticsContent(model.analytics));
-
-  if (model.facets.length) {
-    const facets = element("section", "facet-grid");
-    facets.setAttribute("aria-label", "Pearl taste signals");
-    for (const facet of model.facets) {
-      const group = element("article", "facet-card");
-      group.append(element("h2", "section-title", facet.label));
-      const row = element("div", "chip-row");
-      facet.values.forEach((value, index) => row.append(chip(value, index === 0)));
-      group.append(row);
-      facets.append(group);
-    }
-    container.append(facets);
-  }
-
-  if (model.topCities.length) {
-    const cities = element("section", "profile-section");
-    cities.append(element("h2", "section-title", "Most visited cities"));
-    const list = element("div", "rank-list");
-    for (const city of model.topCities) {
-      const row = element("div", "rank-row");
-      row.append(element("span", "rank-name", city.city));
-      if (city.count) row.append(element("span", "rank-value", `${city.count} visit${city.count === "1" ? "" : "s"}`));
-      list.append(row);
-    }
-    cities.append(list);
-    container.append(cities);
-  }
-
-  if (model.items.length) {
-    const favorites = element("section", "profile-section");
-    favorites.append(element("h2", "section-title", "Top-rated visits"));
-    const grid = element("div", "results-grid");
-    grid.dataset.density = model.items.length >= 3 ? "wide" : "regular";
-    model.items.forEach((item, index) => grid.append(itemCard(item, index, false)));
-    favorites.append(grid);
-    container.append(favorites);
-  }
-
-  if (!model.analytics && model.allergies.length) {
-    const allergyCopy = `Allergies on file: ${model.allergies.join(", ")}.`;
-    container.append(banner(allergyCopy));
-  }
-
+function profileQuestions() {
   const questions = element("section", "profile-questions");
   questions.append(element("h2", "section-title", "Ask Pearl about your taste"));
   questions.append(element("p", "toolbar-copy", "Each question stays scoped to your own Pearl profile."));
@@ -825,7 +797,104 @@ function profileContent(model) {
     actions.append(action);
   }
   questions.append(actions);
-  container.append(questions);
+  return questions;
+}
+
+function canGoFullscreen() {
+  const modes = hostState.context?.availableDisplayModes;
+  return Array.isArray(modes) && modes.includes("fullscreen")
+    && document.documentElement.dataset.displayMode !== "fullscreen";
+}
+
+// Patterns and questions lead. Inline, the rest folds into one disclosure so
+// the card stays about a screen tall; fullscreen shows everything.
+function profileContent(model) {
+  const container = element("div", "profile-layout");
+  if (model.metrics.length) {
+    const metrics = element("section", "metrics-grid");
+    metrics.setAttribute("aria-label", "Pearl profile statistics");
+    for (const metric of model.metrics) {
+      const card = element("article", "metric-card");
+      card.append(element("strong", "metric-value", metric.value));
+      card.append(element("span", "metric-label", metric.label));
+      metrics.append(card);
+    }
+    container.append(metrics);
+  }
+
+  const analytics = model.analytics;
+  const shared = analytics ? evidenceParts(analytics.overallEvidence).join("|") : "";
+  const patterns = analytics ? patternsSection(analytics, shared) : undefined;
+  if (patterns) container.append(patterns);
+  container.append(profileQuestions());
+  // Member-provided constraints stay visible; they can matter for safety.
+  const constraints = analytics ? constraintsSection(analytics, shared) : undefined;
+  if (constraints) container.append(constraints);
+  if (!model.analytics && model.allergies.length) container.append(banner(`Allergies on file: ${model.allergies.join(", ")}.`));
+
+  const more = [];
+  if (analytics) more.push(evidenceSection(analytics), insightsSection(analytics, shared));
+  if (model.facets.length) {
+    const facets = element("section", "facet-grid");
+    facets.setAttribute("aria-label", "Pearl taste signals");
+    for (const facet of model.facets) {
+      const group = element("article", "facet-card");
+      group.append(element("h2", "section-title", facet.label));
+      const row = element("div", "chip-row");
+      facet.values.forEach((value, index) => row.append(chip(value, index === 0)));
+      group.append(row);
+      facets.append(group);
+    }
+    more.push(facets);
+  }
+  // Travel footprint already lists the top cities.
+  if (model.topCities.length && !analytics?.travel?.topCities?.length) {
+    const cities = element("section", "profile-section");
+    cities.append(element("h2", "section-title", "Most visited cities"));
+    const list = element("div", "rank-list");
+    for (const city of model.topCities) {
+      const row = element("div", "rank-row");
+      row.append(element("span", "rank-name", city.city));
+      if (city.count) row.append(element("span", "rank-value", `${city.count} visit${city.count === "1" ? "" : "s"}`));
+      list.append(row);
+    }
+    cities.append(list);
+    more.push(cities);
+  }
+  if (model.items.length) {
+    const favorites = element("section", "profile-section");
+    favorites.append(element("h2", "section-title", "Top-rated visits"));
+    const grid = element("div", "results-grid");
+    grid.dataset.density = model.items.length >= 3 ? "wide" : "regular";
+    model.items.forEach((item, index) => grid.append(itemCard(item, index, false)));
+    favorites.append(grid);
+    more.push(favorites);
+  }
+  const sections = more.filter(Boolean);
+  if (!sections.length) return container;
+  if (document.documentElement.dataset.displayMode === "fullscreen") {
+    sections.forEach((section) => container.append(section));
+    return container;
+  }
+  const details = element("details", "profile-more");
+  details.append(element("summary", "profile-more-summary", "Evidence, travel and more"));
+  sections.forEach((section) => details.append(section));
+  container.append(details);
+  if (canGoFullscreen()) {
+    const expand = button("Open full profile", async () => {
+      try {
+        const result = await request("ui/request-display-mode", { mode: "fullscreen" });
+        if (result?.mode === "fullscreen") {
+          applyHostContext({ displayMode: "fullscreen" });
+          renderCurrent();
+        } else details.open = true;
+      } catch {
+        details.open = true;
+      }
+    }, "secondary");
+    expand.classList.add("profile-expand");
+    container.append(expand);
+  }
   return container;
 }
 
@@ -891,15 +960,27 @@ function visitActionContent(model) {
     const card = element("article", "journey-card");
     const body = element("div", "action-review");
     body.append(element("h2", "journey-title", item.name));
-    for (const warning of item.warnings || []) body.append(element("p", "journey-detail", warning));
-    for (const change of item.changes || []) {
+    // What is changing and on which trip, then any warning, then the rows.
+    const facts = journeyFacts(item.facts, 8);
+    if (facts) body.append(facts);
+    for (const warning of item.warnings || []) body.append(banner(warning, "warning"));
+    // Lead with what changes; fields that stay the same collapse to one list.
+    const changes = item.changes || [];
+    for (const change of changes.filter((entry) => entry.changed !== false)) {
       const group = element("section", "action-change");
       group.append(element("h3", "journey-kicker", change.label));
       group.append(journeyFacts([{ label: "Before", value: change.before }, { label: "After", value: change.after }]));
       body.append(group);
     }
-    const facts = journeyFacts(item.facts, 8);
-    if (facts) body.append(facts);
+    const unchanged = changes.filter((entry) => entry.changed === false);
+    if (unchanged.length) {
+      const group = element("section", "action-unchanged");
+      group.append(element("h3", "journey-kicker", "Unchanged"));
+      const facts = journeyFacts(unchanged.map((entry) => ({ label: entry.label, value: entry.after })), 8);
+      if (facts) group.append(facts);
+      body.append(group);
+    }
+    for (const note of item.notes || []) body.append(element("p", "journey-detail", note));
     card.append(body);
     list.append(card);
   }
@@ -907,6 +988,39 @@ function visitActionContent(model) {
     ? "No reviewable items were returned. Prepare the request again in the conversation."
     : "No item receipts were returned. Check the result in the conversation before retrying."));
   return list;
+}
+
+function venueDetailContent(model) {
+  const container = element("div", "venue-detail");
+  const [item] = model.items;
+  if (item) container.append(itemCard(item, 0, false, true));
+  if (model.memberLine) container.append(element("p", "item-meta venue-member", model.memberLine));
+  const facts = journeyFacts(model.facts, 8);
+  if (facts) container.append(facts);
+  if (model.hours.length) {
+    const section = element("section", "profile-section venue-hours");
+    section.append(element("h2", "section-title", "Hours"));
+    const list = element("dl", "journey-facts");
+    for (const row of model.hours) {
+      const entry = element("div", "journey-fact");
+      entry.append(element("dt", "", row.day), element("dd", "", row.value));
+      list.append(entry);
+    }
+    section.append(list);
+    if (model.hoursNote) section.append(element("p", "toolbar-copy", model.hoursNote));
+    container.append(section);
+  }
+  return container;
+}
+
+function localExpiry(model) {
+  const at = Date.parse(model.expiresAtIso || "");
+  if (!Number.isFinite(at)) return model.expiresAt;
+  const clock = new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" }).format(at);
+  const minutes = Math.round((at - Date.now()) / 60_000);
+  if (minutes <= 0) return `${clock} (expired)`;
+  if (minutes < 120) return `${clock}, in ${minutes} minute${minutes === 1 ? "" : "s"}`;
+  return new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(at);
 }
 
 function emptyContent(model) {
@@ -942,7 +1056,7 @@ function renderCurrent() {
   if (model.partial) panel.append(banner(model.incompleteMessage
     ? model.incompleteMessage
     : "Some results could not be loaded. The available items are still shown below."));
-  if (model.expiresAt) panel.append(banner(`Preview expires: ${model.expiresAt}. Ask for a new preview if it expires.`));
+  if (model.expiresAt) panel.append(banner(`Preview expires at ${localExpiry(model)}. Ask for a new preview if it expires.`));
   if (model.refreshInProgress) panel.append(banner("A provider check is still running. These are the currently returned options."));
   const content = element("div", "content");
   if (model.state === "error") {
@@ -953,10 +1067,12 @@ function renderCurrent() {
     content.append(profileContent(model));
   } else if (["visit_action", "plan_action"].includes(model.kind)) {
     content.append(visitActionContent(model));
+  } else if (model.kind === "venue_detail") {
+    content.append(venueDetailContent(model));
   } else if (["journeys", "flights", "availability"].includes(model.kind)) {
     content.append(journeyContent(model));
   } else {
-    const comparable = model.kind === "venues" && model.items.length >= 2;
+    const comparable = model.kind === "venues" && model.comparable !== false && model.items.length >= 2;
     if (comparable) {
       const toolbar = element("div", "toolbar");
       toolbar.append(element("p", "toolbar-copy", selected.size < 2
@@ -978,6 +1094,7 @@ function renderCurrent() {
     const compare = comparable ? comparison(model.items) : undefined;
     if (compare) content.append(compare);
     if (model.rankingBasis) content.append(element("p", "ranking-note", model.rankingBasis));
+    if (model.countNote) content.append(element("p", "ranking-note", model.countNote));
   }
   const modelLink = pearlLink(model.pearlUrl, "Open in Pearl", "Open this restaurant in Pearl");
   if (modelLink) {
@@ -1054,7 +1171,9 @@ function handleNotification(message) {
   } else if (message.method === "ui/notifications/tool-cancelled") {
     receiveResult({ isError: true, structuredContent: { error: { code: "cancelled", message: "This Pearl request was cancelled.", user_action: "retry" } } });
   } else if (message.method === "ui/notifications/host-context-changed") {
+    const before = document.documentElement.dataset.displayMode;
     applyHostContext(message.params);
+    if (currentModel && document.documentElement.dataset.displayMode !== before) renderCurrent();
   }
 }
 
@@ -1127,7 +1246,7 @@ async function connect() {
   try {
     const initialized = await request("ui/initialize", {
       appInfo: { name: "Pearl Concierge", version: "1.5.7" },
-      appCapabilities: { availableDisplayModes: ["inline"] },
+      appCapabilities: { availableDisplayModes: ["inline", "fullscreen"] },
       protocolVersion: "2026-01-26",
     }, 5_000);
     if (!initialized || typeof initialized.protocolVersion !== "string" || !initialized.hostInfo) {

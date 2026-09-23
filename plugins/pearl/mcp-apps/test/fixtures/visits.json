@@ -1,0 +1,10 @@
+{
+  "structuredContent": {
+    "visits": [
+      { "visit_id": "a1b2c3d4-0000-4000-8000-000000000001", "id": "7c9e6679-7425-40de-944b-e07fc1f90ae7", "location_id": "7c9e6679-7425-40de-944b-e07fc1f90ae7", "name": "Le Bernardin", "slug": "le-bernardin", "type": "restaurant", "city": "New York", "country": "United States", "score": 9.5, "recommended": true, "visited_at": "2026-09-01", "visited_at_has_day": true, "visited_on_label": "Tue 1 Sep 2026", "comment": "The langoustine was the best thing I ate this year", "comment_truncated": false, "comment_visibility": "only_me", "michelin_stars": 3, "w50_ranking": null, "pearl_url": "https://app.joinpearl.co/venue/le-bernardin" },
+      { "visit_id": "a1b2c3d4-0000-4000-8000-000000000002", "id": "0b5c3f1e-8d2a-4c6b-9e7f-1a2b3c4d5e6f", "location_id": "0b5c3f1e-8d2a-4c6b-9e7f-1a2b3c4d5e6f", "name": "Attaboy", "slug": "attaboy", "type": "bar", "city": "New York", "country": "United States", "score": null, "recommended": null, "visited_at": "2026-08-01", "visited_at_has_day": false, "visited_on_label": "August 2026", "comment": null, "comment_truncated": false, "comment_visibility": "inherit", "michelin_stars": 0, "w50_ranking": 34, "pearl_url": "https://app.joinpearl.co/venue/attaboy" }
+    ],
+    "next_cursor": null,
+    "pagination": { "coverage_state": "complete", "page_size": 20, "returned_count": 2, "returned_through": 2, "total_count": 2, "total_count_is_exact": true, "coverage_ratio": 1, "truncated": false, "partial_reason": null }
+  }
+}
