@@ -25,8 +25,47 @@ async function json(relativePath) {
   return JSON.parse(await readFile(path.join(ROOT, relativePath), "utf8"));
 }
 
+// Member steps live in setup.md; registration and review detail in host-operators.md.
+async function hostGuides() {
+  const setup = await readFile(path.join(ROOT, "docs", "setup.md"), "utf8");
+  const operators = await readFile(path.join(ROOT, "docs", "host-operators.md"), "utf8");
+  return `${setup}\n${operators}`;
+}
+
 test("the canonical portable package validates", async () => {
   assert.deepEqual(await validatePackage(), []);
+});
+
+test("the skill and capability snapshot never name a stale package version", async () => {
+  const pkg = await json("package.json");
+  for (const relative of ["skills/pearl-concierge/SKILL.md", "skills/pearl-concierge/references/capabilities.md"]) {
+    const contents = await readFile(path.join(ROOT, relative), "utf8");
+    const versions = [...contents.matchAll(/\b0\.\d+\.\d+\b/g)].map((match) => match[0]);
+    assert.deepEqual(versions.filter((version) => version !== pkg.version), [], `${relative} names an older package version`);
+  }
+});
+
+test("the skill triggers on action requests and stays short and consistent", async () => {
+  const skill = await readFile(path.join(ROOT, "skills/pearl-concierge/SKILL.md"), "utf8");
+  const description = skill.match(/^---\nname: pearl-concierge\ndescription: ([^\n]+)\n---/)?.[1] ?? "";
+  for (const trigger of [/table availability/, /log or edit a visit/, /save or remove a place/, /create a trip or edit its stops/, /preview/]) {
+    assert.match(description, trigger);
+  }
+  assert(skill.split(/\s+/).length < 1700, "Keep per-tool detail in references/capabilities.md");
+  assert.doesNotMatch(skill, /Trip creation is not part of/);
+  assert.equal((skill.match(/trips_create_prepare/g) ?? []).length, 1, "Describe the trip-creation flow once");
+});
+
+test("the skill covers freshness, hand-off links, venue type, profile honesty and reconnection", async () => {
+  const skill = await readFile(path.join(ROOT, "skills/pearl-concierge/SKILL.md"), "utf8");
+  assert.match(skill, /`checked_live` is `false`[^\n]*(?:as of|last checked)/);
+  assert.match(skill, /`pearl_url`/);
+  assert.match(skill, /`booking_url`/);
+  assert.match(skill, /`venues_recommend` defaults to restaurants[^\n]*`type`/);
+  assert.match(skill, /partial[^\n]*low-confidence[^\n]*small sample/i);
+  assert.match(skill, /reconnect(?:ing)? Pearl[^\n]*(?:approve|grant)[^\n]*permission/i);
+  assert.match(skill, /Never present reconnecting as a way around/);
+  assert.match(skill, /ChatGPT[^\n]*(?:open|link)[^\n]*Pearl/);
 });
 
 test("the member quick start is concise, public-safe, and explains revocation", async () => {
@@ -39,6 +78,37 @@ test("the member quick start is concise, public-safe, and explains revocation", 
   assert.match(guide, /Pearl Reserve or above, including Pearl Elite/);
   assert.match(guide, /Reservation watchers, flight management and visit deletion are also unavailable/);
   assert.match(guide, /does not mean a host has approved or listed Pearl/);
+});
+
+test("the member setup page is short, per host, and installs from the updatable GitHub source", async () => {
+  const setup = await readFile(path.join(ROOT, "docs", "setup.md"), "utf8");
+  assert.deepEqual(validatePublicText("docs/setup.md", setup), []);
+  assert(setup.split(/\s+/).length < 1000, "Keep registration and review detail in host-operators.md");
+  for (const heading of ["## ChatGPT", "## Codex", "## Claude web and desktop", "## Claude Code", "## Cursor", "## Cursor Grok Bot"]) {
+    assert.match(setup, new RegExp(`^${heading}`, "m"));
+  }
+  assert.match(setup, /\*\*Status:\*\*[^\n]*ChatGPT app/);
+  assert.match(setup, /codex plugin marketplace add Pearl-Passport\/pearl-agent-plugin/);
+  assert.match(setup, /claude plugin marketplace add Pearl-Passport\/pearl-agent-plugin/);
+  assert.match(setup, /codex plugin marketplace upgrade pearl-integrations/);
+  assert.match(setup, /claude plugin update pearl@pearl-integrations/);
+  assert.match(setup, /codex plugin remove pearl@pearl-integrations/);
+  assert.match(setup, /claude plugin uninstall pearl@pearl-integrations/);
+  assert.match(setup, /rsync -a --delete [^\n]*\/cursor\/ [^\n]*pearl-cursor\//);
+  assert.match(setup, /rm -rf ~\/\.cursor\/plugins\/local\/pearl-cursor/);
+  assert.doesNotMatch(setup, /marketplace add \.|test ! -e|--branch v\d/);
+  assert.doesNotMatch(setup, /canar|coordinated activation|portal|registering the public client|callback/i);
+  assert.match(setup, /reconnect Pearl in your app and approve the new permission/);
+});
+
+test("the public README installs from the GitHub source with update and removal steps", async () => {
+  const readme = await readFile(path.join(PUBLIC_REPOSITORY_ROOT, "README.md"), "utf8");
+  assert.match(readme, /codex plugin marketplace add Pearl-Passport\/pearl-agent-plugin/);
+  assert.match(readme, /claude plugin marketplace add Pearl-Passport\/pearl-agent-plugin/);
+  assert.match(readme, /rsync -a --delete/);
+  assert.match(readme, /[Uu]pdate/);
+  assert.match(readme, /[Rr]emove|[Uu]ninstall/);
+  assert.doesNotMatch(readme, /marketplace add \.|test ! -e|--branch v\d/);
 });
 
 test("listing copy uses the Reserve and Elite membership names without expanding OpenAI capabilities", async () => {
@@ -292,21 +362,28 @@ test("hosted Claude documents the fixed public client and reviewed action scope"
 
 test("Codex uses only the validated OpenAI-hosted CIMD family", async () => {
   const oauth = await readFile(path.join(ROOT, "docs", "oauth.md"), "utf8");
-  const setup = await readFile(path.join(ROOT, "docs", "setup.md"), "utf8");
-  for (const document of [oauth, setup]) {
+  const guides = await hostGuides();
+  for (const document of [oauth, guides]) {
     assert.match(document, /OpenAI-hosted CIMD/);
     assert.match(document, /chatgpt\.com\/oauth\/codex\//);
     assert.match(document, /loopback/);
   }
   assert.match(oauth, /no credentials, query, or fragment/);
   assert.match(oauth, /Any mismatch fails closed/);
+  for (const document of [oauth, guides]) {
+    assert.match(document, /https:\/\/chatgpt\.com\/oauth\/codex\/client\.json/);
+  }
+  const setup = await readFile(path.join(ROOT, "docs", "setup.md"), "utf8");
+  assert.match(setup, /codex mcp login pearl/);
+  assert.match(setup, /no client ID to paste/);
 });
 
 test("Cursor Grok Bot setup is marketplace-gated with exact visit actions and no provider writes", async () => {
   const setup = await readFile(path.join(ROOT, "docs", "setup.md"), "utf8");
+  const guides = await hostGuides();
   const oauth = await readFile(path.join(ROOT, "docs", "oauth.md"), "utf8");
   const hostTesting = await readFile(path.join(ROOT, "mcp-apps", "HOST-TESTING.md"), "utf8");
-  for (const document of [setup, hostTesting]) {
+  for (const document of [guides, hostTesting]) {
     assert.match(document, /Grok Bot/);
     assert.match(document, /visits_list/);
     assert.match(document, /reservations_list/);
@@ -321,17 +398,18 @@ test("Cursor Grok Bot setup is marketplace-gated with exact visit actions and no
   assert.match(setup, /grok\.com[\s\S]*different host/);
   assert.match(oauth, /direct grok\.com custom connector is not a supported install path/);
   assert.deepEqual(
-    [...new Set([...`${setup}\n${oauth}`.matchAll(/\b([a-z-]+:write)\b/g)].map((match) => match[1]))],
-    ["visits:write", "saves:write", "trips:write"]
+    [...new Set([...`${guides}\n${oauth}`.matchAll(/\b([a-z-]+:write)\b/g)].map((match) => match[1]))].sort(),
+    ["saves:write", "trips:write", "visits:write"]
   );
-  assert.doesNotMatch(`${setup}\n${oauth}`, /reservations_(?:book|booking|cancel|change|modify)_(?:prepare|commit)/);
+  assert.doesNotMatch(`${guides}\n${oauth}`, /reservations_(?:book|booking|cancel|change|modify)_(?:prepare|commit)/);
 });
 
 test("Claude Code uses trusted CIMD without a static client override", async () => {
   const setup = await readFile(path.join(ROOT, "docs", "setup.md"), "utf8");
+  const guides = await hostGuides();
   const oauth = await readFile(path.join(ROOT, "docs", "oauth.md"), "utf8");
   const releasing = await readFile(path.join(ROOT, "docs", "releasing.md"), "utf8");
-  for (const document of [setup, oauth]) {
+  for (const document of [guides, oauth]) {
     assert.match(document, /Claude Code/);
     assert.match(document, /Anthropic-hosted CIMD/);
     assert.match(document, /localhost/);
@@ -340,7 +418,7 @@ test("Claude Code uses trusted CIMD without a static client override", async () 
   }
   assert.match(setup, /claude mcp login plugin:pearl:pearl/);
   assert.match(setup, /claude mcp get plugin:pearl:pearl/);
-  assert.doesNotMatch(setup, /YOUR_PUBLIC_CLIENT_ID|--callback-port|--client-secret/);
+  assert.doesNotMatch(guides, /YOUR_PUBLIC_CLIENT_ID|--callback-port|--client-secret/);
   assert.match(oauth, /http:\/\/localhost:8080\/callback/);
   assert.match(oauth, /--callback-port 8080/);
   assert.match(oauth, /Pearl has not published this fallback client/);

@@ -1,0 +1,14 @@
+{
+  "structuredContent": {
+    "confirmation_required": true,
+    "action_handle_expires_at": "2030-09-19T18:00:00Z",
+    "preview": {
+      "action": "move",
+      "trip": { "collection_id": "fixture-trip", "name": "A weekend in Paris", "trip_start_date": "2030-09-20", "trip_end_date": "2030-09-22" },
+      "stop": { "item_id": "fixture-stop", "venue": { "location_id": "fixture-place", "name": "Le Jardin", "city": "Paris", "country": "France" } },
+      "before": { "location_id": "fixture-place", "scheduled_date": "2030-09-20", "scheduled_time": "19:00:00", "notes": "Dinner with friends" },
+      "after": { "location_id": "fixture-place", "scheduled_date": "2030-09-23", "scheduled_time": "20:30:00", "notes": "Dinner with friends" },
+      "outside_trip_dates_warning": true
+    }
+  }
+}

@@ -6,6 +6,7 @@ const RESOURCE_METADATA_URL = `${ORIGIN}/.well-known/oauth-protected-resource/mc
 const REQUIRE_OPENAI_CHALLENGE = process.argv.includes("--require-openai-challenge");
 const REQUIRE_STATIC_HOST_CLIENTS = process.argv.includes("--require-static-host-clients");
 const REQUIRE_CROSS_HOST_ACTIONS = process.argv.includes("--require-cross-host-actions");
+const REQUIRE_CHATGPT_SAVE_TRIP = process.argv.includes("--require-chatgpt-save-trip");
 const PUBLIC_READ_SCOPES = [
   "venues:read",
   "profile:read",
@@ -50,8 +51,8 @@ const STATIC_HOST_CLIENTS = [
     {
       clientId: "https://chatgpt.com/oauth/client.json",
       callbacks: ["https://chatgpt.com/connector_platform_oauth_redirect"],
-      scopes: VISIT_SCOPES,
-      deniedScopes: ["saves:write", "trips:write"]
+      scopes: REQUIRE_CHATGPT_SAVE_TRIP ? CURSOR_SCOPES : VISIT_SCOPES,
+      deniedScopes: REQUIRE_CHATGPT_SAVE_TRIP ? [["validation", "write"].join(":")] : ["saves:write", "trips:write"]
     },
     {
       clientId: "https://claude.ai/oauth/mcp-oauth-client-metadata",
@@ -136,7 +137,7 @@ const initialize = await request("/mcp", {
     params: {
       protocolVersion: "2025-06-18",
       capabilities: {},
-      clientInfo: { name: "pearl-package-validator", version: "0.11.0" }
+      clientInfo: { name: "pearl-package-validator", version: "0.11.1" }
     }
   })
 });

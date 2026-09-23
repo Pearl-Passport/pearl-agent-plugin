@@ -29,7 +29,7 @@ Use:
 2. Confirm fresh reviewed Codex/Claude/Cursor grants expose 24 tools and ten scopes. ChatGPT must retain the submitted 18 tools/eight scopes, and the standalone CLI the 13 common reads/seven scopes. Existing grants are unchanged. No provider mutation may be advertised.
 3. Confirm `.mcp.json` contains one server URL and no headers or credentials, and that Cursor's marketplace source remains isolated at `plugins/pearl/cursor` so it cannot auto-discover that URL-only config.
 4. Confirm `server.json` uses the exact `2025-12-11` schema, case-sensitive GitHub namespace `io.github.Pearl-Passport/pearl-agent-plugin`, stable public repository ID `1343507179`, version `0.11.0`, and exactly one `streamable-http` remote with no headers, variables, credentials, or package declaration.
-5. Confirm reviewed ChatGPT, Codex, Claude, and Cursor flows request the seven reads plus only `visits:write`; static clients use their exact public IDs/callbacks; Codex matches only the reviewed OpenAI-hosted CIMD family; and no flow has a client secret.
+5. Confirm reviewed Codex, Claude and Cursor flows request the seven reads plus `visits:write`, `saves:write` and `trips:write`, and ChatGPT the seven reads plus only `visits:write`; static clients use their exact public IDs/callbacks; Codex matches only its reviewed OpenAI-hosted CIMD identities; and no flow has a client secret.
 6. Confirm Cursor's plugin and MCP IDs are both `pearl-cursor`, while Codex and Claude remain `pearl`, so cross-host discovery cannot shadow Cursor's static client.
 7. Confirm Claude Code CIMD uses its registered loopback hosts with an ephemeral port.
 8. Confirm brand artwork matches the approved Pearl mark, contains no text/EXIF metadata, and is covered by the reviewed brand policy.

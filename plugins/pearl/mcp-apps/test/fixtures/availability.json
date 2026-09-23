@@ -23,10 +23,20 @@
           "currency": "USD"
         },
         "payment_required": true,
-        "cancellation_policy": "Cancel at least 24 hours before arrival.",
-        "observed_at": "2026-09-12T16:00:00Z",
-        "expires_at": "2026-09-12T16:10:00Z"
+        "policy_ref": "policy_1"
       }
-    ]
+    ],
+    "policies": [
+      {
+        "ref": "policy_1",
+        "text": "Cancel at least 24 hours before arrival."
+      }
+    ],
+    "checked_live": true,
+    "observed_at": "2026-09-12T16:00:00Z",
+    "oldest_observed_at": "2026-09-12T16:00:00Z",
+    "expires_at": "2026-09-12T16:10:00Z",
+    "booking_url": "https://resy.com/cities/par/pearl-bistro",
+    "pearl_url": "https://app.joinpearl.co/venue/pearl-bistro"
   }
 }
