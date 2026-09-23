@@ -401,6 +401,30 @@ h1 {
 .rank-value { flex: 0 0 auto; }
 
 .profile-section .results-grid { margin-top: 2px; }
+
+/* Inline, the evidence and secondary insights fold into one disclosure. */
+.profile-more { display: grid; gap: 10px; min-width: 0; }
+.profile-more > summary {
+  cursor: pointer;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  border: 1px solid var(--pearl-ui-border-soft);
+  border-radius: var(--pearl-ui-radius-md);
+  background: var(--pearl-ui-surface);
+  font-weight: 550;
+}
+.profile-more[open] > summary { margin-bottom: 0; }
+.profile-expand { justify-self: start; }
+
+.taste-insights { display: grid; gap: 10px; min-width: 0; }
+.taste-insights > .evidence-row { margin: 0; padding: 0 2px; }
+
+.venue-detail { display: grid; gap: var(--pearl-ui-space-12); min-width: 0; }
+.venue-detail > .journey-facts { margin-top: 0; }
+.venue-member { margin: 0; }
+.venue-hours .journey-facts { margin-top: 0; }
 .profile-layout > .status-banner { margin: 0; }
 .profile-questions .toolbar-copy { margin-bottom: 12px; }
 
@@ -781,6 +805,10 @@ h1 {
 .action-change { min-width: 0; margin-top: var(--pearl-ui-space-16); }
 .action-change > .journey-kicker { margin-bottom: var(--pearl-ui-space-8); }
 .action-change > .journey-facts { margin-top: 0; }
+.action-review > .status-banner { margin-top: var(--pearl-ui-space-12); }
+.action-unchanged { min-width: 0; margin-top: var(--pearl-ui-space-16); }
+.action-unchanged > .journey-kicker { margin-bottom: var(--pearl-ui-space-8); }
+.action-unchanged > .journey-facts { margin-top: 0; }
 
 /* Facts are a hairline two-column list, not a grid of nested boxes. */
 .journey-facts {

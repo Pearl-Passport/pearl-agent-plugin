@@ -82,8 +82,10 @@ test("trip stop previews preserve local times and explain reservation independen
   const model = normalizeToolResult(input);
   assert.equal(model.kind, "plan_action"); assert.equal(model.partial, false);
   assert.equal(model.items[0].changes.find(item => item.label === "Time").after, "20:30 (local time)");
-  assert.match(model.items[0].warnings.join(" "), /does not book, change, or cancel/);
-  assert.match(model.items[0].warnings.join(" "), /outside your trip dates/);
+  // The itinerary-only line is a note; only the out-of-range date is a warning.
+  assert.match(model.items[0].notes.join(" "), /does not book, change, or cancel/);
+  assert.doesNotMatch(model.items[0].warnings.join(" "), /does not book/);
+  assert.match(model.items[0].warnings.join(" "), /outside your trip dates \(.+ → .+\)\. Review the date/);
   input.structuredContent.preview.after.scheduled_time = "25:90";
   assert.equal(normalizeToolResult(input).partial, true);
   input.structuredContent.preview.after = null;
@@ -952,4 +954,99 @@ test("members see plain labels instead of scope ids, lens ids and enum values", 
   const flights = normalizeToolResult(await fixture("flights"));
   assert.ok(flights.items.some((item) => item.facts.some((fact) => fact.label === "Cabin" && fact.value === "Premium economy")));
   assert.ok(flights.items.every((item) => !item.score || item.priceLabel));
+});
+
+test("saved places are venue cards without compare, with a page note", async () => {
+  const model = normalizeToolResult(await fixture("saves"));
+  assert.equal(model.kind, "venues");
+  assert.equal(model.title, "Your saved places");
+  assert.equal(model.comparable, false);
+  assert.equal(model.partial, false, "a next page is not a partial result");
+  assert.equal(model.countNote, "Showing 2 of 14. Ask for more in chat.");
+  const [bernardin, attaboy] = model.items;
+  assert.deepEqual(bernardin.signals.map((signal) => signal.label), ["3 Michelin stars"]);
+  assert.deepEqual(attaboy.signals.map((signal) => signal.label), ["World's 50 Best #34"]);
+  assert.equal(bernardin.pearlUrl, "https://app.joinpearl.co/venue/le-bernardin");
+  assert.equal(bernardin.detail, "");
+});
+
+test("visits show the visit date, the member's own score and note", async () => {
+  const model = normalizeToolResult(await fixture("visits"));
+  assert.equal(model.title, "Places you've been");
+  assert.equal(model.comparable, false);
+  assert.equal(model.countNote, "");
+  const [dated, monthOnly] = model.items;
+  assert.equal(dated.id, "a1b2c3d4-0000-4000-8000-000000000001", "two visits to one place stay two cards");
+  assert.equal(dated.meta, "Visited Tue 1 Sep 2026 · New York");
+  assert.equal(dated.detail, "“The langoustine was the best thing I ate this year”");
+  assert.deepEqual(dated.signals.map((signal) => signal.label), ["3 Michelin stars", "Your score 9.5/10", "You recommend"]);
+  assert.equal(monthOnly.meta, "Visited August 2026 · New York");
+  assert.equal(monthOnly.detail, "");
+});
+
+test("place matches lead with the member's name and say what needs review", async () => {
+  const model = normalizeToolResult(await fixture("places-match"));
+  assert.equal(model.kind, "matches");
+  assert.equal(model.title, "Place matches");
+  assert.equal(model.subtitle, "1 exact · 1 to confirm · 1 to choose · 1 not in Pearl. Nothing is saved until you confirm in chat.");
+  const [exact, suggested, ambiguous, unmatched] = model.items;
+  assert.deepEqual([exact.name, exact.statusLabel, exact.detail], ["Le Bernardin", "Exact match", "Pearl: Le Bernardin, New York"]);
+  assert.deepEqual(suggested.signals.map((signal) => signal.label), ["82% match"]);
+  assert.equal(ambiguous.detail, "Possible places: Joe's Pizza, New York; Joe's Shanghai, New York");
+  assert.deepEqual([unmatched.status, unmatched.statusLabel, unmatched.detail], ["unmatched", "Not in Pearl", "No Pearl place found for this name."]);
+});
+
+test("a single reservation reads in venue-local time, never the UTC instant", async () => {
+  const model = normalizeToolResult(await fixture("reservation"));
+  assert.equal(model.kind, "journeys");
+  assert.equal(model.title, "Your reservation");
+  const [reservation] = model.items;
+  assert.equal(reservation.name, "Le Bernardin");
+  assert.equal(reservation.journeyType, "reservation");
+  assert.equal(reservation.start, "Wed 14 Oct, 8:30 PM EDT");
+  assert.equal(reservation.status, "confirmed");
+  assert.equal(reservation.pearlUrl, "https://app.joinpearl.co/reservations");
+});
+
+test("venue details show hours Monday first, facts and the member's history", async () => {
+  const model = normalizeToolResult(await fixture("venue-detail"));
+  assert.equal(model.kind, "venue_detail");
+  assert.equal(model.title, "Le Bernardin");
+  assert.equal(model.openLabel, "Closed now");
+  assert.deepEqual(model.hours.map((row) => row.day), ["Mon–Wed", "Thu", "Fri", "Sat"]);
+  assert.equal(model.hours[1].value, "12:00 PM–2:30 PM, 5:00 PM–10:30 PM");
+  assert.equal(model.hoursNote, "Times are local to New York.");
+  assert.equal(model.memberLine, "Saved · Visited 2 times · your last score 9.5/10");
+  assert.deepEqual(model.facts.map((fact) => fact.label), ["Address", "Cuisine", "Phone", "Best for", "Order", "Dress code", "Booking"]);
+  assert.equal(model.facts.at(-1).value, "Resy");
+  const [venue] = model.items;
+  assert.deepEqual(venue.signals.map((signal) => signal.label), ["3 Michelin stars", "Google 4.7"]);
+  assert.equal(venue.priceLevel, "$$$$");
+  assert.equal(venue.pearlUrl, "https://app.joinpearl.co/venue/le-bernardin");
+  assert.equal(model.pearlUrl, undefined, "the card carries the only Open in Pearl link");
+});
+
+test("flight times prefer the airport-local labels", async () => {
+  const input = await fixture("flights");
+  const [segment] = input.structuredContent.options[0].slices[0].segments;
+  segment.departure_label = "Fri 11 Sep, 6:10 PM PDT";
+  segment.arrival_label = "Sat 12 Sep, 2:05 PM CEST";
+  const [option] = normalizeToolResult(input).items;
+  assert.equal(option.start, "Fri 11 Sep, 6:10 PM PDT");
+  assert.equal(option.end, "Sat 12 Sep, 2:05 PM CEST");
+});
+
+test("action previews mark unchanged rows and separate warnings from notes", async () => {
+  const visit = normalizeToolResult(await fixture("visit-update"));
+  const changes = visit.items[0].changes;
+  assert.ok(changes.length > 0);
+  for (const change of changes) assert.equal(change.changed, change.before !== change.after);
+  assert.match(visit.expiresAtIso, /^\d{4}-\d{2}-\d{2}T/);
+
+  const stop = normalizeToolResult(await fixture("trip-plan"));
+  assert.deepEqual(stop.items[0].notes, ["This changes your itinerary only. It does not book, change, or cancel a reservation."]);
+  assert.equal(stop.items[0].warnings.length, 1);
+  const unchanged = stop.items[0].changes.filter((change) => change.changed === false).map((change) => change.label);
+  assert.ok(Array.isArray(unchanged));
+  assert.match(stop.expiresAtIso, /^\d{4}-\d{2}-\d{2}T/);
 });

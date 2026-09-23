@@ -350,6 +350,8 @@ function venueSignals(sources, scoreLabel) {
   if (stars !== undefined && Number.isInteger(stars) && stars >= 1 && stars <= 3) {
     signals.push({ source: "michelin", label: `${stars} Michelin star${stars === 1 ? "" : "s"}` });
   }
+  const w50 = firstNumber(sources, ["w50_ranking", "worlds_50_best_rank"]);
+  if (w50 !== undefined && Number.isInteger(w50) && w50 >= 1 && w50 <= 100) signals.push({ source: "w50", label: `World's 50 Best #${w50}` });
   const google = firstNumber(sources, ["google_rating"]);
   if (google !== undefined && google > 0 && google <= 5) signals.push({ source: "google", label: `Google ${formatNumber(google)}` });
   const pearl = firstNumber(sources, ["pearl_score"]);
@@ -372,24 +374,31 @@ function priceLevel(sources) {
   return /^[$€£¥]{1,4}$/.test(text) ? text : "";
 }
 
-function normalizeVenue(value, index, groupHint = "", { scoreLabel = "rating" } = {}) {
+function normalizeVenue(value, index, groupHint = "", { scoreLabel = "rating", visit = false } = {}) {
   const nested = isRecord(value.venue) ? value.venue : isRecord(value.location) ? value.location : {};
   const sources = [value, nested];
   const city = firstText(sources, ["city", "locality", "destination"], 90);
   const neighborhood = firstText(sources, ["neighborhood", "district"], 90);
   const category = firstText(sources, ["type", "venue_type", "category", "cuisine"], 80);
-  const detail = firstText(sources, ["description", "summary", "reason", "why"], 220)
-    || venueReason(firstText(sources, ["recommendation_reason"], 300)).slice(0, 220);
+  // A visit's text is the member's own note, shown as theirs.
+  const note = visit ? cleanText(value.comment, 200) : "";
+  const detail = visit ? note ? `“${note}${value.comment_truncated === true ? "…" : ""}”` : ""
+    : firstText(sources, ["description", "summary", "reason", "why"], 220)
+      || venueReason(firstText(sources, ["recommendation_reason"], 300)).slice(0, 220);
   const name = firstText(sources, ["name", "title", "venue_name", "display_name"], 120) || `Venue ${index + 1}`;
+  const place = [neighborhood, city].filter(Boolean).join(" · ") || firstText(sources, ["address", "country"], 130);
+  const visitedOn = visit ? firstText(value, ["visited_on_label"], 40) : "";
+  const signals = venueSignals(sources, scoreLabel);
+  if (visit && value.recommended === true && signals.length < 4) signals.push({ source: "member", label: "You recommend" });
   return {
-    id: firstText(sources, ["id", "location_id", "venue_id", "reference"], 120) || `venue-${index}`,
+    id: (visit && firstText(value, ["visit_id"], 120)) || firstText(sources, ["id", "location_id", "venue_id", "reference"], 120) || `venue-${index}`,
     name,
-    meta: [neighborhood, city].filter(Boolean).join(" · ") || firstText(sources, ["address", "country"], 130),
+    meta: [visitedOn ? `Visited ${visitedOn}` : "", place].filter(Boolean).join(" · "),
     detail,
     category,
     group: firstText(sources, ["group_label"], 80) || groupHint,
     score: "",
-    signals: venueSignals(sources, scoreLabel),
+    signals,
     status: firstText(sources, ["status", "opening_status", "availability"], 40).toLowerCase(),
     image: normalizeImage(sources),
     city,
@@ -401,13 +410,136 @@ function normalizeVenue(value, index, groupHint = "", { scoreLabel = "rating" } 
   };
 }
 
+const MATCH_STATUS_LABELS = Object.freeze({
+  exact: "Exact match", suggested: "Confirm match", ambiguous: "Choose a place", unmatched: "Not in Pearl",
+});
+const MATCH_SUMMARY_LABELS = Object.freeze({
+  exact: "exact", suggested: "to confirm", ambiguous: "to choose", unmatched: "not in Pearl", review: "to review",
+});
+
+// places_match: the input name leads; the Pearl place (or the choices) follows.
+function normalizePlaceMatch(value, index) {
+  const input = isRecord(value.input) ? value.input : {};
+  const candidates = arrayAt(value, "candidates").filter(isRecord);
+  const locationId = firstText(value, ["location_id"], 120);
+  const chosen = locationId ? candidates.find((entry) => entry.id === locationId || entry.location_id === locationId) : undefined;
+  const status = firstText(value, ["status"], 20).toLowerCase();
+  const describe = (entry) => [firstText(entry, ["name"], 100), firstText(entry, ["city"], 60)].filter(Boolean).join(", ");
+  const choices = candidates.slice(0, 3).map(describe).filter(Boolean);
+  const detail = chosen ? `Pearl: ${describe(chosen)}`
+    : choices.length ? `Possible places: ${choices.join("; ")}${candidates.length > 3 ? ` and ${candidates.length - 3} more` : ""}`
+    : "No Pearl place found for this name.";
+  const confidence = firstNumber(value, ["confidence"]);
+  return {
+    id: firstText(value, ["reference"], 120) || `match-${index}`,
+    name: firstText(input, ["name"], 120) || `Place ${index + 1}`,
+    meta: [firstText(input, ["city"], 80), firstText(input, ["country"], 80)].filter(Boolean).join(" · "),
+    detail,
+    category: firstText(chosen, ["type"], 60) || firstText(input, ["type"], 60),
+    group: "",
+    score: "",
+    signals: status === "suggested" && confidence !== undefined && confidence > 0 && confidence < 1
+      ? [{ source: "match", label: `${Math.round(confidence * 100)}% match` }] : [],
+    status: Object.hasOwn(MATCH_STATUS_LABELS, status) ? status : "review",
+    statusLabel: enumLabel(MATCH_STATUS_LABELS, status, "Needs review"),
+    image: undefined,
+  };
+}
+
+function matchSummary(summary, items) {
+  const counts = new Map();
+  for (const item of items) counts.set(item.status, (counts.get(item.status) || 0) + 1);
+  const parts = Object.keys(MATCH_SUMMARY_LABELS).filter((status) => counts.get(status))
+    .map((status) => `${counts.get(status)} ${MATCH_SUMMARY_LABELS[status]}`);
+  return parts.length ? `${parts.join(" · ")}. Nothing is saved until you confirm in chat.` : firstText(summary, ["message"], 200);
+}
+
+// "America/New_York" → "New York".
+function zoneCity(zone) {
+  const city = /^[A-Za-z]+\/(?:[A-Za-z_]+\/)?([A-Za-z_]+)$/.exec(zone || "")?.[1];
+  return city ? city.replaceAll("_", " ") : "";
+}
+
+// venue_get: one place with its hours, contact facts and the member's history.
+const DAY_ORDER = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+function normalizeVenueDetail(data) {
+  if (!isRecord(data.venue) || !isRecord(data.opening) || !isRecord(data.pearl_context)) return undefined;
+  const venue = data.venue;
+  const opening = data.opening;
+  const context = data.pearl_context;
+  const awards = isRecord(context.awards) ? context.awards : {};
+  const community = isRecord(context.community) ? context.community : {};
+  const member = isRecord(data.member_context) ? data.member_context : {};
+  const booking = isRecord(data.booking) ? data.booking : {};
+  const item = normalizeVenue({
+    ...venue,
+    id: firstText(venue, ["location_id", "id"], 120),
+    michelin_stars: awards.michelin_stars,
+    worlds_50_best_rank: awards.worlds_50_best_rank,
+    google_rating: community.google_rating,
+    price_level: venue.price_tier,
+    status: "",
+  }, 0);
+  const openingStatus = firstText(opening, ["status"], 40).toLowerCase();
+  const hoursSource = isRecord(opening.hours_by_day) ? opening.hours_by_day : {};
+  // Consecutive days with the same hours read as one row ("Mon–Wed").
+  const hours = [];
+  let previous;
+  for (const day of DAY_ORDER) {
+    const value = Array.isArray(hoursSource[day])
+      ? hoursSource[day].slice(0, 4).map((range) => cleanText(range, 20)).filter(Boolean).join(", ")
+      : "";
+    if (value && previous && previous.value === value && previous.lastIndex === DAY_ORDER.indexOf(day) - 1) {
+      previous.lastIndex += 1;
+      previous.day = `${previous.firstDay}–${day}`;
+    } else if (value) {
+      previous = { day, firstDay: day, lastIndex: DAY_ORDER.indexOf(day), value };
+      hours.push(previous);
+    } else previous = undefined;
+  }
+  const visits = firstNumber(member, ["visit_count"]);
+  const latestScore = firstNumber(member, ["latest_score"]);
+  const memberLine = [
+    member.saved === true ? "Saved" : "",
+    visits ? `Visited ${formatNumber(visits, 0)} time${visits === 1 ? "" : "s"}` : "",
+    latestScore !== undefined && latestScore >= 0 && latestScore <= 10 ? `your last score ${formatNumber(latestScore)}/10` : "",
+  ].filter(Boolean).join(" · ");
+  const facts = [
+    { label: "Address", value: firstText(venue, ["address"], 200) },
+    { label: "Cuisine", value: firstText(venue, ["cuisine"], 120) },
+    { label: "Phone", value: firstText(venue, ["phone"], 60) },
+    { label: "Best for", value: firstText(context, ["best_for"], 200) },
+    { label: "Order", value: firstText(context, ["ordering_tips"], 200) },
+    { label: "Dress code", value: firstText(context, ["dress_code"], 120) },
+    { label: "Booking", value: booking.walk_in_only === true ? "Walk-in only" : providerLabel(firstText(booking, ["platform"], 40)) },
+  ].filter((fact) => fact.value);
+  return {
+    state: "ready",
+    kind: "venue_detail",
+    title: item.name,
+    subtitle: item.meta,
+    items: [{ ...item, meta: "", detail: firstText(venue, ["description"], 400) || firstText(context, ["vibe"], 300) }],
+    partial: false,
+    openLabel: openingStatus === "open"
+      ? opening.open_now === true ? "Open now" : "Closed now"
+      : openingStatus ? sentenceCase(openingStatus.replaceAll("_", " ")) : "",
+    hours: hours.map(({ day, value }) => ({ day, value })),
+    hoursNote: zoneCity(firstText(opening, ["timezone"], 60)) ? `Times are local to ${zoneCity(firstText(opening, ["timezone"], 60))}.` : "",
+    facts,
+    memberLine,
+  };
+}
+
 function normalizeJourney(value, index, kindHint) {
   const nested = isRecord(value.venue) ? value.venue : isRecord(value.location) ? value.location : {};
   const sources = [value, nested];
   const reservation = kindHint === "reservation" || Boolean(firstText(sources, ["reservation_id"], 120));
   const place = firstText(sources, ["venue_name", "location_name", "name", "title", "destination"], 120);
   const rawDate = firstScalar(sources, ["date", "start_date", "trip_start_date", "reservation_date", "reservation_at", "starts_at", "check_in"], 80);
-  const temporal = parseTemporal(rawDate);
+  // Reservations carry a venue-local label; the UTC instant would read as the
+  // wrong clock time for anyone outside the venue's zone.
+  const localLabel = firstText(sources, ["local_time_label"], 80);
+  const temporal = localLabel ? { display: localLabel, hasTime: true } : parseTemporal(rawDate);
   const date = temporal.display;
   const endDate = formatTemporal(firstScalar(sources, ["end_date", "trip_end_date", "ends_at", "check_out"], 80));
   const time = temporal.hasTime ? "" : formatClock(firstScalar(sources, ["time", "reservation_time", "start_time"], 40));
@@ -765,6 +897,7 @@ function normalizeVisitAction(data) {
     }));
     return { ...base, title: "Review your visit update", subtitle: "Nothing has been changed. Confirm these exact changes in the conversation before saving.",
       actionStage: "preview", expiresAt: formatDiningTimestamp(data.action_handle_expires_at),
+      expiresAtIso: formatDiningTimestamp(data.action_handle_expires_at) ? cleanText(data.action_handle_expires_at, 40) : "",
       partial: !changes.length || [...fields].some(field => !Object.hasOwn(VISIT_FIELD_LABELS, field) && field !== "visited_at_has_day"), items: [{ name: firstText(preview.venue, ["name"], 200) || "Your saved visit", changes,
         warnings: preview.duplicate_warning ? ["Another visit may have this date. Review the duplicate warning in chat before confirming."] : [] }] };
   }
@@ -779,10 +912,12 @@ function normalizeVisitAction(data) {
         { label: "Matched place", value: firstText(candidate, ["name"], 200) || (item.match_status === "exact" ? "Exact match returned — check the place in chat" : "Choose the correct place in chat") },
         { label: "City", value: firstText(input, ["city"], 100) || "Not recorded" },
         ...Object.entries(VISIT_FIELD_LABELS).filter(([key]) => key !== "comment_visibility").map(([key, label]) => ({ label, value: visitValue(input, key) })),
-      ], warnings: [match, "Confirm that you attended this visit.",
+      ], notes: [...(item.match_status === "exact" ? [match] : []), "Confirm that you attended this visit."],
+      warnings: [...(item.match_status === "exact" ? [] : [match]),
         ...(item.existing_visit || arrayAt(item, "possible_duplicates").length || item.status === "duplicate_warning" ? ["Possible duplicate — separate confirmation required."] : [])] };
     });
-    return { ...base, title: "Review your visit import", subtitle: "Nothing has been saved. Confirm attendance for each visit in chat. Suggested places and duplicates need separate review; ambiguous places must be resolved first.", actionStage: "preview", expiresAt: formatDiningTimestamp(data.action_handle_expires_at), items,
+    return { ...base, title: "Review your visit import", subtitle: "Nothing has been saved. Confirm attendance for each visit in chat. Suggested places and duplicates need separate review; ambiguous places must be resolved first.", actionStage: "preview", expiresAt: formatDiningTimestamp(data.action_handle_expires_at),
+      expiresAtIso: formatDiningTimestamp(data.action_handle_expires_at) ? cleanText(data.action_handle_expires_at, 40) : "", items,
       partial: data.items.length > 20 || items.length !== data.items.length };
   }
   if (data.status === "updated" && data.visit_id && isRecord(data.visit)) {
@@ -830,6 +965,11 @@ function normalizePlanAction(data) {
   const tripFacts = trip => [
     fact("Starts", date(trip.trip_start_date)), fact("Ends", date(trip.trip_end_date)),
   ];
+  const tripRange = trip => {
+    if (!isRecord(trip)) return "";
+    const [start, end] = [formatTemporal(trip.trip_start_date), formatTemporal(trip.trip_end_date)];
+    return start && end ? ` (${start} → ${end})` : start ? ` (from ${start})` : "";
+  };
   const place = venue => [firstText(venue, ["name"], 200), firstText(venue, ["city"], 100), firstText(venue, ["country"], 100)].filter(Boolean).join(" · ") || "Place details not returned — check in chat";
   const stopValue = (record, field) => {
     if (!isRecord(record)) return "Not on this trip";
@@ -839,6 +979,7 @@ function normalizePlanAction(data) {
     return cleanText(record[field], 500) || "No note";
   };
   const expiresAt = isPreview ? formatDiningTimestamp(data.action_handle_expires_at) : "";
+  const expiresAtIso = expiresAt ? cleanText(data.action_handle_expires_at, 40) : "";
   let partial = isPreview && !expiresAt;
   const invalidDate = value => value !== null && value !== undefined && !formatTemporal(value);
   if (create || stop && isPreview) partial ||= invalidDate(trip.trip_start_date) || invalidDate(trip.trip_end_date);
@@ -894,10 +1035,11 @@ function normalizePlanAction(data) {
         ...Object.entries({ scheduled_date: "Date", scheduled_time: "Time", notes: "Note" }).map(([key, label]) => ({
           label, before: stopValue(value.before, key), after: stopValue(value.after, key),
         })),
-      ], warnings: ["This changes your itinerary only. It does not book, change, or cancel a reservation.",
-        ...(value.outside_trip_dates_warning === true ? ["This stop is outside your trip dates. Review the date in chat before confirming."] : [])] };
+      ], notes: ["This changes your itinerary only. It does not book, change, or cancel a reservation."],
+      warnings: value.outside_trip_dates_warning === true
+        ? [`This stop is outside your trip dates${tripRange(trip)}. Review the date in chat before confirming.`] : [] };
   }
-  return { ...base, title, partial, expiresAt, items: [item], subtitle: isPreview
+  return { ...base, title, partial, expiresAt, expiresAtIso, items: [item], subtitle: isPreview
     ? partial ? "The preview is incomplete. Review the full request in chat before confirming. Nothing has been changed."
       : "Nothing has been changed. Confirm these exact details in the conversation before saving."
     : partial ? "Do not assume this succeeded. Check the result in chat before repeating the request."
@@ -977,8 +1119,11 @@ function normalizeFlight(value, index, kindHint) {
   const carrier = firstText(sources, ["airline", "carrier", "carrier_name", "provider", "marketing_carrier_name", "owner_iata", "airline_iata"], 90);
   const flightNumber = firstText(sources, ["flight_number", "number"], 40);
   const route = origin && destination ? `${origin} → ${destination}` : routeText(sources);
-  const departure = formatTemporal(firstScalar(sources, ["departure_time", "departure_at", "scheduled_departure_at", "departs_at", "departure", "start_time"], 80));
-  const arrival = formatTemporal(firstScalar([value, firstSlice, lastSegment], ["arrival_time", "arrival_at", "scheduled_arrival_at", "arrives_at", "arrival", "end_time"], 80));
+  // Airport-local labels ("Fri 11 Sep, 6:10 PM PDT") win over raw instants.
+  const departure = firstText(firstSegment, ["departure_label"], 60)
+    || formatTemporal(firstScalar(sources, ["departure_time", "departure_at", "scheduled_departure_at", "departs_at", "departure", "start_time"], 80));
+  const arrival = firstText(lastSegment, ["arrival_label"], 60)
+    || formatTemporal(firstScalar([value, firstSlice, lastSegment], ["arrival_time", "arrival_at", "scheduled_arrival_at", "arrives_at", "arrival", "end_time"], 80));
   const explicitStops = firstNumber(sources, ["stops", "stop_count", "number_of_stops"]);
   const stops = explicitStops === undefined && segments.length ? Math.max(0, segments.length - 1) : explicitStops;
   const cabin = firstText(sources, ["cabin", "cabin_class", "fare_class"], 50);
@@ -1076,13 +1221,24 @@ function inferCollection(data) {
     return { kind: "flights", values: [...flightOffers.map((item) => ({ value: item, hint: "flight" })), ...slots.map((item) => ({ value: item, hint: "slot" }))] };
   }
 
+  // The member's own lists: saves_list and visits_list.
+  if (Array.isArray(data.saved)) return { kind: "venues", source: "saved", values: arrayAt(data, "saved").map((value) => ({ value })) };
+  if (Array.isArray(data.visits)) return { kind: "venues", source: "visits", values: arrayAt(data, "visits").map((value) => ({ value })) };
+  if (Array.isArray(data.matches) && typeof data.matching_policy === "string") {
+    return { kind: "matches", values: arrayAt(data, "matches").map((value) => ({ value })) };
+  }
+
   const reservations = arrayAt(data, "reservations");
   const trips = [...arrayAt(data, "trips"), ...arrayAt(data, "collections")];
   const singleTrip = isRecord(data.trip) ? [data.trip] : [];
-  const singleReservation = isRecord(data.reservation) ? [data.reservation] : [];
+  // reservation_get answers with the reservation itself, not a wrapper.
+  const flatReservation = !Array.isArray(data.reservations) && typeof data.id === "string"
+    && ["user_reservations", "member_reservations"].includes(data.source) ? [data] : [];
+  const singleReservation = isRecord(data.reservation) ? [data.reservation] : flatReservation;
   const hasJourneyEnvelope = ["reservations", "trips", "collections"].some((key) => Array.isArray(data[key]))
     || isRecord(data.trip)
-    || isRecord(data.reservation);
+    || isRecord(data.reservation)
+    || flatReservation.length > 0;
   if (reservations.length || trips.length || singleTrip.length || singleReservation.length || hasJourneyEnvelope) {
     return {
       kind: "journeys",
@@ -1106,12 +1262,16 @@ function inferCollection(data) {
   return { kind: "generic", values: [] };
 }
 
-function titleFor(kind, count, data, view) {
+function titleFor(kind, count, data, view, source = "") {
   const explicit = firstText(view, ["title"], 100) || firstText(data, ["title", "heading"], 100);
   if (explicit) return explicit;
+  if (source === "saved") return count === 1 ? "Your saved place" : "Your saved places";
+  if (source === "visits") return count === 1 ? "A place you've been" : "Places you've been";
+  if (kind === "matches") return count === 1 ? "Place match" : "Place matches";
   if (kind === "venues") return count === 1 ? "A place worth considering" : "Places picked for you";
   if (kind === "journeys") {
-    const hasReservations = arrayAt(data, "reservations").length > 0 || isRecord(data.reservation);
+    const hasReservations = arrayAt(data, "reservations").length > 0 || isRecord(data.reservation)
+      || ["user_reservations", "member_reservations"].includes(data.source);
     const hasTrips = arrayAt(data, "trips").length > 0 || arrayAt(data, "collections").length > 0 || isRecord(data.trip);
     if (hasTrips && !hasReservations) return count === 1 ? "Your trip or collection" : "Your trips and collections";
     if (hasReservations && !hasTrips) return count === 1 ? "Your reservation" : "Your reservations";
@@ -1124,7 +1284,9 @@ function titleFor(kind, count, data, view) {
 function actionPresentation(model) {
   // A receipt can contain skipped items. Never turn its presence into a
   // blanket success badge, or an incomplete preview into approval to save.
-  return { ...model,
+  const items = model.items.map((item) => ({ ...item,
+    changes: (item.changes || []).map((change) => ({ ...change, changed: change.before !== change.after })) }));
+  return { ...model, items,
     statusLabel: model.partial ? "Check in chat" : model.actionStage === "preview" ? "Not saved yet" : "Receipt",
     incompleteMessage: model.actionStage === "preview"
       ? "This preview is incomplete. Review the full request in the conversation before confirming."
@@ -1170,12 +1332,16 @@ export function normalizeToolResult(envelope) {
   const tripDetail = normalizeTripDetail(data);
   if (tripDetail) return tripDetail;
 
+  const venueDetail = normalizeVenueDetail(data);
+  if (venueDetail) return venueDetail;
+
   const collection = inferCollection(data);
   const view = explicitView(data)?.view || {};
   let items = [];
   if (collection.kind === "venues") {
+    const visit = collection.source === "visits";
     items = uniqueEntries(collection.values)
-      .map((entry, index) => normalizeVenue(entry.value, index, entry.group));
+      .map((entry, index) => normalizeVenue(entry.value, index, entry.group, visit ? { scoreLabel: "member", visit } : {}));
     // An explicit top_pick wins; the legacy shortlist recommendation is only a
     // pick when there is more than one place to pick from.
     const pickId = firstText(data.top_pick, ["id", "location_id"], 120)
@@ -1187,6 +1353,8 @@ export function normalizeToolResult(envelope) {
   } else if (collection.kind === "flights") {
     items = uniqueEntries(collection.values)
       .map((entry, index) => normalizeFlight(entry.value, index, entry.hint || "flight"));
+  } else if (collection.kind === "matches") {
+    items = collection.values.slice(0, MAX_ITEMS).map((entry, index) => normalizePlaceMatch(entry.value, index));
   }
 
   const partial = data.partial === true
@@ -1196,19 +1364,38 @@ export function normalizeToolResult(envelope) {
     || arrayAt(data, "errors").length > 0;
   const subtitle = firstText(view, ["subtitle", "summary"], 200)
     || firstText(data, ["message", "summary"], 200)
-    || (collection.kind === "venues" ? "Places from Pearl's catalog, with what makes each one stand out."
+    || (collection.kind === "matches" ? matchSummary(data.summary, items)
+      : collection.source === "saved" ? "Places you saved in Pearl."
+      : collection.source === "visits" ? "Your visits, with your own scores and notes."
+      : collection.kind === "venues" ? "Places from Pearl's catalog, with what makes each one stand out."
       : collection.kind === "journeys" ? "Dates, status, and the details returned by your Pearl account."
       : collection.kind === "flights" ? "Live-looking data can change; confirm availability before acting."
       : "The tool returned no supported visual collection.");
+  const memberList = collection.source === "saved" || collection.source === "visits";
   return {
     state: items.length ? "ready" : "empty",
     kind: collection.kind,
-    title: titleFor(collection.kind, items.length, data, view),
+    title: titleFor(collection.kind, items.length, data, view, collection.source),
     subtitle,
     items,
     partial,
     ...(collection.kind === "venues" ? { rankingBasis: firstText(data.shortlist, ["ranking_basis"], 240) } : {}),
+    // Comparing is for choosing between catalog results, not a member's history.
+    ...(memberList ? { comparable: false, countNote: pageNote(data.pagination, items.length) } : {}),
   };
+}
+
+// "Showing 20 of 57" when a member list continues past this page.
+function pageNote(pagination, shown) {
+  if (!isRecord(pagination) || !shown) return "";
+  const total = firstNumber(pagination, ["total_count"]);
+  const through = firstNumber(pagination, ["returned_through"]) ?? shown;
+  if (!Number.isInteger(through) || through < shown) return "";
+  const range = through > shown ? `${through - shown + 1}–${through}` : `${through}`;
+  if (total !== undefined && Number.isInteger(total) && total > through) {
+    return `Showing ${range} of ${formatNumber(total, 0)}. Ask for more in chat.`;
+  }
+  return pagination.partial_reason === "page_limit" ? `Showing ${range}. Ask for more in chat.` : "";
 }
 
 export function recoveryPrompt(error) {

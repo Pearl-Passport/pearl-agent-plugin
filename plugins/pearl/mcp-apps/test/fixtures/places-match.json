@@ -1,0 +1,12 @@
+{
+  "structuredContent": {
+    "summary": { "exact": 1, "suggested": 1, "ambiguous": 1, "unmatched": 1 },
+    "matching_policy": "Exact only when names, types and geography agree; review everything else with the member.",
+    "matches": [
+      { "reference": "cal-1", "input": { "name": "Le Bernardin", "type": "restaurant", "city": "New York", "country": null, "address": null, "latitude": null, "longitude": null }, "status": "exact", "reason": "canonical_exact", "location_id": "7c9e6679-7425-40de-944b-e07fc1f90ae7", "confidence": 1, "candidates": [{ "id": "7c9e6679-7425-40de-944b-e07fc1f90ae7", "name": "Le Bernardin", "type": "restaurant", "city": "New York", "country": "United States", "similarity": 1 }] },
+      { "reference": "cal-2", "input": { "name": "Carbone NYC", "type": null, "city": "New York", "country": null, "address": null, "latitude": null, "longitude": null }, "status": "suggested", "reason": "canonical_suggestion", "location_id": "11111111-2222-4333-8444-555555555555", "confidence": 0.82, "candidates": [{ "id": "11111111-2222-4333-8444-555555555555", "name": "Carbone", "type": "restaurant", "city": "New York", "country": "United States", "similarity": 0.82 }] },
+      { "reference": "cal-3", "input": { "name": "Joe's", "type": null, "city": "New York", "country": null, "address": null, "latitude": null, "longitude": null }, "status": "ambiguous", "reason": "multiple_candidates", "location_id": null, "confidence": 0, "candidates": [{ "id": "22222222-2222-4333-8444-555555555555", "name": "Joe's Pizza", "city": "New York" }, { "id": "33333333-2222-4333-8444-555555555555", "name": "Joe's Shanghai", "city": "New York" }] },
+      { "reference": "cal-4", "input": { "name": "Dinner at home", "type": null, "city": null, "country": null, "address": null, "latitude": null, "longitude": null }, "status": "unmatched", "reason": "not_found", "location_id": null, "confidence": 0, "candidates": [] }
+    ]
+  }
+}

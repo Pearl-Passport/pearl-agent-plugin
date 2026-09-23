@@ -204,18 +204,26 @@ test("only supported read and reviewed action result shapes opt into the UI", ()
     "venues_search",
     "venues_recommend",
     "venues_new_openings",
+    "places_match",
     "profile_get",
+    "saves_list",
+    "visits_list",
     "trips_list",
     "trip_get",
     "reservations_list",
+    "reservation_get",
     "reservations_availability",
+    "venue_get",
+    "flights_search",
+    "flights_list",
+    "flight_get",
     "visits_import_prepare", "visits_import_commit", "visits_update_prepare", "visits_update_commit",
     "saves_change_prepare", "saves_change_commit", "trips_create_prepare", "trips_create_commit",
     "trip_stops_update_prepare", "trip_stops_update_commit",
   ]);
   for (const name of PEARL_MCP_APP_TOOL_NAMES) assert.equal(pearlMcpAppSupportsTool(name), true);
   const writeTool = ["profile", "update", "prepare"].join("_");
-  for (const name of ["places_match", "reservation_get", writeTool, "venue_get"]) {
+  for (const name of [writeTool, "person_get", "friends_list", "watches_list"]) {
     assert.equal(pearlMcpAppSupportsTool(name), false);
   }
 });

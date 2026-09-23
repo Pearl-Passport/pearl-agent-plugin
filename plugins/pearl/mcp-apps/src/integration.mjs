@@ -45,15 +45,28 @@ export const PEARL_MCP_APP_ACTION_TOOL_NAMES = Object.freeze([
   "trip_stops_update_prepare", "trip_stops_update_commit",
 ]);
 
+// Dark-launched reads get their card only where their own gates expose them.
+export const PEARL_MCP_APP_GATED_READ_TOOL_NAMES = Object.freeze([
+  "reservations_availability", "venue_get", "flights_search", "flights_list", "flight_get",
+]);
+
 export const PEARL_MCP_APP_TOOL_NAMES = Object.freeze([
   "venues_search",
   "venues_recommend",
   "venues_new_openings",
+  "places_match",
   "profile_get",
+  "saves_list",
+  "visits_list",
   "trips_list",
   "trip_get",
   "reservations_list",
+  "reservation_get",
   "reservations_availability",
+  "venue_get",
+  "flights_search",
+  "flights_list",
+  "flight_get",
   ...PEARL_MCP_APP_ACTION_TOOL_NAMES,
 ]);
 
