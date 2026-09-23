@@ -12,13 +12,14 @@ and OAuth recovery.
   cookies, request headers, or browser storage.
 - Record only the host/product version, date, tool name, visible result, and a
   Pearl request ID when an error already exposes one.
-- Eight supported reads have cards. Read canaries must not create, change,
+- Sixteen supported reads have cards (five only where their own gates list
+  the tool). Read canaries must not create, change,
   book, cancel, save, message, or publish anything. The four visit action tools
   have model-only visibility and presentation cards. Test their confirmation
   flow separately with one designated disposable visit, then remove test data
   through the Pearl app because deletion is not an Agent capability.
 
-## Save and trip action cards (v13 / 1.5.7)
+## Save and trip action cards (v14 / 1.6.0)
 
 Run only where the connected host's `tools/list` already includes these tools
 and the designated test account has explicitly granted the required access.
@@ -43,7 +44,10 @@ or Elite test membership. A host without cards must retain the full text flow.
 6. Clean up only the designated test data through Pearl and revoke test grants.
 
 UI check: previews say “Not saved yet”, returned receipts say “Receipt”, and
-incomplete results say “Check in chat”. A receipt badge is not a claim that every
+incomplete results say “Check in chat”. Changed fields show before/after,
+unchanged fields collapse into one “Unchanged” list, real warnings (a stop
+outside the trip dates, which names those dates; a possible duplicate) are
+warning banners, and the expiry reads in the viewer's local time. A receipt badge is not a claim that every
 import item succeeded. Before/after values and warnings must remain visible at
 320px, without horizontal scrolling or a second nested card border. Cards must
 not contain a write/confirm button; confirmation stays in the conversation.
@@ -62,16 +66,22 @@ Test light and dark appearance once each.
 | `venues_search` | “Find three Pearl restaurants in Paris.” | Venue cards and a result count |
 | `venues_recommend` | “Recommend three Pearl places for a quiet dinner.” | Taste-aware venue cards |
 | `venues_new_openings` | “Show Pearl’s newest openings.” | Opening cards with honest fallback labeling when applicable |
-| `profile_get` | “What are the strongest patterns in my Pearl taste profile?” | Member-scoped visits/cities/saves statistics, taste facets, and fixed follow-up questions |
+| `profile_get` | “What are the strongest patterns in my Pearl taste profile?” | Statistics, strongest patterns and the fixed follow-up questions first; evidence, insights and facets fold into “Evidence, travel and more” inline, with “Open full profile” where the host offers full screen |
+| `places_match` | “Match these three places to Pearl: [names and cities].” | One card per supplied name with its outcome (exact, to confirm, to choose, not in Pearl) and no actions |
+| `saves_list` | “Show my saved Pearl places.” | Saved-place cards with Ask and Open in Pearl, no compare, and a “Showing N of M” note when more pages exist |
+| `visits_list` | “Show my five most recent Pearl visits.” | Visit cards with the visit date, the member's own score and note, and no compare |
 | `trips_list` | “List my Pearl trips and collections.” | Owned trip/collection cards with dates and stop counts when returned |
 | `trip_get` | First list trips in chat, then ask to open one returned trip. | Trip-stop cards; no booking claim |
 | `reservations_list` | “Show my Pearl reservations.” | Reservation cards with date, status, and safe account details |
+| `reservation_get` | First list reservations, then ask to open one. | One reservation card whose time reads in the venue's local time zone |
+| `venue_get` | Codex, Claude or Cursor: “Show the hours and details for [venue].” | Venue card with description, signals, facts, grouped opening hours and one Open in Pearl link |
 | `reservations_availability` | Ask for availability at one returned venue, with date and party size. | Dining options or distinct pending, unknown, and empty states |
 
 For trips and reservations, verify the unified journey family groups returned
 stops or reservations by date, labels missing status as unknown, and never
-converts tentative or unavailable data into confirmed copy. Flight fixtures are
-pre-release coverage only while those tools are dark. Live availability is still limited to reviewed agent hosts; adding its card
+converts tentative or unavailable data into confirmed copy. Flight cards use
+airport-local labels; they stay pre-release coverage while the flight tools keep
+their internal canary gate. Live availability is still limited to reviewed agent hosts; adding its card
 does not widen client eligibility.
 
 Use only trips and reservations returned by the same account. Never paste an ID

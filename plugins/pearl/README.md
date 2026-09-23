@@ -12,9 +12,9 @@ The package contains host manifests, the Pearl Concierge skill, public setup doc
 
 ## Current release
 
-Package `0.11.0` keeps the common 13 reads for every authenticated connection. Reviewed Codex, Claude and Cursor clients can also check table availability and use ten confirmed-action tools for visits, saved places and private trips: 24 tools with all ten scopes. Reconnect to approve the added save/trip permissions. ChatGPT retains its submitted 18-tool visit/availability contract. The standalone Pearl CLI and unknown clients remain read-only.
+Package `0.12.1` keeps the common 13 reads for every authenticated connection. Reviewed Codex, Claude and Cursor clients also get table availability, six discovery reads (venue details, when bookings open, similar and nearby places, Pearl events, and the bookable venues of a Tables city) and ten confirmed-action tools for visits, saved places and private trips: 20 tools with the seven reads, 30 with all ten scopes. The discovery reads need no new permission; reconnect only to approve the save/trip permissions. ChatGPT retains its submitted 18-tool visit/availability contract. The standalone Pearl CLI and unknown clients remain read-only on the 13 common reads.
 
-Current Codex uses host-controlled per-install CIMD identities; Pearl accepts only the strictly validated official family. The same gateway and executor serve every host. Availability and visit preview/receipt cards remain presentation-only; save/trip previews and receipts use structured text.
+Current Codex presents the shared OpenAI-hosted CIMD client ID (older releases used per-install identities); Pearl accepts only that strictly validated official family. The same gateway and executor serve every host. Cards are presentation-only and cover venues, saved places, visits, place matches, your profile, trips, reservations, venue details, availability, flights where available, and visit/save/trip previews and receipts.
 
 See the [capability snapshot](skills/pearl-concierge/references/capabilities.md) for the exact host matrix and honest unavailable-workflow labels. No host can book, hold, change, cancel, or pay for a reservation in this release. The package does not claim that a host has approved or listed Pearl.
 

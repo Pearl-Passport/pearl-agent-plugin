@@ -6,7 +6,7 @@ journey family for trip indexes, day-grouped trip stops, reservations, and
 flight or availability result shapes without owning
 authentication, storage, network access, or Pearl business logic. The canonical
 source now wires one versioned resource into both production MCP protocol paths
-for eight supported reads and ten existing action tools. Venue and profile cards have rendered
+for sixteen supported reads (five behind their own client gates) and ten action tools. Venue and profile cards have rendered
 successfully in ChatGPT developer mode; public directory availability still
 depends on OpenAI review and publication.
 
@@ -52,18 +52,25 @@ helpers. Both protocol implementations register that same definition and return
 fresh copies of its same read payload.
 
 Published/installed host snapshots can outlive the last few UI releases. Keep
-the exact v4 URI pinned alongside v12/v11/v10/v9/v8/v7/v6/v5 compatibility aliases until host
+the exact v4 URI pinned alongside v13/v12/v11/v10/v9/v8/v7/v6/v5 compatibility aliases until host
 refresh is verified; a live ChatGPT canary still requested v4 on 2026-09-04.
-All aliases return the current v13 artifact with identical authentication and
-CSP. This does not load old code or accept arbitrary resource URLs.
+All aliases return the current v14 artifact with identical authentication and
+CSP. This does not load old code or accept arbitrary resource URLs. Hosts cache
+templates by URI, so any change to the artifact moves the resource to a new
+version and keeps the previous one as an alias.
 
 The supported read list is `venues_search`, `venues_recommend`,
-`venues_new_openings`, `profile_get`, `trips_list`, `trip_get`, and
-`reservations_list`, plus the client-gated `reservations_availability`. These are read-only tools whose output
-shapes the renderer handles. Profile results render member-scoped activity
-counts, taste facets, top cities, and fixed follow-up questions without adding
-a profile mutation. Place matching, visit-list reads, saved-place reads, friends,
-exact-reservation, other writes and other gated tools remain data-only. The four
+`venues_new_openings`, `places_match`, `profile_get`, `saves_list`,
+`visits_list`, `trips_list`, `trip_get`, `reservations_list` and
+`reservation_get`, plus the gated reads `reservations_availability`,
+`venue_get`, `flights_search`, `flights_list` and `flight_get`
+(`PEARL_MCP_APP_GATED_READ_TOOL_NAMES`): a gated read carries the card only
+where its own client, scope and dark-launch gates already list the tool. These
+are read-only tools whose output shapes the renderer handles. Profile results
+render member-scoped activity counts, strongest patterns and fixed follow-up
+questions first; evidence, insights, facets and favorites fold into one
+disclosure inline and show in full screen. Friends, the other discovery reads
+and other gated tools remain data-only. The four
 reviewed visit import/update tools and six existing save/trip prepare/commit tools
 receive presentation metadata after their existing gates. Their visibility is model-only: cards never invoke a
 mutation. OpenAI connections receive the optional output-template alias;
@@ -82,15 +89,21 @@ or “Check in chat” instead of a result count. Receipts never imply every imp
 item was saved. Single-boundary review cards retain all before/after details
 and warnings with more usable space on phones. Incomplete previews ask for
 review before confirmation; incomplete receipts ask for verification before retry.
-Real-host v13 rendering remains unverified until the canary below is completed.
+The v14 / 1.6.0 release adds cards for saved places and visits (visit date,
+the member's own score and note, no compare), place matches (exact, to confirm,
+to choose, not in Pearl), a single reservation in venue-local time, venue
+details with grouped opening hours, and flights in airport-local time. Action
+previews lead with what changes, collapse unchanged fields, show warnings as
+warning banners and give the expiry in the viewer's local time.
+Real-host v14 rendering remains unverified until the canary below is completed.
 
 Trip and reservation reads use the unified journey family. Restaurant availability
 has a dedicated dining presentation with venue-local times, party size, provider,
 checked time, price, deposit, payment and cancellation terms. Pending, unknown,
 and confirmed empty results remain distinct. The card never holds or books a table.
 Its metadata is attached only after existing client, scope, and capability gates;
-adding the card does not enable this tool for another client. Flight tools remain
-data-only and gated.
+adding the card does not enable this tool for another client. Flight tools keep
+their internal canary gate; their card appears only where that gate lists them.
 
 Keep search and read tools data-first. A render tool should receive final,
 model-checked structured data and return that same data plus concise text. This

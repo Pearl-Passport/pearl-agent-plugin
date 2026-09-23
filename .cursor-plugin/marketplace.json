@@ -11,7 +11,7 @@
     {
       "name": "pearl-cursor",
       "source": "plugins/pearl/cursor",
-      "version": "0.12.0",
+      "version": "0.12.1",
       "description": "Pearl discovery, private travel context, live table availability, and confirmed visit actions for eligible Pearl Reserve and Elite members",
       "author": {
         "name": "Pearl LLC",

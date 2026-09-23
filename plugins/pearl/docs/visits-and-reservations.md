@@ -47,7 +47,7 @@ completed in Pearl or with the reservation provider where supported.
 
 ## Cards
 
-Current cards cover eight read tools, including table availability, plus the four visit preview/receipt tools. Cards are presentation-only: visit changes require the host's explicit confirmation flow. Save/trip previews and receipts use structured text; they do not require a card.
+Current cards cover the common reads (venues, saved places, visits, place matches, profile, trips and reservations), venue details, table availability, flights where available, and the visit, save and trip preview/receipt tools. Cards are presentation-only: every change still requires the host's explicit confirmation flow. Save/trip previews and receipts use structured text, so every result stays complete without a card.
 
 Reviewed Codex, Claude and Cursor connections can additionally save/remove places, create private trips, and add/move/swap/remove trip stops after fresh save/trip permission. See the [capability reference](../skills/pearl-concierge/references/capabilities.md). ChatGPT's submitted contract remains the 18 tools described above.
 

@@ -301,7 +301,7 @@ test("normalizes member-scoped taste statistics and profile facets", async () =>
   const model = normalizeToolResult(await fixture("profile"));
   assert.equal(model.state, "ready");
   assert.equal(model.kind, "profile");
-  assert.equal(model.title, "Austin's taste profile");
+  assert.equal(model.title, "Sam's taste profile");
   assert.deepEqual(model.metrics, [
     { label: "Visits", value: "72" },
     { label: "Cities", value: "14" },

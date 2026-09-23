@@ -47,7 +47,7 @@ Existing grants are never widened. A member who connected before a permission ex
 
 ## Reviewed saves and trips
 
-Codex, Claude and Cursor connections can receive six more tools after reconnecting for `saves:write` and `trips:write`: 24 tools with all ten scopes. ChatGPT keeps its submitted 18-tool/eight-scope contract. On ChatGPT, offer the returned Pearl link so the member can save a place or change a trip in Pearl. These actions are not part of the current ChatGPT app. Existing grants are never widened. The standalone Pearl CLI remains on the 13 common reads.
+Codex, Claude and Cursor connections can receive six more tools after reconnecting for `saves:write` and `trips:write`: 30 tools with all ten scopes, counting the discovery reads below. ChatGPT keeps its submitted 18-tool/eight-scope contract. On ChatGPT, offer the returned Pearl link so the member can save a place or change a trip in Pearl. These actions are not part of the current ChatGPT app. Existing grants are never widened. The standalone Pearl CLI remains on the 13 common reads.
 
 | Tool | Workflow | Boundary |
 | --- | --- | --- |
@@ -60,6 +60,19 @@ Codex, Claude and Cursor connections can receive six more tools after reconnecti
 
 All commits need an unexpired preview, explicit current confirmation and a separate idempotency key. A preview is not a successful change. Text previews and receipts work without a card; no new write buttons are required.
 
+## Reviewed discovery reads
+
+Codex, Claude and Cursor connections also receive six read-only tools under their existing read scopes, so no reconnect is needed. ChatGPT, the standalone Pearl CLI and unknown clients do not receive them.
+
+| Tool | Workflow | Boundary |
+| --- | --- | --- |
+| `venue_get` | Exact hours (Monday first, in the venue's time zone), address, booking platform, Pearl context and the member's own saves and visits for one stable venue ID | Booking availability is not checked; private visitor identities are never returned |
+| `reservations_release_window` | When one venue's bookings open, or whether a target date is released yet | State only `confirmed` or `repeat_pattern` schedules as fact, hedge `estimated`, and say `unknown` plainly; never invent a cadence; checks no availability |
+| `venues_similar` | Same-type peers like one venue (for example when it is booked), with bookable peers flagged | Matching and flags are not availability |
+| `venues_nearby` | Venues within a walking radius of one venue, closest first | Does not check hours or availability |
+| `events_search` | Pearl food, wine and hospitality events the member can see, with Pearl links | Does not RSVP, buy tickets or save events |
+| `tables_browse` | The bookable Pearl venues of a Tables city, with `availability_supported` | Pearl Reserve and Elite (Tables) only; never checks times, holds or books. Call `reservations_availability` for one venue, date and party |
+
 ## Workflow availability matrix
 
 | Workflow | Current public package | Not currently available |
@@ -68,7 +81,8 @@ All commits need an unexpired preview, explicit current confirmation and a separ
 | Member-added places | Search and matching may return provenance only when explicitly supplied | Direct place creation and provenance-only filtering |
 | Saves and collections | Read saves; reviewed Codex/Claude/Cursor can confirm save/remove | Custom collection management |
 | Trips | Read trips; reviewed Codex/Claude/Cursor can create private trips and edit stops | Share, delete, collaborate, or book |
-| Reservations | List and read recorded reservation details; reviewed agent hosts can check live table availability after coordinated activation | Holding a slot, provider booking, changes, cancellation, messaging, or payment |
+| Reservations | List and read recorded reservation details; reviewed agent hosts can check live table availability, see when a venue's bookings open, and browse a Tables city's bookable venues | Holding a slot, provider booking, changes, cancellation, messaging, payment, or reservation watchers |
+| Venue details and discovery | Reviewed Codex, Claude and Cursor hosts can read a venue's hours and details, find similar or nearby places, and search Pearl events | RSVPs, ticketing, saving events |
 | Visits and import | Review visits and match structured place evidence; reviewed agent hosts can preview/confirm imports and allowlisted edits after reconnecting for `visits:write` | Clean/delete visits and photo workflows |
 | Profile | Read available taste/profile signals | Profile, login, entitlement, privacy, or security changes |
 | Friends | Search privacy-filtered members and read friend/request state | Send, accept, decline, cancel, remove, block, or import contacts |

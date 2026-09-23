@@ -54,4 +54,4 @@ The MCP Registry is a distinct discovery channel, not a Codex, Claude, Cursor, o
 
 Do not claim Anthropic approval, official-marketplace inclusion, connector-directory listing, or endorsement until Anthropic confirms the exact reviewed release.
 
-Package 0.11.0 does not change the pending ChatGPT submission. Save/trip scope and tool additions apply only to the separately reviewed Codex, Claude and Cursor clients; preserve the submitted ChatGPT version during its review.
+Packages 0.11.x and 0.12.x do not change the pending ChatGPT submission. Save/trip scope and tool additions and the six discovery reads apply only to the separately reviewed Codex, Claude and Cursor clients, enforced per client on the server; preserve the submitted ChatGPT version during its review.
