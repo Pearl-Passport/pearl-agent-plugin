@@ -19,7 +19,7 @@ function inlineModel(source) {
 }
 
 function inlineApp(source, brandMark) {
-  return source.replace(/^import \{ normalizeToolResult, providerLabel, recoveryPrompt \} from "\.\/model\.mjs";\n/, "")
+  return source.replace(/^import \{ applyPreviewExpiry, normalizeToolResult, providerLabel, recoveryPrompt \} from "\.\/model\.mjs";\n/, "")
     .replace('"__PEARL_BRAND_MARK__"', JSON.stringify(`data:image/png;base64,${brandMark.toString("base64")}`));
 }
 

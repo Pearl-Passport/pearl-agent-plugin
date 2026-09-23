@@ -1,4 +1,4 @@
-import { normalizeToolResult, providerLabel, recoveryPrompt } from "./model.mjs";
+import { applyPreviewExpiry, normalizeToolResult, providerLabel, recoveryPrompt } from "./model.mjs";
 
 // Replaced at build time with the approved 56px assets/icon-56.png (2x the
 // 28px render) derived from assets/icon.png. No fetch.
@@ -1047,16 +1047,55 @@ function emptyContent(model) {
 }
 
 let currentModel;
+let previewExpiryTimer;
+let disposed = false;
+
+function clearPreviewExpiryTimer() {
+  window.clearTimeout(previewExpiryTimer);
+  previewExpiryTimer = undefined;
+}
+
+function schedulePreviewExpiry() {
+  clearPreviewExpiryTimer();
+  if (disposed || document.hidden || currentModel?.previewExpiryState !== "current") return;
+  // Recheck the wall clock at least once a minute; cap delays to avoid timer
+  // overflow and recheck immediately when a sleeping/backgrounded host resumes.
+  const delay = Math.max(1, Math.min(60_000, currentModel.previewExpiresAtMs - Date.now()));
+  previewExpiryTimer = window.setTimeout(refreshPreviewExpiry, delay);
+}
+
+function refreshPreviewExpiry() {
+  if (disposed || currentModel?.actionStage !== "preview") return;
+  const next = applyPreviewExpiry(currentModel, Date.now());
+  if (next.previewExpiryState !== currentModel.previewExpiryState) {
+    currentModel = next;
+    renderCurrent();
+    announce(next.expiryMessage);
+  } else schedulePreviewExpiry();
+}
+
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) clearPreviewExpiryTimer();
+  else refreshPreviewExpiry();
+});
+window.addEventListener("focus", refreshPreviewExpiry);
+window.addEventListener("pageshow", refreshPreviewExpiry);
+window.addEventListener("pagehide", clearPreviewExpiryTimer);
 
 function renderCurrent() {
   if (!currentModel) return;
-  const model = currentModel;
+  const model = applyPreviewExpiry(currentModel, Date.now());
+  currentModel = model;
   const panel = element("section", "panel");
   panel.append(header(model));
-  if (model.partial) panel.append(banner(model.incompleteMessage
+  if (model.partial && !["expired", "unverified"].includes(model.previewExpiryState)) panel.append(banner(model.incompleteMessage
     ? model.incompleteMessage
     : "Some results could not be loaded. The available items are still shown below."));
-  if (model.expiresAt) panel.append(banner(`Preview expires at ${localExpiry(model)}. Ask for a new preview if it expires.`));
+  // A live preview names its expiry in the viewer's own time; expired or
+  // unverifiable previews use the model's fixed do-not-confirm message.
+  if (model.expiryMessage) panel.append(banner(model.previewExpiryState === "current"
+    ? `Preview expires at ${localExpiry(model)}. Pearl will check it again when you confirm.`
+    : model.expiryMessage, model.previewExpiryState === "current" ? "warning" : "danger"));
   if (model.refreshInProgress) panel.append(banner("A provider check is still running. These are the currently returned options."));
   const content = element("div", "content");
   if (model.state === "error") {
@@ -1104,21 +1143,27 @@ function renderCurrent() {
   }
   panel.append(content);
   root.replaceChildren(panel);
+  schedulePreviewExpiry();
 }
 
 function showLoading() {
+  clearPreviewExpiryTimer();
   currentModel = undefined;
   root.replaceChildren(loadingPanel());
   announce("Pearl is loading results.");
 }
 
 function receiveResult(result) {
+  if (disposed) return;
+  clearPreviewExpiryTimer();
   hostState.toolResultReceived = true;
   selected.clear();
   currentModel = normalizeToolResult(result);
   renderCurrent();
   announce(currentModel.state === "error"
     ? currentModel.title
+    : currentModel.actionStage === "preview"
+      ? `${currentModel.statusLabel}. ${currentModel.expiryMessage}`
     : currentModel.kind === "profile"
       ? "Your Pearl taste profile is ready."
       : `${currentModel.items.length} Pearl result${currentModel.items.length === 1 ? "" : "s"} ready.`);
@@ -1195,6 +1240,8 @@ window.addEventListener("message", (event) => {
   if (message.id !== undefined && message.method === "ping") {
     respond(message.id, {});
   } else if (message.id !== undefined && message.method === "ui/resource-teardown") {
+    disposed = true;
+    clearPreviewExpiryTimer();
     sizeObserver?.disconnect();
     respond(message.id, {});
   } else if (message.id !== undefined && typeof message.method === "string") {
@@ -1245,7 +1292,7 @@ async function connect() {
   showLoading();
   try {
     const initialized = await request("ui/initialize", {
-      appInfo: { name: "Pearl Concierge", version: "1.6.0" },
+      appInfo: { name: "Pearl Concierge", version: "1.6.1" },
       appCapabilities: { availableDisplayModes: ["inline", "fullscreen"] },
       protocolVersion: "2026-01-26",
     }, 5_000);

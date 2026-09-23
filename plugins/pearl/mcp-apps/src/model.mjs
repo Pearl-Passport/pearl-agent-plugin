@@ -1281,16 +1281,44 @@ function titleFor(kind, count, data, view, source = "") {
   return "Pearl results";
 }
 
-function actionPresentation(model) {
+function actionPresentation(model, rawExpiry) {
+  // Expiry is an instant, unlike venue-local itinerary times. Require an
+  // explicit zone and validated date components before using Date.parse.
+  const expiryValid = typeof rawExpiry === "string" && rawExpiry.length <= 80
+    && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$/.test(rawExpiry)
+    && parseTemporal(rawExpiry).hasTime;
+  const expiryMs = expiryValid ? Date.parse(rawExpiry) : NaN;
   // A receipt can contain skipped items. Never turn its presence into a
   // blanket success badge, or an incomplete preview into approval to save.
   const items = model.items.map((item) => ({ ...item,
     changes: (item.changes || []).map((change) => ({ ...change, changed: change.before !== change.after })) }));
   return { ...model, items,
+    ...(model.actionStage === "preview" ? { previewExpiresAtMs: Number.isFinite(expiryMs) ? expiryMs : null } : {}),
     statusLabel: model.partial ? "Check in chat" : model.actionStage === "preview" ? "Not saved yet" : "Receipt",
     incompleteMessage: model.actionStage === "preview"
       ? "This preview is incomplete. Review the full request in the conversation before confirming."
       : "This receipt needs review. Check what was saved in the conversation before retrying.",
+  };
+}
+
+// Presentation only; the server owns expiry, confirmation, and authorization.
+// Once observed expired, a local clock rollback cannot revive the same card.
+export function applyPreviewExpiry(model, nowMs) {
+  if (model.actionStage !== "preview") return model;
+  const verified = Number.isFinite(model.previewExpiresAtMs) && Number.isFinite(nowMs);
+  const expired = model.previewExpiryState === "expired" || verified && nowMs >= model.previewExpiresAtMs;
+  const previewExpiryState = expired ? "expired" : verified ? "current" : "unverified";
+  if (previewExpiryState === "current") return { ...model, previewExpiryState,
+    expiryMessage: `Preview expires: ${model.expiresAt}. Pearl will check it again when you confirm.`,
+  };
+  const message = expired
+    ? "Do not confirm this expired preview. If you already confirmed, check the receipt in chat. Otherwise, ask for a fresh preview."
+    : "The preview expiry could not be verified. Do not confirm it. Check for an existing receipt or ask for a fresh preview in chat.";
+  return { ...model, previewExpiryState,
+    title: expired ? "This preview has expired" : "Check this preview in chat",
+    statusLabel: expired ? "Expired" : "Expiry unverified",
+    subtitle: "These details are for reference, not a saved receipt.",
+    expiryMessage: message,
   };
 }
 
@@ -1318,10 +1346,10 @@ export function normalizeToolResult(envelope) {
   if (profile) return profile;
 
   const visitAction = normalizeVisitAction(data);
-  if (visitAction) return actionPresentation(visitAction);
+  if (visitAction) return actionPresentation(visitAction, data.action_handle_expires_at);
 
   const planAction = normalizePlanAction(data);
-  if (planAction) return actionPresentation(planAction);
+  if (planAction) return actionPresentation(planAction, data.action_handle_expires_at);
 
   const diningAvailability = normalizeDiningAvailability(data);
   if (diningAvailability) {
