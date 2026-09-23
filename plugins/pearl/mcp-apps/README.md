@@ -52,9 +52,9 @@ helpers. Both protocol implementations register that same definition and return
 fresh copies of its same read payload.
 
 Published/installed host snapshots can outlive the last few UI releases. Keep
-the exact v4 URI pinned alongside v13/v12/v11/v10/v9/v8/v7/v6/v5 compatibility aliases until host
+the exact v4 URI pinned alongside v14/v13/v12/v11/v10/v9/v8/v7/v6/v5 compatibility aliases until host
 refresh is verified; a live ChatGPT canary still requested v4 on 2026-09-04.
-All aliases return the current v14 artifact with identical authentication and
+All aliases return the current v15 artifact with identical authentication and
 CSP. This does not load old code or accept arbitrary resource URLs. Hosts cache
 templates by URI, so any change to the artifact moves the resource to a new
 version and keeps the previous one as an alias.
@@ -95,7 +95,17 @@ to choose, not in Pearl), a single reservation in venue-local time, venue
 details with grouped opening hours, and flights in airport-local time. Action
 previews lead with what changes, collapse unchanged fields, show warnings as
 warning banners and give the expiry in the viewer's local time.
-Real-host v14 rendering remains unverified until the canary below is completed.
+
+The v15 / 1.6.1 release makes previews expire live. A stale preview is labelled
+“Expired” and missing or invalid expiry data “Expiry unverified”, both as a
+do-not-confirm banner. Open previews recheck at expiry, at least every minute,
+and when the tab regains focus or visibility. A local clock rollback cannot
+revive a card already observed expired. Timers stop when a new result, loading
+state, page hide, or resource teardown replaces the preview. Receipts never
+expire. These states guide the member to check an existing receipt or ask for a
+fresh preview in chat; they do not call tools or send messages automatically.
+The local clock is advisory: the server still validates expiry and permissions.
+Real-host v15 rendering remains unverified until the canary below is completed.
 
 Trip and reservation reads use the unified journey family. Restaurant availability
 has a dedicated dining presentation with venue-local times, party size, provider,
@@ -134,7 +144,7 @@ that exact tool read-only; otherwise it sends a fixed user follow-up message.
 
 ## Design and accessibility
 
-The `1.5.7` / `v13` presentation adapts onboarding V1's neutral ink, cream,
+The `1.6.1` / `v15` presentation adapts onboarding V1's neutral ink, cream,
 flat surfaces, pill actions, and spacing. A repository-only drift test compares
 the mapped values with canonical `--ds-*` tokens. Accessible secondary ink
 and strong focus are retained. See [TOKENS.md](TOKENS.md) for the mapping and

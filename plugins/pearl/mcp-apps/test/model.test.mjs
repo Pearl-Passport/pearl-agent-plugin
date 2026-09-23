@@ -3,9 +3,69 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
-import { normalizeToolResult, PEARL_MODEL_LIMITS, recoveryPrompt } from "../src/model.mjs";
+import { normalizeToolResult, PEARL_MODEL_LIMITS, recoveryPrompt, applyPreviewExpiry } from "../src/model.mjs";
 
 const FIXTURE_ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "fixtures");
+
+test("all action previews expire at the exact instant without losing review details", async () => {
+  const expiry = Date.parse("2030-09-19T18:00:00Z");
+  for (const name of ["save-plan", "trip-plan", "visit-update"]) {
+    const input = await fixture(name);
+    input.structuredContent.action_handle_expires_at = "2030-09-19T18:00:00Z";
+    const original = normalizeToolResult(input);
+    const current = applyPreviewExpiry(original, expiry - 1);
+    assert.equal(current.previewExpiryState, "current");
+    assert.equal(current.statusLabel, "Not saved yet");
+    const expired = applyPreviewExpiry(current, expiry);
+    assert.equal(expired.previewExpiryState, "expired");
+    assert.equal(expired.statusLabel, "Expired");
+    assert.match(expired.expiryMessage, /already confirmed.*receipt/);
+    assert.doesNotMatch(expired.subtitle, /Nothing has been changed|before saving/);
+    assert.deepEqual(expired.items, original.items);
+    assert.equal(applyPreviewExpiry(expired, expiry - 60_000).previewExpiryState, "expired");
+    assert.equal(original.previewExpiryState, undefined, "pure helper must not mutate the source");
+  }
+});
+
+test("preview expiry requires a complete zoned timestamp and valid calendar components", async () => {
+  const input = await fixture("save-plan");
+  for (const value of [undefined, null, 1, {}, "", "tomorrow", "2030-09-19", "2030-09-19T18:00:00",
+    "2030-02-30T18:00:00Z", "2030-09-19T24:00:00Z", "2030-09-19T18:00:00+24:00", "2030-09-19T18:00:00Z" + " ".repeat(1000)]) {
+    input.structuredContent.action_handle_expires_at = value;
+    const model = normalizeToolResult(input);
+    assert.equal(model.previewExpiresAtMs, null, String(value));
+    const view = applyPreviewExpiry(model, Date.parse("2030-09-19T17:00:00Z"));
+    assert.equal(view.previewExpiryState, "unverified");
+    assert.equal(view.statusLabel, "Expiry unverified");
+    assert.match(view.expiryMessage, /Do not confirm/);
+  }
+});
+
+test("offset and fractional preview expiry use an instant without changing itinerary clocks", async () => {
+  const input = await fixture("trip-plan");
+  input.structuredContent.action_handle_expires_at = "2030-09-19T20:00:00.500+02:00";
+  const model = normalizeToolResult(input);
+  assert.equal(model.previewExpiresAtMs, Date.parse("2030-09-19T18:00:00.500Z"));
+  assert.equal(applyPreviewExpiry(model, Date.parse("2030-09-19T18:00:00.499Z")).previewExpiryState, "current");
+  assert.equal(applyPreviewExpiry(model, Date.parse("2030-09-19T18:00:00.500Z")).previewExpiryState, "expired");
+  assert.match(model.expiresAt, /UTC\+02:00/);
+  assert.equal(model.items[0].changes.find(item => item.label === "Time").after, "20:30 (local time)");
+  assert.equal(applyPreviewExpiry(model, NaN).previewExpiryState, "unverified");
+});
+
+test("visit imports with missing expiry are unverifiable; receipts and reads never expire", () => {
+  const preview = normalizeToolResult({ confirmation_required: true, job_id: "job", items: [] });
+  assert.equal(applyPreviewExpiry(preview, 0).statusLabel, "Expiry unverified");
+  for (const result of [
+    { action: "save", status: "saved", location_id: "place", action_handle_expires_at: "2020-01-01T00:00:00Z" },
+    { job_id: "job", receipts: [{ ordinal: 0, status: "created" }] },
+    { venues: [] },
+  ]) {
+    const model = normalizeToolResult(result);
+    assert.equal(applyPreviewExpiry(model, Date.now()), model);
+    assert.equal(model.previewExpiresAtMs, undefined);
+  }
+});
 
 test("action badges distinguish unsaved previews, receipts and incomplete results", async () => {
   for (const name of ["save-plan", "trip-plan", "visit-update"]) {

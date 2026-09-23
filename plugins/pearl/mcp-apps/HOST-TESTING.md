@@ -19,7 +19,7 @@ and OAuth recovery.
   flow separately with one designated disposable visit, then remove test data
   through the Pearl app because deletion is not an Agent capability.
 
-## Save and trip action cards (v14 / 1.6.0)
+## Save and trip action cards (v15 / 1.6.1)
 
 Run only where the connected host's `tools/list` already includes these tools
 and the designated test account has explicitly granted the required access.
@@ -51,6 +51,16 @@ warning banners, and the expiry reads in the viewer's local time. A receipt badg
 import item succeeded. Before/after values and warnings must remain visible at
 320px, without horizontal scrolling or a second nested card border. Cards must
 not contain a write/confirm button; confirmation stays in the conversation.
+
+Expiry check: leave an unconfirmed preview open until its deadline, then repeat
+by backgrounding the tab and returning after the deadline. The card must say
+“Expired” and direct the member to check any existing receipt or ask for a fresh
+preview—not imply the action succeeded or automatically retry it. Missing or
+invalid expiry must say “Expiry unverified”. Saved receipts must stay receipts
+after the old preview deadline. The local clock is only a display aid; server
+expiry and authorization checks remain authoritative. Repeat on visit previews
+where that host offers them, without creating or changing test data merely to
+exercise expiration.
 
 Record each host separately as pass, failed, or not tested. Local fixture/browser
 passes are not evidence of live host rendering, deployment, or marketplace approval.
