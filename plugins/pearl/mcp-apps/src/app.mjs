@@ -1245,7 +1245,7 @@ async function connect() {
   showLoading();
   try {
     const initialized = await request("ui/initialize", {
-      appInfo: { name: "Pearl Concierge", version: "1.5.7" },
+      appInfo: { name: "Pearl Concierge", version: "1.6.0" },
       appCapabilities: { availableDisplayModes: ["inline", "fullscreen"] },
       protocolVersion: "2026-01-26",
     }, 5_000);

@@ -102,8 +102,8 @@ test("resource response is versioned, correctly typed, and deny-by-default", asy
   const response = createPearlMcpAppResource();
   assert.equal(response.contents.length, 1);
   const content = response.contents[0];
-  assert.equal(PEARL_MCP_APP_VERSION, "1.5.7");
-  assert.equal(content.uri, "ui://pearl/concierge/v13/index.html");
+  assert.equal(PEARL_MCP_APP_VERSION, "1.6.0");
+  assert.equal(content.uri, "ui://pearl/concierge/v14/index.html");
   assert.equal(content.mimeType, PEARL_MCP_APP_MIME_TYPE);
   assert.equal(content.text, html);
   assert.equal(content.text, PEARL_MCP_APP_ARTIFACT_HTML);
@@ -171,6 +171,7 @@ test("installed ChatGPT v4 snapshot keeps loading the current artifact", () => {
 
 test("bounded previous card URIs serve the current reviewed artifact", () => {
   assert.deepEqual(PEARL_MCP_APP_COMPATIBILITY_RESOURCE_URIS, [
+    "ui://pearl/concierge/v13/index.html",
     "ui://pearl/concierge/v12/index.html",
     "ui://pearl/concierge/v11/index.html",
     "ui://pearl/concierge/v10/index.html",

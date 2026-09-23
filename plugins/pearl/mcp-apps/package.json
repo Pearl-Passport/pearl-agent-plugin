@@ -1,6 +1,6 @@
 {
   "name": "@pearl/mcp-apps-ui",
-  "version": "1.5.7",
+  "version": "1.6.0",
   "private": true,
   "description": "Portable, presentation-only MCP Apps UI resources for Pearl",
   "type": "module",

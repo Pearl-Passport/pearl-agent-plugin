@@ -1,7 +1,7 @@
 {
   "structuredContent": {
     "taste_profile": {
-      "name": "Austin",
+      "name": "Sam",
       "cuisines": ["Japanese", "Italian", "Mexican"],
       "dishes": ["omakase", "pasta", "tacos"],
       "beverages": ["natural wine", "mezcal"],
@@ -142,8 +142,8 @@
     "taste_lens": "overview",
     "message": "Your profile leans Japanese and Italian, with New York as your strongest city signal.",
     "profile": {
-      "username": "austin",
-      "full_name": "Austin"
+      "username": "sam",
+      "full_name": "Sam"
     }
   }
 }

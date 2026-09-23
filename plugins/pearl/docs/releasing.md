@@ -1,11 +1,11 @@
 # Versioning and release
 
-The Codex, Claude, and Cursor manifests, marketplace entries, package metadata, MCP Registry `server.json`, and validators use one semantic version. Package `0.11.0` keeps one shared backend and adds six confirmed save/trip tools for reviewed Codex, Claude and Cursor clients after fresh consent. ChatGPT keeps its submitted visit/availability contract.
+The Codex, Claude, and Cursor manifests, marketplace entries, package metadata, MCP Registry `server.json`, and validators use one semantic version. Package `0.12.1` keeps one shared backend; reviewed Codex, Claude and Cursor clients receive the ten confirmed save/trip/visit tools after fresh consent and six discovery reads without it. ChatGPT keeps its submitted visit/availability contract.
 
 | Surface | Version | Release tag | Publication boundary |
 | --- | --- | --- | --- |
-| Codex, Claude, Cursor, and shared skill | `0.11.0` | `v0.11.0` | Separate host installation or review |
-| MCP Registry metadata | `0.11.0` | `v0.11.0` | Protected Registry OIDC job after the reviewed host-package release |
+| Codex, Claude, Cursor, and shared skill | `0.12.1` | `v0.12.1` | Separate host installation or review |
+| MCP Registry metadata | `0.12.1` | `v0.12.1` | Protected Registry OIDC job after the reviewed host-package release |
 | Pearl CLI | `1.0.0` | `cli-v1.0.0` | Protected npm Trusted Publishing job |
 
 The MCP Registry is in preview, so publishing may encounter breaking changes or a data reset. Repository availability and a successful Registry publish are not host approval.
@@ -26,9 +26,9 @@ Use:
 ## Release checks
 
 1. Confirm runtime `tools/list` remains authoritative and manifests contain no tool allowlist.
-2. Confirm fresh reviewed Codex/Claude/Cursor grants expose 24 tools and ten scopes. ChatGPT must retain the submitted 18 tools/eight scopes, and the standalone CLI the 13 common reads/seven scopes. Existing grants are unchanged. No provider mutation may be advertised.
+2. Confirm fresh reviewed Codex/Claude/Cursor grants expose 30 tools and ten scopes (20 tools with the seven reads only). ChatGPT must retain the submitted 18 tools/eight scopes, and the standalone CLI the 13 common reads/seven scopes. Existing grants are unchanged. No provider mutation may be advertised.
 3. Confirm `.mcp.json` contains one server URL and no headers or credentials, and that Cursor's marketplace source remains isolated at `plugins/pearl/cursor` so it cannot auto-discover that URL-only config.
-4. Confirm `server.json` uses the exact `2025-12-11` schema, case-sensitive GitHub namespace `io.github.Pearl-Passport/pearl-agent-plugin`, stable public repository ID `1343507179`, version `0.11.0`, and exactly one `streamable-http` remote with no headers, variables, credentials, or package declaration.
+4. Confirm `server.json` uses the exact `2025-12-11` schema, case-sensitive GitHub namespace `io.github.Pearl-Passport/pearl-agent-plugin`, stable public repository ID `1343507179`, version `0.12.1`, and exactly one `streamable-http` remote with no headers, variables, credentials, or package declaration.
 5. Confirm reviewed Codex, Claude and Cursor flows request the seven reads plus `visits:write`, `saves:write` and `trips:write`, and ChatGPT the seven reads plus only `visits:write`; static clients use their exact public IDs/callbacks; Codex matches only its reviewed OpenAI-hosted CIMD identities; and no flow has a client secret.
 6. Confirm Cursor's plugin and MCP IDs are both `pearl-cursor`, while Codex and Claude remain `pearl`, so cross-host discovery cannot shadow Cursor's static client.
 7. Confirm Claude Code CIMD uses its registered loopback hosts with an ephemeral port.
@@ -77,7 +77,9 @@ A public repository, successful validation, or portal draft is not host approval
 
 ## CLI GitHub asset while npm publication is pending
 
-For the plugin `v0.11.0` release, run the CLI checks and `npm pack` from the
+The CLI `1.0.0` tarball is attached to the plugin `v0.11.0` release; later
+plugin releases reuse it until the CLI itself changes. For a release that ships
+a new CLI version, run the CLI checks and `npm pack` from the
 canonical `cli/pearl` package. Clean-install the resulting `joinpearl-cli-1.0.0.tgz`
 into a temporary prefix, run `pearl --version` and `pearl doctor --json`, and
 create `SHA256SUMS` for that exact tarball. Attach both files to the draft GitHub

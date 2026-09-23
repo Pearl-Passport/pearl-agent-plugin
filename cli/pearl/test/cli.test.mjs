@@ -186,8 +186,8 @@ test('aliases map only the current public read workflows', async () => {
     capability: 'visits_list', arguments: { city: 'Rome', sort: 'score' },
   });
   assert.deepEqual(await aliasRequest('saves', [], {}), { capability: 'saves_list', arguments: {} });
-  assert.deepEqual(await aliasRequest('friend-search', ['Austin'], {}), {
-    capability: 'friends_search', arguments: { query: 'Austin' },
+  assert.deepEqual(await aliasRequest('friend-search', ['Alex'], {}), {
+    capability: 'friends_search', arguments: { query: 'Alex' },
   });
   assert.deepEqual(await aliasRequest('friends', [], {}), { capability: 'friends_list', arguments: {} });
   assert.deepEqual(await aliasRequest('trips', [], {}), { capability: 'trips_list', arguments: {} });

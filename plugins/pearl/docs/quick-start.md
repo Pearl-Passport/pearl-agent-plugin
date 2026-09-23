@@ -8,6 +8,7 @@ Connect Pearl to discover places and plan around your taste. Eligible Pearl Rese
 - Compare places with your preferences and match a venue by name and location.
 - Explore your taste profile, visit history, saved places, and friends.
 - Review your existing trips and reservations.
+- On Codex, Claude and Cursor: venue hours, when bookings open, similar or nearby places, and events.
 - On supported connections, check table availability, log or edit visits, save places, and create private trips or edit their stops.
 
 Features vary by app, connection, and permissions. Ask your assistant what Pearl actions are available before starting. All changes must show a preview and wait for your explicit confirmation.
@@ -50,7 +51,7 @@ For visit logging, check the place, date, and possible duplicates before confirm
 
 ## Cards and photos
 
-Supported apps may show Pearl cards for places, your profile, trips, and reservations, with venue photos where available. Other apps show text results. Not every action has a card; a missing card does not necessarily mean the connection failed.
+Supported apps show Pearl cards, with venue photos where available. Other apps show text; a missing card does not mean the connection failed.
 
 ## Manage or remove access
 

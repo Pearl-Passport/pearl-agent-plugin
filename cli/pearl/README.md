@@ -65,7 +65,7 @@ pearl visits --input '{"city":"London","limit":20}'
 pearl visits --all --json
 pearl favorites --input '{"city":"Rome"}'
 pearl saves
-pearl friend-search "Austin" --input '{"limit":5}'
+pearl friend-search "Alex" --input '{"limit":5}'
 pearl friends
 pearl trips
 pearl trip "Summer in Japan"

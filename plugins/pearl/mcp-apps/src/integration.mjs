@@ -4,13 +4,15 @@ import {
   PEARL_MCP_APP_ARTIFACT_SHA256,
 } from "./artifact.generated.mjs";
 
-export const PEARL_MCP_APP_VERSION = "1.5.7";
-// Clear action states and compact review layout introduce new artifact bytes.
-export const PEARL_MCP_APP_RESOURCE_URI = "ui://pearl/concierge/v13/index.html";
+export const PEARL_MCP_APP_VERSION = "1.6.0";
+// Cards for saves, visits, place matches, one reservation and venue details
+// change the artifact; hosts cache templates by URI, so the URI moves too.
+export const PEARL_MCP_APP_RESOURCE_URI = "ui://pearl/concierge/v14/index.html";
 // ChatGPT can retain tools/list metadata for an already-open conversation.
 // Keep the bounded reviewed resource history readable so those conversations
 // load the current artifact instead of silently dropping the card.
 export const PEARL_MCP_APP_COMPATIBILITY_RESOURCE_URIS = Object.freeze([
+  "ui://pearl/concierge/v13/index.html",
   "ui://pearl/concierge/v12/index.html",
   "ui://pearl/concierge/v11/index.html",
   "ui://pearl/concierge/v10/index.html",

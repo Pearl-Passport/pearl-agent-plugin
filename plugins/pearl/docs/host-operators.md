@@ -10,7 +10,8 @@ The live MCP `tools/list` response decides what an authenticated connection can 
 
 | Connection | Scopes | Tools |
 | --- | --- | --- |
-| Reviewed Codex, Claude and Cursor, fresh consent | Seven reads plus `visits:write`, `saves:write`, `trips:write` | 24: the 13 common reads, `reservations_availability`, and the ten confirmed-action tools for visits, saved places and trips |
+| Reviewed Codex, Claude and Cursor, fresh consent | Seven reads plus `visits:write`, `saves:write`, `trips:write` | 30: the 13 common reads, `reservations_availability`, six discovery reads (`venue_get`, `reservations_release_window`, `venues_similar`, `venues_nearby`, `events_search`, `tables_browse`), and the ten confirmed-action tools for visits, saved places and trips |
+| Reviewed Codex, Claude and Cursor, reads only | Seven reads | 20: the 13 common reads, `reservations_availability` and the six discovery reads |
 | ChatGPT (submitted app) | Seven reads plus `visits:write` | 18: the 13 common reads, `reservations_availability`, and the four visit tools |
 | Unknown clients, MCP Registry-generic clients, direct grok.com connectors, standalone Pearl CLI | Seven reads | 13 common reads |
 
@@ -45,7 +46,7 @@ The HTTPS callback covers hosted Agents and Grok Bot; the fixed loopback callbac
 
 Cursor's `cursor agent mcp` commands inspect the user-level MCP configuration, not a marketplace plugin. Use them only for a separate manual `~/.cursor/mcp.json` entry.
 
-After authorization, the Pearl Cursor detail view must show exactly one MCP, and a fresh full-scope grant should list 24 tools.
+After authorization, the Pearl Cursor detail view must show exactly one MCP, and a fresh full-scope grant should list 30 tools.
 
 The consumer product at `grok.com` has its own custom MCP connector flow and is a different host from Cursor Grok Bot. Pearl has not registered a static xAI OAuth client and keeps Dynamic Client Registration disabled, so do not add `https://agent.joinpearl.co/mcp` at `grok.com/connectors`. Supporting that host needs a separate exact callback/client registration and OAuth canary; never reuse `pearl-cursor` or add a client secret.
 
@@ -62,7 +63,16 @@ Use Pearl to change the note on visit [visit ID]. Show the before/after preview 
 Use Pearl to book the available table.
 ```
 
+On Codex, Claude and Cursor, also run:
+
+```text
+Use Pearl to tell me when bookings open at [restaurant] for [date].
+Use Pearl to find somewhere like [restaurant], then places within a ten-minute walk of it.
+```
+
 The first three are reads (`visits_list`, `reservations_list` then `reservation_get`, and `reservations_availability`). Availability must keep `available`, `no_availability`, `pending` and `unknown` distinct; unknown never means sold out. The next two must stop after preview until the member explicitly confirms that exact change, then return a durable receipt and tolerate a safe retry without duplication. The last is a negative canary: the connection does **not** hold, book, change, cancel or pay for reservations, so it must say provider booking is unavailable.
+
+These use `reservations_release_window`, then `venues_similar` and `venues_nearby`. The release window must state a confirmed schedule as fact, hedge an estimated one, and say plainly when the schedule is unknown. None of them checks availability, holds or books.
 
 Editing a Pearl visit is not editing a provider reservation, and a reservation returned by Pearl is an existing member record, not proof that Pearl or the host made the booking.
 
