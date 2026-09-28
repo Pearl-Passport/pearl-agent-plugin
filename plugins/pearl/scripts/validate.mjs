@@ -7,7 +7,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const PLUGIN_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const EXPECTED_VERSION = "0.12.3";
+const EXPECTED_VERSION = "0.12.4";
 const EXPECTED_MCP_URL = "https://agent.joinpearl.co/mcp";
 const EXPECTED_REGISTRY_SCHEMA = "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json";
 const EXPECTED_REGISTRY_NAME = "io.github.Pearl-Passport/pearl-agent-plugin";
@@ -29,6 +29,20 @@ const PUBLIC_READ_SCOPES = [
   "reservations:read"
 ];
 const REVIEWED_WRITE_SCOPES = ["visits:write", "saves:write", "trips:write"];
+const PLACE_REQUEST_SCOPE = ["places", "write"].join(":");
+
+export function validAdvertisedScopes(scopes) {
+  if (!Array.isArray(scopes) || scopes.some(scope => typeof scope !== "string")) return false;
+  const actual = JSON.stringify([...scopes].sort());
+  const common = [...PUBLIC_READ_SCOPES, ...REVIEWED_WRITE_SCOPES];
+  return actual === JSON.stringify(common.sort())
+    || actual === JSON.stringify([...common, PLACE_REQUEST_SCOPE].sort());
+}
+
+export function matchingAdvertisedScopes(left, right) {
+  return validAdvertisedScopes(left) && validAdvertisedScopes(right)
+    && JSON.stringify([...left].sort()) === JSON.stringify([...right].sort());
+}
 const CURSOR_SCOPES = [...PUBLIC_READ_SCOPES, ...REVIEWED_WRITE_SCOPES];
 const VISIT_ACTION_TOOLS = [
   "visits_import_commit",

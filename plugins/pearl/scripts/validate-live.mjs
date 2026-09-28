@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+import { matchingAdvertisedScopes, validAdvertisedScopes } from "./validate.mjs";
+
 const ORIGIN = "https://agent.joinpearl.co";
 const MCP_URL = `${ORIGIN}/mcp`;
 const RESOURCE_METADATA_URL = `${ORIGIN}/.well-known/oauth-protected-resource/mcp`;
@@ -18,7 +20,6 @@ const PUBLIC_READ_SCOPES = [
 ];
 const VISIT_SCOPES = [...PUBLIC_READ_SCOPES, "visits:write"];
 const CURSOR_SCOPES = [...VISIT_SCOPES, "saves:write", "trips:write"];
-const EXPECTED_ADVERTISED_SCOPES = [...CURSOR_SCOPES].sort();
 const STATIC_HOST_CLIENTS = [
   {
     clientId: "pearl-cli",
@@ -113,16 +114,18 @@ assert(auth.client_id_metadata_document_supported === true, "authorization metad
 assert(!("registration_endpoint" in auth), "authorization metadata must not advertise DCR");
 assert(auth.token_endpoint_auth_methods_supported?.includes("none"), "authorization metadata must support public clients");
 assert(auth.code_challenge_methods_supported?.includes("S256"), "authorization metadata must require PKCE S256");
-assert(JSON.stringify([...(auth.scopes_supported ?? [])].sort()) === JSON.stringify(EXPECTED_ADVERTISED_SCOPES),
-  "authorization metadata must advertise the common reads plus reviewed visit/save/trip scopes");
+assert(validAdvertisedScopes(auth.scopes_supported),
+  "authorization metadata must match a known public or limited-rollout scope contract");
 
 const resourceResponse = await request("/.well-known/oauth-protected-resource/mcp");
 assert(resourceResponse.status === 200, `protected-resource metadata returned ${resourceResponse.status}`);
 const resource = await resourceResponse.json();
 assert(resource.resource === MCP_URL, `protected resource must be ${MCP_URL}`);
 assert(resource.authorization_servers?.length === 1 && resource.authorization_servers[0] === ORIGIN, "protected resource must use Pearl's one authorization server");
-assert(JSON.stringify([...(resource.scopes_supported ?? [])].sort()) === JSON.stringify(EXPECTED_ADVERTISED_SCOPES),
-  "protected-resource metadata must advertise the common reads plus reviewed visit/save/trip scopes");
+assert(validAdvertisedScopes(resource.scopes_supported),
+  "protected-resource metadata must match a known public or limited-rollout scope contract");
+assert(matchingAdvertisedScopes(resource.scopes_supported, auth.scopes_supported),
+  "authorization and resource metadata must agree on scopes");
 
 const mcpGet = await request("/mcp");
 assert(mcpGet.status === 405, `MCP GET must fail closed with 405, received ${mcpGet.status}`);
@@ -137,7 +140,7 @@ const initialize = await request("/mcp", {
     params: {
       protocolVersion: "2025-06-18",
       capabilities: {},
-      clientInfo: { name: "pearl-package-validator", version: "0.12.3" }
+      clientInfo: { name: "pearl-package-validator", version: "0.12.4" }
     }
   })
 });
