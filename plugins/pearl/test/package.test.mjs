@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 import {
   EXPECTED_PUBLIC_REPOSITORY_FILES,
   hasExactHttpUrl,
+  matchingAdvertisedScopes,
   validatePackage,
   validatePublicCommitEmails,
   validatePublicFileInventory,
@@ -32,6 +33,12 @@ test("metadata allows only the exact coordinated contracts, without advertising 
   assert.equal(validAdvertisedScopes(common.slice(1)), false);
   assert.equal(validAdvertisedScopes(null), false);
   assert.equal(validAdvertisedScopes({}), false);
+  const reversed = [...common].reverse();
+  assert.equal(matchingAdvertisedScopes(common, reversed), true);
+  assert.deepEqual(reversed, [...common].reverse());
+  assert.equal(matchingAdvertisedScopes(common, [...common, addition]), false);
+  assert.equal(matchingAdvertisedScopes(common, [...common, common[0]]), false);
+  assert.equal(matchingAdvertisedScopes(null, null), false);
   assert.ok(validatePublicText("scripts/validate-live.mjs", addition).length > 0);
   assert.ok(validatePublicText("plugins/pearl/scripts/validate-live.mjs", addition).length > 0);
   assert.ok(validatePublicText("docs/setup.md", addition).length > 0);

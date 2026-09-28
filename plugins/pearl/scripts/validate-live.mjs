@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { validAdvertisedScopes } from "./validate.mjs";
+import { matchingAdvertisedScopes, validAdvertisedScopes } from "./validate.mjs";
 
 const ORIGIN = "https://agent.joinpearl.co";
 const MCP_URL = `${ORIGIN}/mcp`;
@@ -124,7 +124,7 @@ assert(resource.resource === MCP_URL, `protected resource must be ${MCP_URL}`);
 assert(resource.authorization_servers?.length === 1 && resource.authorization_servers[0] === ORIGIN, "protected resource must use Pearl's one authorization server");
 assert(validAdvertisedScopes(resource.scopes_supported),
   "protected-resource metadata must match a known public or limited-rollout scope contract");
-assert(JSON.stringify(resource.scopes_supported) === JSON.stringify(auth.scopes_supported),
+assert(matchingAdvertisedScopes(resource.scopes_supported, auth.scopes_supported),
   "authorization and resource metadata must agree on scopes");
 
 const mcpGet = await request("/mcp");

@@ -38,6 +38,11 @@ export function validAdvertisedScopes(scopes) {
   return actual === JSON.stringify(common.sort())
     || actual === JSON.stringify([...common, PLACE_REQUEST_SCOPE].sort());
 }
+
+export function matchingAdvertisedScopes(left, right) {
+  return validAdvertisedScopes(left) && validAdvertisedScopes(right)
+    && JSON.stringify([...left].sort()) === JSON.stringify([...right].sort());
+}
 const CURSOR_SCOPES = [...PUBLIC_READ_SCOPES, ...REVIEWED_WRITE_SCOPES];
 const VISIT_ACTION_TOOLS = [
   "visits_import_commit",
