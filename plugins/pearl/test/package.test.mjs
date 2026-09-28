@@ -11,7 +11,8 @@ import {
   validatePackage,
   validatePublicCommitEmails,
   validatePublicFileInventory,
-  validatePublicText
+  validatePublicText,
+  validAdvertisedScopes
 } from "../scripts/validate.mjs";
 import { validateRegistryManifest } from "../scripts/validate-registry.mjs";
 
@@ -20,6 +21,22 @@ const REPOSITORY_ROOT = path.resolve(ROOT, "..", "..");
 const EXPORTED_REPOSITORY_LAYOUT = existsSync(path.join(REPOSITORY_ROOT, "server.json"));
 const PUBLIC_REPOSITORY_ROOT = EXPORTED_REPOSITORY_LAYOUT ? REPOSITORY_ROOT : path.join(ROOT, "public");
 const REGISTRY_MANIFEST = path.join(EXPORTED_REPOSITORY_LAYOUT ? REPOSITORY_ROOT : ROOT, "server.json");
+
+test("metadata allows only the exact coordinated contracts, without advertising new host tools", () => {
+  const common = ["profile:read", "venues:read", "visits:read", "saves:read", "trips:read", "reservations:read", "friends:read", "visits:write", "saves:write", "trips:write"];
+  const addition = ["places", "write"].join(":");
+  assert.equal(validAdvertisedScopes(common), true);
+  assert.equal(validAdvertisedScopes([...common, addition]), true);
+  assert.equal(validAdvertisedScopes([...common, addition, addition]), false);
+  assert.equal(validAdvertisedScopes([...common, ["payments", "write"].join(":")]), false);
+  assert.equal(validAdvertisedScopes(common.slice(1)), false);
+  assert.equal(validAdvertisedScopes(null), false);
+  assert.equal(validAdvertisedScopes({}), false);
+  assert.ok(validatePublicText("scripts/validate-live.mjs", addition).length > 0);
+  assert.ok(validatePublicText("plugins/pearl/scripts/validate-live.mjs", addition).length > 0);
+  assert.ok(validatePublicText("docs/setup.md", addition).length > 0);
+  assert.ok(validatePublicText("scripts/other.mjs", addition).length > 0);
+});
 
 async function json(relativePath) {
   return JSON.parse(await readFile(path.join(ROOT, relativePath), "utf8"));

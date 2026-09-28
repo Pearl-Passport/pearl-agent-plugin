@@ -1,6 +1,6 @@
 # Pearl for AI Agents · Quick Start & Tester Guide
 
-Connect Pearl to discover places and plan around your taste. Eligible Pearl Reserve and Elite members can connect. Creating trips and changing their stops requires Pearl Reserve or above, including Pearl Elite.
+Pearl Reserve and Elite members can connect. Trip changes require Pearl Reserve or above, including Pearl Elite.
 
 ## What you can do
 
@@ -11,13 +11,15 @@ Connect Pearl to discover places and plan around your taste. Eligible Pearl Rese
 - On Codex, Claude and Cursor: venue hours, when bookings open, similar or nearby places, and events.
 - On supported connections, check table availability, log or edit visits, save places, and create private trips or edit their stops.
 
-Features vary by app, connection, and permissions. Ask your assistant what Pearl actions are available before starting. All changes must show a preview and wait for your explicit confirmation.
+Features vary by connection and permissions. Ask which actions are available. All changes show a preview and wait for your explicit confirmation.
 
 ## Membership and permissions
 
 Save and trip changes require a freshly connected Codex, Claude or Cursor integration. They are not included in the current ChatGPT version.
 
 Membership does not unlock unsupported actions. Reconnect to approve new permissions; existing connections do not gain them automatically.
+
+**Request missing places:** selected direct Codex connections can opt in during rollout. Pearl checks its catalog first, then offers Google Maps candidates. Select the correct place and confirm the preview. Requests require review; places are saved when added. Other connections use Pearl's in-app request flow.
 
 Booking, holding, changing, cancelling, or paying for reservations is not available through this MCP release. Reservation watchers, flight management and visit deletion are also unavailable. Visit photo uploads are not included. Use Pearl or the reservation provider for supported actions outside the assistant. An availability result is not a booking.
 
@@ -28,7 +30,7 @@ Booking, holding, changing, cancelling, or paying for reservations is not availa
 3. Review the requested permissions, then start a new conversation.
 4. Ask: “Use Pearl to show my profile and tell me which actions are available.”
 
-The approval screen names the app and lists what it can access. Choose **Allow connection** only if those permissions match what you want, or **Not now** to decline. Connecting an app is not permission to book or spend.
+Review the named app and permissions. Choose **Allow connection** or **Not now**. Connecting is not permission to book or spend.
 
 Pearl's connection address is `https://agent.joinpearl.co/mcp`.
 
@@ -65,6 +67,6 @@ In Pearl, open **Settings → Account → Connected apps**, or [open Connected A
 - **No card or photo:** check the text result; presentation varies by app and available images.
 - **Watchers or automatic booking:** these actions are not available through this connection yet. Manage them in Pearl where supported.
 
-Never paste passwords, sign-in codes, access tokens, or payment details into a conversation or support screenshot. Share only the app name, what you tried, and a redacted error message.
+Never share passwords, sign-in codes, tokens or payment details. For support, send the app name, what you tried and a redacted error.
 
 Support: [hello@joinpearl.co](mailto:hello@joinpearl.co) · [Help](https://joinpearl.co/support) · [Privacy](https://joinpearl.co/privacy) · [Terms](https://joinpearl.co/terms)
