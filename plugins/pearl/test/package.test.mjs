@@ -191,7 +191,8 @@ test("visit and reservation guidance separates reviewed actions from provider bo
   }
   assert.match(guide, /Runtime `tools\/list` is authoritative/);
   assert.match(guide, /Existing\s+grants need reconnection and consent to `visits:write`/);
-  assert.match(guide, /generic and\s+unknown clients remain read-only/);
+  assert.match(guide, /registered\s+common-read clients and the standalone CLI remain read-only/);
+  assert.match(guide, /unregistered clients\s+cannot connect/);
   assert.match(guide, /Book, hold, change or cancel.*Not available/);
   assert.match(guide, /before\/after preview then confirmation/);
   assert.match(guide, /host currently asserts human confirmation/);
@@ -325,7 +326,7 @@ test("the public CLI is a read-only runtime projection with secretless trusted p
   const keychain = await readFile(path.join(cliRoot, "src", "keychain.mjs"), "utf8");
   const workflow = await readFile(path.join(PUBLIC_REPOSITORY_ROOT, ".github", "workflows", "publish-cli.yml"), "utf8");
   assert.equal(manifest.name, "@joinpearl/cli");
-  assert.equal(manifest.version, "1.0.0");
+  assert.equal(manifest.version, "1.0.1");
   assert.equal(manifest.private, undefined);
   assert.equal(manifest.publishConfig.provenance, true);
   assert.match(source, /readOnlyHint !== true/);
@@ -362,6 +363,34 @@ test("the snapshot adds six save/trip tools while the ChatGPT submission retains
   );
   assert.deepEqual([...new Set([...snapshot.matchAll(/\b([a-z-]+:write)\b/g)].map((match) => match[1]))], ["visits:write", "saves:write", "trips:write"]);
   assert.doesNotMatch(snapshot, /reservations_(?:book|booking|cancel|change|modify)_(?:prepare|commit)/);
+});
+
+test("OpenAI operator guides separate continuous tool review from package review and Pearl consent", async () => {
+  for (const relative of ["docs/host-operators.md", "docs/oauth.md", "docs/submission.md"]) {
+    const guide = await readFile(path.join(ROOT, relative), "utf8");
+    assert.match(guide, /continuous review/, relative);
+    assert.match(guide, /(?:do not require|don't require) a new package version/, relative);
+    assert.match(guide, /listing information or imported skill[s ]changes|listing information or imported skills/, relative);
+    assert.match(guide, /new version, review and publication/, relative);
+    assert.match(guide, /[Ee]xisting grants are (?:never|not) widened/, relative);
+    assert.doesNotMatch(guide, /Adding tools requires a new portal scan, version test, and submission or publish step|Prepare tool or scope additions as a new app-version draft/, relative);
+  }
+});
+
+test("host guidance distinguishes shared Codex OAuth from read eligibility and refuses unregistered hosts", async () => {
+  const operators = await readFile(path.join(ROOT, "docs", "host-operators.md"), "utf8");
+  const oauth = await readFile(path.join(ROOT, "docs", "oauth.md"), "utf8");
+  const releasing = await readFile(path.join(ROOT, "docs", "releasing.md"), "utf8");
+  assert.match(operators, /Shared Codex CIMD ID/);
+  assert.match(operators, /Do not promise 20 or 30 tools for that identity/);
+  assert.match(operators, /separate reviewed parity change and real-host canary/);
+  assert.match(releasing, /shared Codex ID currently lacks availability\/discovery read eligibility/);
+  for (const guide of [operators, oauth]) {
+    assert.match(guide, /[Uu]nregistered clients cannot connect/);
+    assert.match(guide, /exact-client eligibility/);
+    assert.match(guide, /Instinct/);
+    assert.doesNotMatch(guide, /Unknown clients, MCP Registry-generic clients, direct grok\.com connectors, standalone Pearl CLI/);
+  }
 });
 
 test("hosted Claude documents the fixed public client and reviewed action scope", async () => {

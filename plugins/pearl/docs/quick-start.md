@@ -8,7 +8,7 @@ Pearl Reserve and Elite members can connect. Trip changes require Pearl Reserve 
 - Compare places with your preferences and match a venue by name and location.
 - Explore your taste profile, visit history, saved places, and friends.
 - Review your existing trips and reservations.
-- On Codex, Claude and Cursor: venue hours, when bookings open, similar or nearby places, and events.
+- On eligible Codex, Claude and Cursor connections: venue hours, when bookings open, similar or nearby places, and events.
 - On supported connections, check table availability, log or edit visits, save places, and create private trips or edit their stops.
 
 Features vary by connection and permissions. Ask which actions are available. All changes show a preview and wait for your explicit confirmation.

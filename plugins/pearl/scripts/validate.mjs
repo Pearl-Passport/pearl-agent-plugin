@@ -7,7 +7,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const PLUGIN_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const EXPECTED_VERSION = "0.12.4";
+const EXPECTED_VERSION = "0.12.5";
 const EXPECTED_MCP_URL = "https://agent.joinpearl.co/mcp";
 const EXPECTED_REGISTRY_SCHEMA = "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json";
 const EXPECTED_REGISTRY_NAME = "io.github.Pearl-Passport/pearl-agent-plugin";
@@ -104,6 +104,7 @@ export const EXPECTED_PUBLIC_REPOSITORY_FILES = [
   "cli/pearl/package-lock.json",
   "cli/pearl/package.json",
   "cli/pearl/scripts/validate-package.mjs",
+  "cli/pearl/src/diagnostics.mjs",
   "cli/pearl/src/index.mjs",
   "cli/pearl/src/keychain.mjs",
   "cli/pearl/src/oauth.mjs",

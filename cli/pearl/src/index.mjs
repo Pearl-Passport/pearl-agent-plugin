@@ -4,8 +4,9 @@ import { realpathSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { deleteCredential, readCredential, withCredentialLock, writeCredential } from './keychain.mjs';
 import { DEFAULT_SCOPES, login, refresh, revoke } from './oauth.mjs';
+import { connectionDiagnostic, discoveryDiagnostic } from './diagnostics.mjs';
 
-export const VERSION = '1.0.0';
+export const VERSION = '1.0.1';
 export const DEFAULT_SERVER = 'https://agent.joinpearl.co';
 
 export const EXIT_CODES = Object.freeze({
@@ -42,7 +43,7 @@ const MAX_RESPONSE_BYTES = 2 * 1024 * 1024;
 
 export class CliError extends Error {
   constructor(code, message, exitCode = EXIT_CODES.server, options = {}) {
-    super(message);
+    super(message, { cause: options.cause });
     this.name = 'CliError';
     this.code = code;
     this.exitCode = exitCode;
@@ -50,6 +51,7 @@ export class CliError extends Error {
     this.userAction = options.userAction;
     this.requestId = options.requestId;
     this.details = options.details;
+    this.status = options.status;
   }
 }
 
@@ -307,6 +309,7 @@ function publicError(payload, status) {
     : status === 429 || status >= 500 ? EXIT_CODES.server
     : EXIT_CODES.server;
   return new CliError(code, message, exitCode, {
+    status,
     retryable: envelope?.retryable === true || status === 429 || status >= 500,
     userAction: sanitizeText(envelope?.user_action) || undefined,
     requestId: sanitizeText(envelope?.request_id || payload?.request_id) || undefined,
@@ -500,9 +503,9 @@ export async function loadSession(server, options = {}) {
       next = await refreshImpl(current, { fetchImpl: options.fetchImpl, timeoutMs: options.timeoutMs });
     } catch (error) {
       if (error?.code === 'invalid_grant' || error?.status === 401 || error?.status === 403) {
-        throw new CliError('refresh_failed', 'Pearl authorization is no longer usable. Check your Pearl access, then reconnect if eligible.', EXIT_CODES.unauthenticated, { userAction: 'reconnect' });
+        throw new CliError('refresh_failed', 'Pearl authorization is no longer usable. Check your Pearl access, then reconnect if eligible.', EXIT_CODES.unauthenticated, { userAction: 'reconnect', cause: error });
       }
-      throw new CliError('refresh_unavailable', 'Pearl could not refresh this connection. Try again; your stored connection was kept.', EXIT_CODES.network, { retryable: true, userAction: 'retry' });
+      throw new CliError('refresh_unavailable', 'Pearl could not refresh this connection. Try again; your stored connection was kept.', EXIT_CODES.network, { retryable: true, userAction: 'retry', cause: error });
     }
     await write(account, JSON.stringify(next));
     return next;
@@ -511,32 +514,54 @@ export async function loadSession(server, options = {}) {
 
 async function doctor({ server, authenticated, fetchImpl, timeoutMs, sessionLoader }) {
   const checks = [];
-  const health = await requestJson(`${server}/health`, { fetchImpl, timeoutMs });
-  checks.push({ name: 'gateway', ok: health.ok === true, version: health.version });
-  const oauth = await requestJson(`${server}/.well-known/oauth-authorization-server`, { fetchImpl, timeoutMs });
-  checks.push({
-    name: 'oauth',
-    ok: oauth.issuer === server
-      && oauth.code_challenge_methods_supported?.includes('S256')
-      && oauth.token_endpoint_auth_methods_supported?.includes('none')
-      && oauth.authorization_response_iss_parameter_supported === true,
-    issuer: oauth.issuer,
-  });
-  if (authenticated) {
-    const session = await sessionLoader();
-    const catalog = await runtimeCapabilities({ server, session, fetchImpl, timeoutMs });
-    checks.push({ name: 'authenticated_catalog', ok: true, read_tool_count: catalog.capabilities.filter((item) => item.annotations?.readOnlyHint === true).length });
-    const available = new Set(catalog.capabilities.filter((item) => item.annotations?.readOnlyHint === true).map((item) => item.name));
-    checks.push({ name: 'workflows', ok: true, mode: 'read_only', available: {
-      search: available.has('venues_search'),
-      profile: available.has('profile_get'),
-      visits: available.has('visits_list'),
-      saves: available.has('saves_list'),
-      trips: available.has('trips_list') && available.has('trip_get'),
-      reservations: available.has('reservations_list') && available.has('reservation_get'),
-    }, message: 'The standalone Pearl CLI supports reads. Visit editing requires a reviewed host connection and separate permission.' });
+  let stage = 'gateway';
+  let exitCode = EXIT_CODES.server;
+  try {
+    const health = await requestJson(`${server}/health`, { fetchImpl, timeoutMs });
+    checks.push({ name: 'gateway', ok: health.ok === true,
+      ...(typeof health.version === 'string' && /^\d{1,6}\.\d{1,6}\.\d{1,6}$/.test(health.version) ? { version: health.version } : {}),
+      ...(health.ok !== true ? { diagnostic: connectionDiagnostic({ retryable: true }) } : {}),
+    });
+    if (health.ok !== true) return { report: { ok: false, server, checks }, exitCode };
+    stage = 'oauth';
+    const oauth = await requestJson(`${server}/.well-known/oauth-authorization-server`, { fetchImpl, timeoutMs });
+    const oauthOk = oauth.issuer === server
+      && oauth.authorization_endpoint === `${server}/oauth/authorize`
+      && oauth.token_endpoint === `${server}/oauth/token`
+      && oauth.revocation_endpoint === `${server}/oauth/revoke`
+      && Array.isArray(oauth.code_challenge_methods_supported)
+      && oauth.code_challenge_methods_supported.includes('S256')
+      && Array.isArray(oauth.token_endpoint_auth_methods_supported)
+      && oauth.token_endpoint_auth_methods_supported.includes('none')
+      && oauth.authorization_response_iss_parameter_supported === true;
+    checks.push({
+      name: 'oauth',
+      ok: oauthOk,
+      ...(oauth.issuer === server ? { issuer: server } : {}),
+      ...(!oauthOk ? { diagnostic: discoveryDiagnostic() } : {}),
+    });
+    if (!oauthOk) return { report: { ok: false, server, checks }, exitCode };
+    if (authenticated) {
+      stage = 'authenticated_catalog';
+      const session = await sessionLoader();
+      const catalog = await runtimeCapabilities({ server, session, fetchImpl, timeoutMs });
+      checks.push({ name: 'authenticated_catalog', ok: true, read_tool_count: catalog.capabilities.filter((item) => item.annotations?.readOnlyHint === true).length });
+      const available = new Set(catalog.capabilities.filter((item) => item.annotations?.readOnlyHint === true).map((item) => item.name));
+      checks.push({ name: 'workflows', ok: true, mode: 'read_only', available: {
+        search: available.has('venues_search'),
+        profile: available.has('profile_get'),
+        visits: available.has('visits_list'),
+        saves: available.has('saves_list'),
+        trips: available.has('trips_list') && available.has('trip_get'),
+        reservations: available.has('reservations_list') && available.has('reservation_get'),
+      }, message: 'The standalone Pearl CLI supports reads. Visit editing requires a reviewed host connection and separate permission.' });
+    }
+    exitCode = EXIT_CODES.success;
+  } catch (error) {
+    checks.push({ name: stage, ok: false, diagnostic: connectionDiagnostic(error) });
+    exitCode = error instanceof CliError ? error.exitCode : EXIT_CODES.server;
   }
-  return { ok: checks.every((check) => check.ok), server, checks };
+  return { report: { ok: checks.every((check) => check.ok), server, checks }, exitCode };
 }
 
 function printOutput(value, json, stdout = process.stdout) {
@@ -632,7 +657,9 @@ export async function runCli(argv = process.argv.slice(2), dependencies = {}) {
       result = { connected: false, remote_revoked: remoteRevoked, ...(warning ? { warning } : {}) };
     } else if (command === 'doctor') {
       requirePositionals(parsed.positionals, 0, 'Usage: pearl doctor [--authenticated]');
-      result = await doctor({ server, authenticated: parsed.flags.authenticated === true, fetchImpl, timeoutMs, sessionLoader: load });
+      const diagnosis = await doctor({ server, authenticated: parsed.flags.authenticated === true, fetchImpl, timeoutMs, sessionLoader: load });
+      printOutput(diagnosis.report, parsed.flags.json === true, dependencies.stdout);
+      return diagnosis.exitCode;
     } else if (command === 'mcp-url') {
       requirePositionals(parsed.positionals, 0, 'Usage: pearl mcp-url');
       result = `${server}/mcp`;
@@ -657,7 +684,7 @@ export async function runCli(argv = process.argv.slice(2), dependencies = {}) {
     }
 
     printOutput(result, parsed.flags.json === true, dependencies.stdout);
-    return (command === 'doctor' && result.ok !== true) || (parsed.flags.all && result.result.pagination.coverage_state !== 'complete')
+    return (parsed.flags.all && result.result.pagination.coverage_state !== 'complete')
       ? EXIT_CODES.server : EXIT_CODES.success;
   } catch (error) {
     return printError(error, parsed?.flags?.json === true, dependencies.stderr);

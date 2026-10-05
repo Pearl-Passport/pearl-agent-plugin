@@ -10,7 +10,7 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const manifest = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8'));
 
 assert.equal(manifest.name, '@joinpearl/cli');
-assert.equal(manifest.version, '1.0.0');
+assert.equal(manifest.version, '1.0.1');
 assert.equal(manifest.license, 'MIT');
 assert.equal(manifest.private, undefined);
 assert.deepEqual(manifest.os, ['darwin', 'linux']);
@@ -25,6 +25,7 @@ const expected = [
   'LICENSE',
   'README.md',
   'package.json',
+  'src/diagnostics.mjs',
   'src/index.mjs',
   'src/keychain.mjs',
   'src/oauth.mjs',
@@ -32,7 +33,7 @@ const expected = [
 assert.deepEqual(packed.files.map((file) => file.path).sort(), expected.sort());
 assert.equal(packed.bundled.length, 0);
 
-const publicSources = ['README.md', 'src/index.mjs', 'src/keychain.mjs', 'src/oauth.mjs']
+const publicSources = ['README.md', 'src/diagnostics.mjs', 'src/index.mjs', 'src/keychain.mjs', 'src/oauth.mjs']
   .map((relative) => readFileSync(resolve(root, relative), 'utf8'))
   .join('\n');
 assert.doesNotMatch(publicSources, /\b[A-Za-z0-9]+(?:_[A-Za-z0-9]+)*_(?:prepare|commit)\b/);
