@@ -102,6 +102,11 @@ test("the member quick start is concise, public-safe, and explains revocation", 
   assert.match(guide, /Pearl Reserve or above, including Pearl Elite/);
   assert.match(guide, /Reservation watchers, flight management and visit deletion are also unavailable/);
   assert.match(guide, /does not mean a host has approved or listed Pearl/);
+  assert.match(guide, /Signing in to another app does not repair this connection/);
+  assert.match(guide, /Reconnecting cannot unlock an unsupported feature or change membership eligibility/);
+  assert.match(guide, /Temporary error or timeout/);
+  assert.match(guide, /Do not reuse another app's client ID/);
+  assert.match(guide, /Never share passwords, sign-in codes, callback URLs, tokens or payment details/);
 });
 
 test("the member setup page is short, per host, and installs from the updatable GitHub source", async () => {

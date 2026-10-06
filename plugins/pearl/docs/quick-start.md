@@ -11,17 +11,17 @@ Pearl Reserve and Elite members can connect. Trip changes require Pearl Reserve 
 - On eligible Codex, Claude and Cursor connections: venue hours, when bookings open, similar or nearby places, and events.
 - On supported connections, check table availability, log or edit visits, save places, and create private trips or edit their stops.
 
-Features vary by connection and permissions. Ask which actions are available. All changes show a preview and wait for your explicit confirmation.
+Ask which actions are available. All changes show a preview and wait for your explicit confirmation.
 
 ## Membership and permissions
 
 Save and trip changes require a freshly connected Codex, Claude or Cursor integration. They are not included in the current ChatGPT version.
 
-Membership does not unlock unsupported actions. Reconnect to approve new permissions; existing connections do not gain them automatically.
+Reconnect to approve supported new permissions; existing connections do not gain them automatically.
 
-**Request missing places:** selected direct Codex connections can opt in during rollout. Pearl checks its catalog first, then offers Google Maps candidates. Select the correct place and confirm the preview. Requests require review; places are saved when added. Other connections use Pearl's in-app request flow.
+**Request missing places:** selected direct Codex connections can opt in. Pearl checks its catalog before offering Google Maps candidates. Select the place and confirm. Requests require review; places are saved when added. Other connections use Pearl's in-app request flow.
 
-Booking, holding, changing, cancelling, or paying for reservations is not available through this MCP release. Reservation watchers, flight management and visit deletion are also unavailable. Visit photo uploads are not included. Use Pearl or the reservation provider for supported actions outside the assistant. An availability result is not a booking.
+Booking, holding, changing, cancelling, or paying for reservations is unavailable. Reservation watchers, flight management and visit deletion are also unavailable. Visit photo uploads are not included. Use Pearl or the provider for other actions. Availability is not a booking.
 
 ## Get connected
 
@@ -34,11 +34,11 @@ Review the named app and permissions. Choose **Allow connection** or **Not now**
 
 Pearl's connection address is `https://agent.joinpearl.co/mcp`.
 
-For Claude web/desktop custom connectors, use public Client ID `pearl-claude-hosted` and **leave Client Secret empty**. Follow the linked instructions for Codex, Claude Code, and Cursor; their setup steps differ.
+For Claude web/desktop, use public Client ID `pearl-claude-hosted` and **leave Client Secret empty**. Other apps have different setup steps; follow the linked instructions.
 
-Cursor Grok Bot uses Cursor's plugin access. A local Cursor installation does not automatically install Pearl in a hosted Bot. Direct grok.com connections are not currently supported.
+Cursor Grok Bot uses Cursor's plugin access. Local installation does not install Pearl in a hosted Bot. Direct grok.com connections are unsupported.
 
-Marketplace availability varies by host. A public repository or a submitted application does not mean a host has approved or listed Pearl. Use an available listing or the documented setup path.
+A public repository or submitted application does not mean a host has approved or listed Pearl. Use an available listing or documented setup path.
 
 ## Try these prompts
 
@@ -61,12 +61,15 @@ In Pearl, open **Settings → Account → Connected apps**, or [open Connected A
 
 ## Need help?
 
-- **Wrong profile or visit count:** confirm which Pearl account you connected; ask for complete history if results are paginated.
-- **Expired connection or missing features:** reconnect from your AI app and review the permissions. Do not add permissions your connection does not offer.
+- **Wrong profile or count:** check the connected account and request complete history.
+- **Expired or revoked connection:** check your Pearl account and reconnect from the affected AI app. Signing in to another app does not repair this connection.
+- **Missing permission or feature:** ask what this connection supports before reconnecting. Reconnecting cannot unlock an unsupported feature or change membership eligibility.
+- **Temporary error or timeout:** keep the connection and retry later; contact support if it persists.
+- **Unsupported app:** contact Pearl support. Do not reuse another app's client ID or paste a sign-in callback into chat.
 - **Two Pearl entries:** use the intended Pearl connection in a fresh conversation.
 - **No card or photo:** check the text result; presentation varies by app and available images.
-- **Watchers or automatic booking:** these actions are not available through this connection yet. Manage them in Pearl where supported.
+- **Watchers or automatic booking:** unavailable here. Manage them in Pearl where supported.
 
-Never share passwords, sign-in codes, tokens or payment details. For support, send the app name, what you tried and a redacted error.
+Never share passwords, sign-in codes, callback URLs, tokens or payment details. For support, send the app name, what you tried and a redacted error.
 
 Support: [hello@joinpearl.co](mailto:hello@joinpearl.co) · [Help](https://joinpearl.co/support) · [Privacy](https://joinpearl.co/privacy) · [Terms](https://joinpearl.co/terms)
