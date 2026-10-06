@@ -35,7 +35,9 @@ Codex, Claude and Cursor may also request:
 - `saves:write`
 - `trips:write`
 
-These scopes authorize only the complete reviewed visit, saved-place and trip preview/commit pairs returned through authenticated `tools/list`. With all ten scopes those hosts receive 30 tools, including six discovery reads (`venue_get`, `reservations_release_window`, `venues_similar`, `venues_nearby`, `events_search`, `tables_browse`) that ride the existing read scopes and need no new consent. ChatGPT remains on its submitted 18-tool/eight-scope contract; it cannot request the two new scopes and does not receive the discovery reads. Existing grants and tokens are not widened: reconnect and approve new permissions. Unknown clients, retired registrations, MCP Registry-generic clients, direct grok.com connectors and the standalone Pearl CLI remain limited to the seven reads. No scope here authorizes visit deletion, provider booking, payment, photo uploads or other mutations.
+These scopes authorize only the complete reviewed visit, saved-place and trip preview/commit pairs returned through authenticated `tools/list`. With all ten scopes the reviewed per-install Codex family, direct `pearl-codex`, Claude and Cursor receive 30 tools, including six discovery reads (`venue_get`, `reservations_release_window`, `venues_similar`, `venues_nearby`, `events_search`, `tables_browse`) that ride the existing read scopes and need no new consent. The shared Codex ID is an exception: it has the 13 common reads with all seven read scopes, lacks availability/discovery read eligibility, and needs exact-client eligibility plus consent for any writes. See the [host inventory](host-operators.md#tool-inventory-by-host).
+
+ChatGPT remains on its submitted 18-tool/eight-scope contract; it cannot request the two new scopes and does not receive the discovery reads. Existing grants and tokens are not widened: reconnect and approve new permissions. Other registered common-read clients and the standalone Pearl CLI remain limited to their granted read scopes. Unregistered clients cannot connect; an MCP Registry listing is not registration, and direct grok.com and Instinct are not supported connections. No scope here authorizes visit deletion, provider booking, payment, photo uploads or other mutations.
 
 A request for a scope the client is not reviewed for is narrowed rather than refused: Pearl drops the unreviewed scope and asks the member to approve the rest. It is refused (`invalid_scope`) only when no permitted read scope remains. Access tokens last 60 minutes and are renewed with the refresh token.
 
@@ -43,7 +45,9 @@ Pearl does not trust a self-reported host name. Static clients and stable hosted
 
 ## ChatGPT
 
-ChatGPT uses OpenAI-hosted CIMD at `https://chatgpt.com/oauth/client.json` and the hosted callback `https://chatgpt.com/connector_platform_oauth_redirect`. Pearl's registration is public-PKCE and has no client secret. Prepare tool or scope additions as a new app-version draft from the reviewed commit. After coordinated backend activation, immediately scan and test that exact production contract before submission; existing grants are not widened, and any scan mismatch triggers an eligibility rollback. Do not treat a backend deployment as a ChatGPT app update or a successful scan as approval.
+ChatGPT uses OpenAI-hosted CIMD at `https://chatgpt.com/oauth/client.json` and the hosted callback `https://chatgpt.com/connector_platform_oauth_redirect`. Pearl's registration is public-PKCE and has no client secret. Published MCP tool updates use OpenAI's continuous review and do not require a new package version; listing information or imported skill changes still need a new version, review and publication. Follow the [submission guidance](submission.md) and verify the scan's actual live definitions.
+
+Pearl scope or eligibility additions still require separate review, coordinated activation and authenticated host tests. Existing grants are not widened: new permissions require fresh consent. Roll back affected eligibility if the scanned inventory differs from the reviewed contract. Deployment alone does not prove tool availability, and a successful scan is not package approval.
 
 ## Codex
 

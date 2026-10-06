@@ -21,20 +21,21 @@ will only execute tools whose runtime annotation is `readOnlyHint: true`.
 
 Dynamic client registration is intentionally disabled. OAuth uses PKCE S256,
 an ephemeral loopback callback, the exact Pearl MCP resource, seven fixed read
-scopes, ten-minute access tokens, rotating refresh tokens, and RFC 9207 issuer
+scopes, access tokens lasting up to one hour, rotating refresh tokens, and RFC 9207 issuer
 validation. No client secret is used or stored.
 
 ## Install
 
-The read-only CLI is distributed with the versioned [Pearl v0.11.0 GitHub release](https://github.com/Pearl-Passport/pearl-agent-plugin/releases/tag/v0.11.0). Download and verify the release tarball before installing:
+Use CLI 1.0.1 or newer. Version 1.0.0 rejects the service's current token lifetime
+and can fail during login or refresh; do not install the older archive to recover
+a connection. After upgrading, run `pearl login` again if authorization is no
+longer usable.
 
-```bash
-curl -fLO https://github.com/Pearl-Passport/pearl-agent-plugin/releases/download/v0.11.0/joinpearl-cli-1.0.0.tgz
-curl -fLO https://github.com/Pearl-Passport/pearl-agent-plugin/releases/download/v0.11.0/SHA256SUMS
-shasum -a 256 -c SHA256SUMS && npm install --global ./joinpearl-cli-1.0.0.tgz
-pearl doctor --json
-pearl login
-```
+Check the [GitHub releases](https://github.com/Pearl-Passport/pearl-agent-plugin/releases)
+for a published `joinpearl-cli-1.0.1.tgz` and its `SHA256SUMS`. Verify the downloaded
+archive with `shasum -a 256 -c SHA256SUMS` before installing it. If that archive is
+not yet published, use the validated 1.0.1 source checkout below; a package version
+in the source is not proof of a published download.
 
 npm registry publication is still pending publisher access. Do not assume
 `npm install --global @joinpearl/cli` is available yet. GitHub distribution uses
@@ -85,9 +86,27 @@ return exit code 6, and never claim to be complete. Resume with the same filters
 and the returned cursor through `--input`. A cursor-loop result needs a fresh
 request instead. `--timeout` bounds traversal as well as each ordinary read.
 
-`pearl doctor --authenticated --json` reports which read workflows this
-connection exposes. Temporary refresh failures keep the stored connection and
-ask for a retry; an unusable authorization needs an access check and reconnect.
+`pearl status` reports only credentials stored locally; it does not verify live
+access. `pearl doctor --authenticated --json` checks the gateway, the exact OAuth
+discovery contract, and which read workflows this CLI connection exposes.
+Without `--authenticated`, doctor does not read or refresh stored credentials.
+
+Doctor stops at the first failed check, preserves completed checks in its JSON
+report on stdout, and retains the existing nonzero exit codes. Ordinary command
+errors still use stderr. Its fixed
+diagnostic wording distinguishes missing/unusable authorization, explicit scope
+or membership denials, rejected OAuth client registration, and temporary
+failures. An unclassified 403 does not establish the cause. Reports omit upstream
+messages, details, request IDs, credentials and unrecognized tool names.
+
+Temporary refresh failures keep the stored connection and ask for a retry.
+Check Pearl access before reconnecting an unusable authorization: the server
+may not distinguish lost membership from an expired or revoked grant. A rejected
+client needs Pearl to verify host support and registration; repeated sign-in
+does not add host support. These checks cover only the CLI, not another host's
+MCP connection or an automatic review-scanner grant. Doctor uses the existing
+request timeout and response-size limits, makes no tool-execution calls, and
+only refreshes credentials when `--authenticated` requires it.
 
 `pearl tools` is authoritative. Alias commands are conveniences for Pearl's
 current public read workflows; they do not make unavailable tools appear.

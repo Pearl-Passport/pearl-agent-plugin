@@ -31,7 +31,9 @@ This public documentation snapshot describes the current package. It is not a to
 
 ## Reviewed agent-host additions
 
-After coordinated server and host-version activation, reviewed ChatGPT, Codex, Claude, and Cursor registrations add read-only availability under `reservations:read`. Their two complete confirmed-action families appear only after the member reconnects and grants `visits:write`. Pearl recognizes exact registered principals plus the narrowly validated current OpenAI Codex CIMD client-ID family; it does not trust a client merely because it reports an OpenAI, Anthropic, or Cursor source. Unknown clients, MCP Registry-generic clients, retired registrations, direct grok.com connections, and the standalone Pearl CLI remain on the common read set.
+Reviewed ChatGPT, per-install Codex CIMD or direct `pearl-codex`, Claude, and Cursor registrations add read-only availability under `reservations:read`. Their two complete confirmed-action families require client eligibility and consent to `visits:write`. Pearl recognizes exact registered principals plus the narrowly validated per-install OpenAI Codex CIMD client-ID family; a reported host name is not authority.
+
+The shared Codex ID `https://chatgpt.com/oauth/codex/client.json` is supported for OAuth but currently lacks availability and the six discovery-read gates. It has the 13 common reads with all seven read scopes; writes require its own exact-client eligibility and consent. Do not assume 20/30-tool parity or suggest reconnecting to bypass that gate. Other registered common-read clients and the standalone Pearl CLI receive only their granted common reads. Unregistered clients cannot connect; an MCP Registry listing is not registration, and direct grok.com and Instinct are not supported connections.
 
 | Tool | Current reviewed-host workflow | Important boundary |
 | --- | --- | --- |
@@ -47,7 +49,7 @@ Existing grants are never widened. A member who connected before a permission ex
 
 ## Reviewed saves and trips
 
-Codex, Claude and Cursor connections can receive six more tools after reconnecting for `saves:write` and `trips:write`: 30 tools with all ten scopes, counting the discovery reads below. ChatGPT keeps its submitted 18-tool/eight-scope contract. On ChatGPT, offer the returned Pearl link so the member can save a place or change a trip in Pearl. These actions are not part of the current ChatGPT app. Existing grants are never widened. The standalone Pearl CLI remains on the 13 common reads.
+Eligible Codex, Claude and Cursor connections can receive six more tools after reconnecting for `saves:write` and `trips:write`: 30 tools with all ten scopes for the reviewed per-install Codex/direct `pearl-codex`/Claude/Cursor identities, counting the discovery reads below. The shared Codex exception above still applies. ChatGPT keeps its submitted 18-tool/eight-scope contract. On ChatGPT, offer the returned Pearl link so the member can save a place or change a trip in Pearl. These actions are not part of the current ChatGPT app. Existing grants are never widened. The standalone Pearl CLI remains on the 13 common reads.
 
 | Tool | Workflow | Boundary |
 | --- | --- | --- |
@@ -62,7 +64,7 @@ All commits need an unexpired preview, explicit current confirmation and a separ
 
 ## Reviewed discovery reads
 
-Codex, Claude and Cursor connections also receive six read-only tools under their existing read scopes, so no reconnect is needed. ChatGPT, the standalone Pearl CLI and unknown clients do not receive them.
+The reviewed per-install Codex family, direct `pearl-codex`, Claude and Cursor also receive six read-only tools under their existing read scopes, so no new consent is needed. The shared Codex ID, ChatGPT and the standalone Pearl CLI do not receive them.
 
 | Tool | Workflow | Boundary |
 | --- | --- | --- |

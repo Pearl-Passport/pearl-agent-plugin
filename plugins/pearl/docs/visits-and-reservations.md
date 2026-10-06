@@ -17,11 +17,14 @@ OAuth scopes and the reviewed client must all allow the requested action.
 | Link reservations to venues/trips | Internal gated implementation, not released to public hosts |
 | Book, hold, change or cancel a reservation; pay; arm a watch | Not available through this MCP release |
 
-Reviewed ChatGPT, Codex, Claude and Cursor clients can receive 18 tools: the
-13 common reads, live availability and four visit prepare/commit tools. Existing
-grants need reconnection and consent to `visits:write`. An eligible read-only
-grant may have availability but no visit actions. Standalone CLI, generic and
-unknown clients remain read-only. This is not a marketplace approval claim.
+ChatGPT's submitted contract has 18 tools: the 13 common reads, live availability
+and four visit prepare/commit tools. Reviewed per-install Codex/direct
+`pearl-codex`, Claude and Cursor can also receive those workflows. The shared
+Codex identity lacks availability; its visit actions need exact-client
+eligibility and consent. See the [host inventory](host-operators.md#tool-inventory-by-host).
+Existing grants need reconnection and consent to `visits:write`. Other registered
+common-read clients and the standalone CLI remain read-only; unregistered clients
+cannot connect. This is not a marketplace approval claim.
 
 ## Try it
 

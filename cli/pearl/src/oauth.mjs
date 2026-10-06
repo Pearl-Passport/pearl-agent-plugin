@@ -16,7 +16,9 @@ export const DEFAULT_SCOPES = Object.freeze([
 
 const OPAQUE_ACCESS_TOKEN = /^pat_[A-Za-z0-9_-]{40,80}$/;
 const OPAQUE_REFRESH_TOKEN = /^prt_[A-Za-z0-9_-]{40,80}$/;
-const ACCESS_TOKEN_TTL_SECONDS = 600;
+// Match the gateway's one-hour issuance contract, while still accepting shorter
+// lifetimes. Rejecting a valid rotated response would strand the saved token.
+const ACCESS_TOKEN_TTL_SECONDS = 60 * 60;
 
 export function base64Url(buffer) {
   return Buffer.from(buffer).toString('base64url');

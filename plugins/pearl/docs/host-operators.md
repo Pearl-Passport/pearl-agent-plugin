@@ -10,20 +10,27 @@ The live MCP `tools/list` response decides what an authenticated connection can 
 
 | Connection | Scopes | Tools |
 | --- | --- | --- |
-| Reviewed Codex, Claude and Cursor, fresh consent | Seven reads plus `visits:write`, `saves:write`, `trips:write` | 30: the 13 common reads, `reservations_availability`, six discovery reads (`venue_get`, `reservations_release_window`, `venues_similar`, `venues_nearby`, `events_search`, `tables_browse`), and the ten confirmed-action tools for visits, saved places and trips |
-| Reviewed Codex, Claude and Cursor, reads only | Seven reads | 20: the 13 common reads, `reservations_availability` and the six discovery reads |
+| Reviewed per-install Codex CIMD or direct `pearl-codex`, Claude and Cursor, fresh consent | Seven reads plus `visits:write`, `saves:write`, `trips:write` | 30: the 13 common reads, `reservations_availability`, six discovery reads (`venue_get`, `reservations_release_window`, `venues_similar`, `venues_nearby`, `events_search`, `tables_browse`), and the ten confirmed-action tools for visits, saved places and trips |
+| Those reviewed identities, reads only | Seven reads | 20: the 13 common reads, `reservations_availability` and the six discovery reads |
+| Shared Codex CIMD ID | Granted common reads; writes only with exact-client eligibility and consent | 13 common reads with all seven read scopes; no availability or six discovery reads under the current client gate |
 | ChatGPT (submitted app) | Seven reads plus `visits:write` | 18: the 13 common reads, `reservations_availability`, and the four visit tools |
-| Unknown clients, MCP Registry-generic clients, direct grok.com connectors, standalone Pearl CLI | Seven reads | 13 common reads |
+| Other registered common-read clients and standalone Pearl CLI | Granted subset of the seven reads | Up to 13 common reads |
 
 Existing grants are never widened: a member who connected earlier keeps the old scopes until they reconnect. No connection holds, books, changes, cancels or pays for a provider reservation.
 
+Unregistered clients cannot connect. An MCP Registry listing does not register a host; direct grok.com and Instinct connections remain unsupported without a separately reviewed registration and host canary.
+
 ## ChatGPT
 
-ChatGPT scans a versioned portal draft; a backend deployment does not update its tool snapshot. Adding tools requires a new portal scan, version test, and submission or publish step. A ChatGPT version that adds the save/trip tools is prepared as a separate draft and has not been submitted. Never keep a legacy private Pearl connector and the reviewed Pearl app enabled in the same test chat.
+Published ChatGPT MCP tool updates use OpenAI's continuous review: deployment alone does not prove a change is available, and eligible updates become available only after automated checks pass. These tool-only updates do not require a new package version; listing information or imported skill changes still need a new version, review and publication. Check the existing plugin's scan results and live tool definitions. See [OpenAI's MCP update guidance](https://developers.openai.com/plugins/deploy/submission#update-to-your-mcp-server).
+
+Neither process grants new Pearl permissions. ChatGPT retains its 18-tool visit/availability contract; save/trip additions need separate Pearl eligibility review and host tests. Existing grants are never widened. Never keep a legacy private Pearl connector and the reviewed Pearl app enabled in the same test chat.
 
 ## Codex
 
 Codex uses OpenAI-hosted CIMD. Current Codex releases present the shared client ID `https://chatgpt.com/oauth/codex/client.json`; earlier releases used a per-install `https://chatgpt.com/oauth/codex/<opaque-id>/client.json` identity. Both declare RFC 8252 loopback callbacks, and Pearl validates the metadata and allows only loopback port variation. No client ID is embedded in `.mcp.json` or pasted by the member.
+
+The shared ID's OAuth support does not establish feature parity with the per-install family. It currently lacks the separate availability/discovery read allowlist entries; any writes require its own exact-client eligibility and granted scopes. Do not promise 20 or 30 tools for that identity. A separate reviewed parity change and real-host canary are required; reconnecting alone cannot change this gate.
 
 ## Claude
 
@@ -49,6 +56,19 @@ Cursor's `cursor agent mcp` commands inspect the user-level MCP configuration, n
 After authorization, the Pearl Cursor detail view must show exactly one MCP, and a fresh full-scope grant should list 30 tools.
 
 The consumer product at `grok.com` has its own custom MCP connector flow and is a different host from Cursor Grok Bot. Pearl has not registered a static xAI OAuth client and keeps Dynamic Client Registration disabled, so do not add `https://agent.joinpearl.co/mcp` at `grok.com/connectors`. Supporting that host needs a separate exact callback/client registration and OAuth canary; never reuse `pearl-cursor` or add a client secret.
+
+## Other agent hosts and partners
+
+A new agent cannot gain access just by hosting a client metadata document or choosing a familiar host name. Pearl does not offer open Dynamic Client Registration. A partner needs operator review and a pre-registered public client: either an opaque client ID or an exact HTTPS URL used only as its registered ID. Partner URL IDs are not fetched as metadata and do not inherit another host's permissions.
+
+Provide the host's actual public client ID, exact callback URLs, minimum required common read scopes, and evidence that the host supports Authorization Code with PKCE `S256`, state validation, member consent, secure token storage, refresh, and disconnect/revocation. There is no client secret. Registration alone does not grant member data: the member must sign in and approve the requested permissions, and Pearl still checks live membership eligibility and scopes.
+
+- A cloud agent needs a durable public HTTPS callback owned and operated by its host. A loopback callback on the member's computer cannot deliver a code to a remote agent.
+- A desktop agent may use an HTTP loopback listener only when the browser and listener run on the same device. A partner's exact registered URL, including its fixed port, must match; the reviewed Codex/Claude CIMD port exception does not apply.
+- The host must receive and exchange the callback automatically. Never ask a member to paste authorization codes, callback URLs containing codes, tokens, or PKCE verifiers into chat.
+- Test refresh and disconnect as well as the first connection. Disconnect must revoke the Pearl grant and remove the host's stored credentials; the member can also revoke access in Pearl's Connected apps settings.
+
+Unknown callback ownership or lifecycle support means onboarding is incomplete. Do not invent callback URLs, reuse a reviewed host's ID, or claim that a partner is supported based on an offline check. New partner registrations begin with only the minimum common read scopes, not reviewed-host action or discovery privileges. Authenticated `tools/list` remains authoritative.
 
 ## Host canaries
 
