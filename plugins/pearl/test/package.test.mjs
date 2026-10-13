@@ -39,10 +39,9 @@ test("metadata allows only the exact coordinated contracts, without advertising 
   assert.equal(matchingAdvertisedScopes(common, [...common, addition]), false);
   assert.equal(matchingAdvertisedScopes(common, [...common, common[0]]), false);
   assert.equal(matchingAdvertisedScopes(null, null), false);
-  assert.ok(validatePublicText("scripts/validate-live.mjs", addition).length > 0);
-  assert.ok(validatePublicText("plugins/pearl/scripts/validate-live.mjs", addition).length > 0);
-  assert.ok(validatePublicText("docs/setup.md", addition).length > 0);
-  assert.ok(validatePublicText("scripts/other.mjs", addition).length > 0);
+  assert.deepEqual(validatePublicText("docs/oauth.md", addition), []);
+  assert.ok(validatePublicText("docs/oauth.md", ["payments", "write"].join(":")).length > 0);
+  assert.ok(validatePublicText("docs/oauth.md", ["reservations", "write"].join(":")).length > 0);
 });
 
 async function json(relativePath) {
@@ -241,7 +240,8 @@ test("Cursor uses collision-resistant plugin and MCP identifiers with a secretle
       "reservations:read",
       "visits:write",
       "saves:write",
-      "trips:write"
+      "trips:write",
+      "places:write"
     ]
   });
   assert.equal(JSON.stringify(cursor).includes("CLIENT_SECRET"), false);
@@ -423,7 +423,7 @@ test("Cursor Grok Bot setup is marketplace-gated with exact visit actions and no
   assert.match(oauth, /direct grok\.com custom connector is not a supported install path/);
   assert.deepEqual(
     [...new Set([...`${guides}\n${oauth}`.matchAll(/\b([a-z-]+:write)\b/g)].map((match) => match[1]))].sort(),
-    ["saves:write", "trips:write", "visits:write"]
+    ["places:write", "saves:write", "trips:write", "visits:write"]
   );
   assert.doesNotMatch(`${guides}\n${oauth}`, /reservations_(?:book|booking|cancel|change|modify)_(?:prepare|commit)/);
 });

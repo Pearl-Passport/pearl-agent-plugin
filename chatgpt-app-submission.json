@@ -215,12 +215,12 @@
     "visits_update_commit": {
       "annotations": {
         "readOnlyHint": false,
-        "openWorldHint": false,
+        "openWorldHint": true,
         "destructiveHint": true
       },
       "justifications": {
         "read_only_justification": "Changes allowlisted fields on one authenticated member-owned visit only after an exact preview and explicit current confirmation.",
-        "open_world_justification": "Writes only to the member's private Pearl account and does not modify a reservation, calendar, or other third-party service.",
+        "open_world_justification": "A confirmed edit can publish a visit comment, change its audience, or update a comment already shared with others. It remains restricted to the member's own visit and does not book reservations or modify calendars.",
         "destructive_justification": "Overwrites selected fields on an existing visit, so the commit is marked destructive and must be approved against the displayed before-and-after preview."
       }
     }

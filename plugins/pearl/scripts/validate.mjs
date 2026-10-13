@@ -7,7 +7,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const PLUGIN_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const EXPECTED_VERSION = "0.12.4";
+const EXPECTED_VERSION = "0.12.6";
 const EXPECTED_MCP_URL = "https://agent.joinpearl.co/mcp";
 const EXPECTED_REGISTRY_SCHEMA = "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json";
 const EXPECTED_REGISTRY_NAME = "io.github.Pearl-Passport/pearl-agent-plugin";
@@ -43,7 +43,8 @@ export function matchingAdvertisedScopes(left, right) {
   return validAdvertisedScopes(left) && validAdvertisedScopes(right)
     && JSON.stringify([...left].sort()) === JSON.stringify([...right].sort());
 }
-const CURSOR_SCOPES = [...PUBLIC_READ_SCOPES, ...REVIEWED_WRITE_SCOPES];
+const PUBLIC_WRITE_SCOPES = [...REVIEWED_WRITE_SCOPES, PLACE_REQUEST_SCOPE];
+const CURSOR_SCOPES = [...PUBLIC_READ_SCOPES, ...PUBLIC_WRITE_SCOPES];
 const VISIT_ACTION_TOOLS = [
   "visits_import_commit",
   "visits_import_prepare",
@@ -322,7 +323,7 @@ export function validatePublicText(relative, contents) {
     const reviewedContents = kind === "unreleased tool contract"
       ? REVIEWED_ACTION_TOOLS.reduce((text, name) => text.replaceAll(name, ""), contents)
       : kind === "unreleased OAuth scope"
-        ? REVIEWED_WRITE_SCOPES.reduce((text, scope) => text.replaceAll(scope, ""), contents)
+        ? PUBLIC_WRITE_SCOPES.reduce((text, scope) => text.replaceAll(scope, ""), contents)
         : contents;
     check(!pattern.test(reviewedContents), `${relative} contains a ${kind}`, errors);
   }
@@ -507,7 +508,7 @@ export async function validatePackage() {
   )];
   check(JSON.stringify(documentedScopes) === JSON.stringify(CURSOR_SCOPES), "OAuth docs must list the seven reads plus the three reviewed write scopes", errors);
   const documentedWriteScopes = [...`${setupGuide}\n${oauthGuide}`.matchAll(/\b([a-z-]+:write)\b/g)].map((match) => match[1]);
-  check(documentedWriteScopes.length > 0 && documentedWriteScopes.every((scope) => REVIEWED_WRITE_SCOPES.includes(scope)), "Public setup may advertise only reviewed visit/save/trip scopes", errors);
+  check(documentedWriteScopes.length > 0 && documentedWriteScopes.every((scope) => PUBLIC_WRITE_SCOPES.includes(scope)), "Public setup may advertise only reviewed visit/save/trip/place scopes", errors);
   check(oauthGuide.includes("DCR endpoint remains disabled") && liveValidator.includes("register.status === 404"), "Documentation and live validation must keep DCR disabled", errors);
   check([setupGuide, oauthGuide].every((guide) => guide.includes("Anthropic-hosted CIMD") && guide.includes("localhost") && guide.includes("127.0.0.1") && /ephemeral (?:loopback )?port/.test(guide)), "Claude Code must document its CIMD loopback boundary", errors);
   check(setupGuide.includes("claude mcp login plugin:pearl:pearl") && setupGuide.includes("claude mcp get plugin:pearl:pearl") && !/--client-id|--client-secret|--callback-port/.test(setupGuide), "Claude Code must use its plugin-namespaced CIMD server without static overrides", errors);
@@ -558,7 +559,7 @@ export async function validatePackage() {
     [...`${skill}\n${capabilitySnapshot}\n${setupGuide}\n${oauthGuide}`.matchAll(/\b([a-z-]+:write)\b/g)]
       .map((match) => match[1]),
   )];
-  check(JSON.stringify([...publicWriteScopes].sort()) === JSON.stringify([...REVIEWED_WRITE_SCOPES].sort()), "Public docs must expose only the reviewed visit/save/trip scopes", errors);
+  check(JSON.stringify([...publicWriteScopes].sort()) === JSON.stringify([...PUBLIC_WRITE_SCOPES].sort()), "Public docs must expose only the reviewed visit/save/trip/place scopes", errors);
 
   for (const [relative, expectedHash] of EXPECTED_ASSETS) {
     const contents = await readFile(path.join(PLUGIN_ROOT, relative));
