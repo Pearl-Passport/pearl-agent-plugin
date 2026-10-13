@@ -141,7 +141,7 @@ const initialize = await request("/mcp", {
     params: {
       protocolVersion: "2025-06-18",
       capabilities: {},
-      clientInfo: { name: "pearl-package-validator", version: "0.12.6" }
+      clientInfo: { name: "pearl-package-validator", version: "0.12.7" }
     }
   })
 });
@@ -169,7 +169,14 @@ if (REQUIRE_STATIC_HOST_CLIENTS) {
     for (const callback of callbacks) {
       await expectAuthorizationError(clientId, callback, scopes, "invalid_target");
     }
-    for (const scope of deniedScopes) await expectAuthorizationError(clientId, callbacks[0], [...scopes, scope], "invalid_scope");
+    // OAuth narrows mixed requests to the reviewed client allowlist. A valid
+    // read scope plus an unsupported scope therefore reaches resource checking;
+    // it is not evidence that the unsupported scope would be granted. Keep this
+    // probe non-persistent and test unsupported-only requests separately.
+    for (const scope of deniedScopes) {
+      await expectAuthorizationError(clientId, callbacks[0], [...scopes, scope], "invalid_target");
+      await expectAuthorizationError(clientId, callbacks[0], [scope], "invalid_scope");
+    }
   }
 }
 
@@ -179,3 +186,6 @@ const validations = [
   REQUIRE_OPENAI_CHALLENGE ? "the OpenAI Apps challenge" : null
 ].filter(Boolean);
 console.log(`Pearl live discovery and unauthenticated MCP validation passed${validations.length ? ` with ${validations.join(" and ")}` : ""}.`);
+if (REQUIRE_STATIC_HOST_CLIENTS) {
+  console.log("Handshake probes do not prove granted permissions. Verify consent/token scope narrowing and tool authorization separately with a designated test account.");
+}

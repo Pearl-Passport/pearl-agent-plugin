@@ -475,5 +475,8 @@ test("release validation safely probes both static host registrations", async ()
   assert.match(liveValidator, /https:\/\/invalid\.example\/mcp/);
   assert.match(liveValidator, /invalid_target/);
   assert.match(liveValidator, /invalid_scope/);
+  assert.match(liveValidator, /\[\.\.\.scopes, scope\], "invalid_target"/);
+  assert.match(liveValidator, /\[scope\], "invalid_scope"/);
+  assert.match(liveValidator, /Handshake probes do not prove granted permissions/);
   assert.match(releasing, /validate:host-clients-live/);
 });
