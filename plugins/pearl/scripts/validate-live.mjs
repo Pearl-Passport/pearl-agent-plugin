@@ -9,6 +9,7 @@ const REQUIRE_OPENAI_CHALLENGE = process.argv.includes("--require-openai-challen
 const REQUIRE_STATIC_HOST_CLIENTS = process.argv.includes("--require-static-host-clients");
 const REQUIRE_CROSS_HOST_ACTIONS = process.argv.includes("--require-cross-host-actions");
 const REQUIRE_CHATGPT_SAVE_TRIP = process.argv.includes("--require-chatgpt-save-trip");
+const REQUIRE_CURSOR_PLACES = process.argv.includes("--require-cursor-places");
 const PUBLIC_READ_SCOPES = [
   "venues:read",
   "profile:read",
@@ -39,7 +40,7 @@ const STATIC_HOST_CLIENTS = [
       "https://www.cursor.com/agents/mcp/oauth/callback",
       "http://localhost:8787/callback"
     ],
-    scopes: CURSOR_SCOPES,
+    scopes: REQUIRE_CURSOR_PLACES ? [...CURSOR_SCOPES, ["places", "write"].join(":")] : CURSOR_SCOPES,
     deniedScopes: [["validation", "write"].join(":")]
   },
   ...(REQUIRE_CROSS_HOST_ACTIONS ? [
@@ -140,7 +141,7 @@ const initialize = await request("/mcp", {
     params: {
       protocolVersion: "2025-06-18",
       capabilities: {},
-      clientInfo: { name: "pearl-package-validator", version: "0.12.4" }
+      clientInfo: { name: "pearl-package-validator", version: "0.12.6" }
     }
   })
 });
