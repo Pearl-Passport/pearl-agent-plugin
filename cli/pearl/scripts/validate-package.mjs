@@ -5,12 +5,13 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { DEFAULT_SCOPES, IMPORT_SCOPES } from '../src/oauth.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const manifest = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8'));
 
 assert.equal(manifest.name, '@joinpearl/cli');
-assert.equal(manifest.version, '1.0.0');
+assert.equal(manifest.version, '1.1.0-beta.1');
 assert.equal(manifest.license, 'MIT');
 assert.equal(manifest.private, undefined);
 assert.deepEqual(manifest.os, ['darwin', 'linux']);
@@ -25,6 +26,7 @@ const expected = [
   'LICENSE',
   'README.md',
   'package.json',
+  'src/diagnostics.mjs',
   'src/index.mjs',
   'src/keychain.mjs',
   'src/oauth.mjs',
@@ -32,11 +34,14 @@ const expected = [
 assert.deepEqual(packed.files.map((file) => file.path).sort(), expected.sort());
 assert.equal(packed.bundled.length, 0);
 
-const publicSources = ['README.md', 'src/index.mjs', 'src/keychain.mjs', 'src/oauth.mjs']
+const publicSources = ['README.md', 'src/diagnostics.mjs', 'src/index.mjs', 'src/keychain.mjs', 'src/oauth.mjs']
   .map((relative) => readFileSync(resolve(root, relative), 'utf8'))
   .join('\n');
-assert.doesNotMatch(publicSources, /\b[A-Za-z0-9]+(?:_[A-Za-z0-9]+)*_(?:prepare|commit)\b/);
-assert.doesNotMatch(publicSources, /\b[a-z-]+:write\b/);
+assert.deepEqual(IMPORT_SCOPES, ['flights:write', 'reservations:write', 'visits:write']);
+assert.ok(DEFAULT_SCOPES.every(scope => scope.endsWith(':read')));
+const shippedWriteScopes = [...new Set(publicSources.match(/\b[a-z_-]+:write\b/g) ?? [])].sort();
+assert.deepEqual(shippedWriteScopes, [...IMPORT_SCOPES].sort());
+assert.doesNotMatch(publicSources, /\b(?:reservations_book|reservations_cancel|snipers_create|payments_charge)_(?:prepare|commit)\b/);
 assert.doesNotMatch(publicSources, /\bvisits?_photos?\b/i);
 assert.equal((publicSources.match(/https:\/\/agent\.joinpearl\.co\/mcp/g) ?? []).length >= 1, true);
 

@@ -13,10 +13,16 @@ export const DEFAULT_SCOPES = Object.freeze([
   'reservations:read',
   'friends:read',
 ]);
+// Opt-in only. Server/client review and the member's fresh OAuth consent remain
+// authoritative; having a CLI command never enables a permission on the server.
+export const IMPORT_SCOPES = Object.freeze(['flights:write', 'reservations:write', 'visits:write']);
+const SUPPORTED_SCOPES = [...DEFAULT_SCOPES, ...IMPORT_SCOPES];
 
 const OPAQUE_ACCESS_TOKEN = /^pat_[A-Za-z0-9_-]{40,80}$/;
 const OPAQUE_REFRESH_TOKEN = /^prt_[A-Za-z0-9_-]{40,80}$/;
-const ACCESS_TOKEN_TTL_SECONDS = 600;
+// Match the gateway's one-hour issuance contract, while still accepting shorter
+// lifetimes. Rejecting a valid rotated response would strand the saved token.
+const ACCESS_TOKEN_TTL_SECONDS = 60 * 60;
 
 export function base64Url(buffer) {
   return Buffer.from(buffer).toString('base64url');
@@ -32,9 +38,9 @@ export function normalizeRequestedScopes(scopes) {
   const values = Array.isArray(scopes) ? scopes : String(scopes ?? '').split(/[\s,]+/);
   const normalized = [...new Set(values.map((value) => String(value).trim()).filter(Boolean))];
   if (!normalized.length) return [...DEFAULT_SCOPES];
-  const unsupported = normalized.filter((scope) => !DEFAULT_SCOPES.includes(scope));
+  const unsupported = normalized.filter((scope) => !SUPPORTED_SCOPES.includes(scope));
   if (unsupported.length) throw new Error(`Unsupported Pearl CLI scope: ${unsupported.join(', ')}`);
-  return DEFAULT_SCOPES.filter((scope) => normalized.includes(scope));
+  return SUPPORTED_SCOPES.filter((scope) => normalized.includes(scope));
 }
 
 function parseReturnedScopes(scope) {
@@ -64,7 +70,7 @@ export function validateTokenResponse(tokens, { allowedScopes }) {
   return {
     access_token: tokens.access_token,
     refresh_token: tokens.refresh_token,
-    scope: DEFAULT_SCOPES.filter((scope) => scopes.includes(scope)).join(' '),
+    scope: SUPPORTED_SCOPES.filter((scope) => scopes.includes(scope)).join(' '),
     expires_in: tokens.expires_in,
   };
 }

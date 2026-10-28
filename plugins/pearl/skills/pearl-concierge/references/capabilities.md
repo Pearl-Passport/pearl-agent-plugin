@@ -31,7 +31,7 @@ This public documentation snapshot describes the current package. It is not a to
 
 ## Reviewed agent-host additions
 
-After coordinated server and host-version activation, reviewed ChatGPT, Codex, Claude, and Cursor registrations add read-only availability under `reservations:read`. Their two complete confirmed-action families appear only after the member reconnects and grants `visits:write`. Pearl recognizes exact registered principals plus the narrowly validated current OpenAI Codex CIMD client-ID family; it does not trust a client merely because it reports an OpenAI, Anthropic, or Cursor source. Unknown clients, MCP Registry-generic clients, retired registrations, direct grok.com connections, and the standalone Pearl CLI remain on the common read set.
+After coordinated server and host-version activation, reviewed ChatGPT, Codex, Claude, and Cursor registrations add read-only availability under `reservations:read`. Their two complete confirmed-action families appear only after the member reconnects and grants `visits:write`. Pearl recognizes exact registered principals plus the narrowly validated current OpenAI Codex CIMD client-ID family; it does not trust a client merely because it reports an OpenAI, Anthropic, or Cursor source. Unknown clients, MCP Registry-generic clients, retired registrations, direct grok.com connections, and default read-only Pearl CLI connections remain on the common read set.
 
 | Tool | Current reviewed-host workflow | Important boundary |
 | --- | --- | --- |
@@ -47,7 +47,7 @@ Existing grants are never widened. A member who connected before a permission ex
 
 ## Reviewed saves and trips
 
-Codex, Claude and Cursor connections can receive six more tools after reconnecting for `saves:write` and `trips:write`: 30 tools with all ten scopes, counting the discovery reads below. ChatGPT keeps its submitted 18-tool/eight-scope contract. On ChatGPT, offer the returned Pearl link so the member can save a place or change a trip in Pearl. These actions are not part of the current ChatGPT app. Existing grants are never widened. The standalone Pearl CLI remains on the 13 common reads.
+Codex, Claude and Cursor connections can receive six more tools after reconnecting for `saves:write` and `trips:write`: 30 tools with all ten scopes, counting the discovery reads below. ChatGPT keeps its submitted 18-tool/eight-scope contract. On ChatGPT, offer the returned Pearl link so the member can save a place or change a trip in Pearl. These actions are not part of the current ChatGPT app. Existing grants are never widened. The standalone Pearl CLI defaults to the 13 common reads; record imports require the separate opt-in described below.
 
 | Tool | Workflow | Boundary |
 | --- | --- | --- |
@@ -73,6 +73,26 @@ Codex, Claude and Cursor connections also receive six read-only tools under thei
 | `events_search` | Pearl food, wine and hospitality events the member can see, with Pearl links | Does not RSVP, buy tickets or save events |
 | `tables_browse` | The bookable Pearl venues of a Tables city, with `availability_supported` | Pearl Reserve and Elite (Tables) only; never checks times, holds or books. Call `reservations_availability` for one venue, date and party |
 
+## Structured records on reviewed connections
+
+Selected Codex, Claude, Cursor and Pearl CLI registrations can receive the
+following complete pairs during coordinated rollout. New flight and reservation
+permissions (`flights:write` and `reservations:write`) need fresh consent. Existing visit-write consent covers item additions,
+but every change still requires its own preview and confirmation. Existing
+membership and flight-access restrictions remain in force. These additions do
+not change the submitted ChatGPT app or imply a host's approval of a new version.
+
+| Pair | Record workflow | Boundary |
+| --- | --- | --- |
+| `flights_import_prepare` / `flights_import_commit` | Add supplied flight details, including an optional seat and cabin | No ticket purchase, airline assignment or trip attachment; existing records stay unchanged |
+| `flights_seat_update_prepare` / `flights_seat_update_commit` | Update the recorded seat on one owned flight | Exact flight and old/new seat must be reviewed; no airline change |
+| `reservations_import_prepare` / `reservations_import_commit` | Record an existing restaurant reservation | Exact venue and local date/time; no provider booking or verification |
+| `visits_items_add_prepare` / `visits_items_add_commit` | Append dishes, wines and drinks to one owned visit | Up to 20 items; preserves existing items; no separate review publication |
+
+The CLI remains read-only by default. Its import commands are available only in
+the separately released import-capable package, after server enablement and
+explicit additional consent. Installing an unreleased candidate is not activation.
+
 ## Workflow availability matrix
 
 | Workflow | Current public package | Not currently available |
@@ -81,6 +101,7 @@ Codex, Claude and Cursor connections also receive six read-only tools under thei
 | Member-added places | Search and matching may return provenance only when explicitly supplied | Direct place creation and provenance-only filtering |
 | Saves and collections | Read saves; reviewed Codex/Claude/Cursor can confirm save/remove | Custom collection management |
 | Trips | Read trips; reviewed Codex/Claude/Cursor can create private trips and edit stops | Share, delete, collaborate, or book |
+| Flight and reservation records | Enabled connections can confirm the four record workflows above | Airline changes, ticket purchase, provider booking or verification |
 | Reservations | List and read recorded reservation details; reviewed agent hosts can check live table availability, see when a venue's bookings open, and browse a Tables city's bookable venues | Holding a slot, provider booking, changes, cancellation, messaging, payment, or reservation watchers |
 | Venue details and discovery | Reviewed Codex, Claude and Cursor hosts can read a venue's hours and details, find similar or nearby places, and search Pearl events | RSVPs, ticketing, saving events |
 | Visits and import | Review visits and match structured place evidence; reviewed agent hosts can preview/confirm imports and allowlisted edits after reconnecting for `visits:write` | Clean/delete visits and photo workflows |

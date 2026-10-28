@@ -4,8 +4,9 @@ import { realpathSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { deleteCredential, readCredential, withCredentialLock, writeCredential } from './keychain.mjs';
 import { DEFAULT_SCOPES, login, refresh, revoke } from './oauth.mjs';
+import { connectionDiagnostic, discoveryDiagnostic } from './diagnostics.mjs';
 
-export const VERSION = '1.0.0';
+export const VERSION = '1.1.0-beta.1';
 export const DEFAULT_SERVER = 'https://agent.joinpearl.co';
 
 export const EXIT_CODES = Object.freeze({
@@ -19,13 +20,14 @@ export const EXIT_CODES = Object.freeze({
 
 const VALUE_FLAGS = new Set(['input', 'input-file', 'scope', 'server', 'timeout', 'max-pages']);
 const BOOLEAN_FLAGS = new Set([
-  'all', 'allow-loopback-http', 'authenticated', 'help', 'json', 'no-input', 'no-open', 'version',
+  'all', 'allow-loopback-http', 'authenticated', 'confirm', 'help', 'json', 'no-input', 'no-open', 'version',
 ]);
 const COMMON_FLAGS = new Set(['allow-loopback-http', 'help', 'json', 'no-input', 'server', 'timeout', 'version']);
 const COMMAND_FLAGS = new Map([
   ['login', new Set(['no-open', 'scope'])],
   ['doctor', new Set(['authenticated'])],
   ['call', new Set(['input', 'input-file'])],
+  ['import', new Set(['input', 'input-file', 'confirm'])],
   ['search', new Set(['input', 'input-file'])],
   ['recommend', new Set(['input', 'input-file'])],
   ['new-openings', new Set(['input', 'input-file'])],
@@ -42,7 +44,7 @@ const MAX_RESPONSE_BYTES = 2 * 1024 * 1024;
 
 export class CliError extends Error {
   constructor(code, message, exitCode = EXIT_CODES.server, options = {}) {
-    super(message);
+    super(message, { cause: options.cause });
     this.name = 'CliError';
     this.code = code;
     this.exitCode = exitCode;
@@ -50,22 +52,25 @@ export class CliError extends Error {
     this.userAction = options.userAction;
     this.requestId = options.requestId;
     this.details = options.details;
+    this.status = options.status;
   }
 }
 
 export function helpText() {
   return `Pearl CLI ${VERSION}
 
-Read-only access to your Pearl profile, places, friends, trips, reservations,
-and visits through the same authenticated Pearl Agent service used by MCP.
+Read your Pearl profile, places, friends, trips, reservations and visits.
+Structured imports require separate consent and server rollout approval.
 
 Usage:
-  pearl login [--scope READ_SCOPE,...] [--no-open]
+  pearl login [--scope SCOPE,...] [--no-open]
   pearl status
   pearl logout
   pearl doctor [--authenticated]
   pearl tools
   pearl call <tool> [--input JSON | --input-file PATH]
+  pearl import <flight|flight-seat|reservation|visit-items> prepare --input-file PATH
+  pearl import <flight|flight-seat|reservation|visit-items> commit --input-file PATH --confirm
   pearl search <query> [--input JSON]
   pearl recommend [--input JSON]
   pearl new-openings [--input JSON]
@@ -92,7 +97,8 @@ Global options:
   --version              Show version
 
 Credentials are stored in macOS Keychain or Linux Secret Service. The CLI
-discovers the live tool inventory and refuses tools not marked read-only.`;
+discovers the live tool inventory. Generic call stays read-only. Imports are
+limited to the four reviewed workflows above and cannot book or purchase.`;
 }
 
 export function parseArgs(argv) {
@@ -307,6 +313,7 @@ function publicError(payload, status) {
     : status === 429 || status >= 500 ? EXIT_CODES.server
     : EXIT_CODES.server;
   return new CliError(code, message, exitCode, {
+    status,
     retryable: envelope?.retryable === true || status === 429 || status >= 500,
     userAction: sanitizeText(envelope?.user_action) || undefined,
     requestId: sanitizeText(envelope?.request_id || payload?.request_id) || undefined,
@@ -392,6 +399,43 @@ export async function executeReadCapability({ server, session, capability, argum
     session,
     fetchImpl,
     timeoutMs: remaining,
+  });
+}
+
+const IMPORT_FAMILIES = Object.freeze({
+  'flight-seat': ['flights_seat_update', 'flights:write'],
+  flight: ['flights_import', 'flights:write'],
+  reservation: ['reservations_import', 'reservations:write'],
+  'visit-items': ['visits_items_add', 'visits:write'],
+});
+
+export async function executeStructuredImport({ server, session, kind, stage, arguments: args, confirmed = false, fetchImpl = fetch, timeoutMs = 20_000 }) {
+  const family = IMPORT_FAMILIES[kind];
+  if (!family || !['prepare', 'commit'].includes(stage)) throw new CliError('invalid_import', 'Choose flight, flight-seat, reservation or visit-items and prepare or commit.', EXIT_CODES.usage);
+  if (stage === 'commit' && confirmed !== true) throw new CliError('confirmation_required', 'Review the prepare result, then use --confirm to commit its exact handle.', EXIT_CODES.usage);
+  if (stage === 'prepare' && confirmed) throw new CliError('invalid_option', '--confirm is only allowed on commit.', EXIT_CODES.usage);
+  assertObject(args, 'Import input');
+  if (stage === 'commit' && (Object.keys(args).some(key => !['action_handle','idempotency_key'].includes(key)) ||
+    !/^pah_[A-Za-z0-9_-]{40,80}$/.test(args.action_handle))) {
+    throw new CliError('invalid_import', 'Commit input must contain only the preview action_handle and a new idempotency_key.', EXIT_CODES.usage);
+  }
+  if (typeof args.idempotency_key !== 'string' || args.idempotency_key.length < 8 || args.idempotency_key.length > 128) {
+    throw new CliError('invalid_import', 'Provide an idempotency_key of 8–128 characters; reuse it only when retrying the same step.', EXIT_CODES.usage);
+  }
+  if (!String(session.scope ?? '').split(/\s+/).includes(family[1])) throw new CliError('insufficient_scope', `Reconnect with ${family[1]} after this import is enabled for Pearl CLI.`, EXIT_CODES.insufficientScope);
+  const deadline = Date.now() + timeoutMs;
+  const catalog = await runtimeCapabilities({ server, session, fetchImpl, timeoutMs });
+  const pair = ['prepare','commit'].map(step => catalog.capabilities.find(item => item.name === `${family[0]}_${step}`));
+  if (pair.some(item => !item || item.annotations?.readOnlyHint !== false || item.annotations?.openWorldHint !== false ||
+    item.annotations?.destructiveHint !== false || item.annotations?.idempotentHint !== true ||
+    !item.securitySchemes?.some(scheme => scheme.type === 'oauth2' && scheme.scopes?.length === 1 && scheme.scopes[0] === family[1]))) {
+    throw new CliError('capability_unavailable', 'Pearl has not enabled the complete reviewed import workflow for this connection.', EXIT_CODES.server);
+  }
+  const remaining = deadline - Date.now();
+  if (remaining <= 0) throw new CliError('request_timeout', 'Pearl discovery exceeded the request deadline.', EXIT_CODES.network);
+  return requestJson(`${server}/api/v1/execute`, {
+    method: 'POST', session, fetchImpl, timeoutMs: remaining,
+    body: { capability: `${family[0]}_${stage}`, arguments: { ...args, ...(stage === 'commit' ? { confirmed: true } : {}) } },
   });
 }
 
@@ -500,9 +544,9 @@ export async function loadSession(server, options = {}) {
       next = await refreshImpl(current, { fetchImpl: options.fetchImpl, timeoutMs: options.timeoutMs });
     } catch (error) {
       if (error?.code === 'invalid_grant' || error?.status === 401 || error?.status === 403) {
-        throw new CliError('refresh_failed', 'Pearl authorization is no longer usable. Check your Pearl access, then reconnect if eligible.', EXIT_CODES.unauthenticated, { userAction: 'reconnect' });
+        throw new CliError('refresh_failed', 'Pearl authorization is no longer usable. Check your Pearl access, then reconnect if eligible.', EXIT_CODES.unauthenticated, { userAction: 'reconnect', cause: error });
       }
-      throw new CliError('refresh_unavailable', 'Pearl could not refresh this connection. Try again; your stored connection was kept.', EXIT_CODES.network, { retryable: true, userAction: 'retry' });
+      throw new CliError('refresh_unavailable', 'Pearl could not refresh this connection. Try again; your stored connection was kept.', EXIT_CODES.network, { retryable: true, userAction: 'retry', cause: error });
     }
     await write(account, JSON.stringify(next));
     return next;
@@ -511,32 +555,54 @@ export async function loadSession(server, options = {}) {
 
 async function doctor({ server, authenticated, fetchImpl, timeoutMs, sessionLoader }) {
   const checks = [];
-  const health = await requestJson(`${server}/health`, { fetchImpl, timeoutMs });
-  checks.push({ name: 'gateway', ok: health.ok === true, version: health.version });
-  const oauth = await requestJson(`${server}/.well-known/oauth-authorization-server`, { fetchImpl, timeoutMs });
-  checks.push({
-    name: 'oauth',
-    ok: oauth.issuer === server
-      && oauth.code_challenge_methods_supported?.includes('S256')
-      && oauth.token_endpoint_auth_methods_supported?.includes('none')
-      && oauth.authorization_response_iss_parameter_supported === true,
-    issuer: oauth.issuer,
-  });
-  if (authenticated) {
-    const session = await sessionLoader();
-    const catalog = await runtimeCapabilities({ server, session, fetchImpl, timeoutMs });
-    checks.push({ name: 'authenticated_catalog', ok: true, read_tool_count: catalog.capabilities.filter((item) => item.annotations?.readOnlyHint === true).length });
-    const available = new Set(catalog.capabilities.filter((item) => item.annotations?.readOnlyHint === true).map((item) => item.name));
-    checks.push({ name: 'workflows', ok: true, mode: 'read_only', available: {
-      search: available.has('venues_search'),
-      profile: available.has('profile_get'),
-      visits: available.has('visits_list'),
-      saves: available.has('saves_list'),
-      trips: available.has('trips_list') && available.has('trip_get'),
-      reservations: available.has('reservations_list') && available.has('reservation_get'),
-    }, message: 'The standalone Pearl CLI supports reads. Visit editing requires a reviewed host connection and separate permission.' });
+  let stage = 'gateway';
+  let exitCode = EXIT_CODES.server;
+  try {
+    const health = await requestJson(`${server}/health`, { fetchImpl, timeoutMs });
+    checks.push({ name: 'gateway', ok: health.ok === true,
+      ...(typeof health.version === 'string' && /^\d{1,6}\.\d{1,6}\.\d{1,6}$/.test(health.version) ? { version: health.version } : {}),
+      ...(health.ok !== true ? { diagnostic: connectionDiagnostic({ retryable: true }, { authenticated: false }) } : {}),
+    });
+    if (health.ok !== true) return { report: { ok: false, server, checks }, exitCode };
+    stage = 'oauth';
+    const oauth = await requestJson(`${server}/.well-known/oauth-authorization-server`, { fetchImpl, timeoutMs });
+    const oauthOk = oauth.issuer === server
+      && oauth.authorization_endpoint === `${server}/oauth/authorize`
+      && oauth.token_endpoint === `${server}/oauth/token`
+      && oauth.revocation_endpoint === `${server}/oauth/revoke`
+      && Array.isArray(oauth.code_challenge_methods_supported)
+      && oauth.code_challenge_methods_supported.includes('S256')
+      && Array.isArray(oauth.token_endpoint_auth_methods_supported)
+      && oauth.token_endpoint_auth_methods_supported.includes('none')
+      && oauth.authorization_response_iss_parameter_supported === true;
+    checks.push({
+      name: 'oauth',
+      ok: oauthOk,
+      ...(oauth.issuer === server ? { issuer: server } : {}),
+      ...(!oauthOk ? { diagnostic: discoveryDiagnostic() } : {}),
+    });
+    if (!oauthOk) return { report: { ok: false, server, checks }, exitCode };
+    if (authenticated) {
+      stage = 'authenticated_catalog';
+      const session = await sessionLoader();
+      const catalog = await runtimeCapabilities({ server, session, fetchImpl, timeoutMs });
+      checks.push({ name: 'authenticated_catalog', ok: true, read_tool_count: catalog.capabilities.filter((item) => item.annotations?.readOnlyHint === true).length });
+      const available = new Set(catalog.capabilities.filter((item) => item.annotations?.readOnlyHint === true).map((item) => item.name));
+      checks.push({ name: 'workflows', ok: true, mode: 'read_only', available: {
+        search: available.has('venues_search'),
+        profile: available.has('profile_get'),
+        visits: available.has('visits_list'),
+        saves: available.has('saves_list'),
+        trips: available.has('trips_list') && available.has('trip_get'),
+        reservations: available.has('reservations_list') && available.has('reservation_get'),
+      }, message: 'These are read workflows. Structured imports use separate prepare/commit commands and require explicit permission plus a reviewed server rollout.' });
+    }
+    exitCode = EXIT_CODES.success;
+  } catch (error) {
+    checks.push({ name: stage, ok: false, diagnostic: connectionDiagnostic(error, { authenticated: stage === 'authenticated_catalog' }) });
+    exitCode = error instanceof CliError ? error.exitCode : EXIT_CODES.server;
   }
-  return { ok: checks.every((check) => check.ok), server, checks };
+  return { report: { ok: checks.every((check) => check.ok), server, checks }, exitCode };
 }
 
 function printOutput(value, json, stdout = process.stdout) {
@@ -594,7 +660,7 @@ export async function runCli(argv = process.argv.slice(2), dependencies = {}) {
     let result;
 
     if (command === 'login') {
-      requirePositionals(parsed.positionals, 0, 'Usage: pearl login [--scope READ_SCOPE,...] [--no-open]');
+      requirePositionals(parsed.positionals, 0, 'Usage: pearl login [--scope SCOPE,...] [--no-open]');
       const session = await (dependencies.loginImpl ?? login)({
         server,
         scopes: parsed.flags.scope ? parsed.flags.scope.split(',') : DEFAULT_SCOPES,
@@ -632,13 +698,19 @@ export async function runCli(argv = process.argv.slice(2), dependencies = {}) {
       result = { connected: false, remote_revoked: remoteRevoked, ...(warning ? { warning } : {}) };
     } else if (command === 'doctor') {
       requirePositionals(parsed.positionals, 0, 'Usage: pearl doctor [--authenticated]');
-      result = await doctor({ server, authenticated: parsed.flags.authenticated === true, fetchImpl, timeoutMs, sessionLoader: load });
+      const diagnosis = await doctor({ server, authenticated: parsed.flags.authenticated === true, fetchImpl, timeoutMs, sessionLoader: load });
+      printOutput(diagnosis.report, parsed.flags.json === true, dependencies.stdout);
+      return diagnosis.exitCode;
     } else if (command === 'mcp-url') {
       requirePositionals(parsed.positionals, 0, 'Usage: pearl mcp-url');
       result = `${server}/mcp`;
     } else if (command === 'tools') {
       requirePositionals(parsed.positionals, 0, 'Usage: pearl tools');
       result = await runtimeCapabilities({ server, session: await load(), fetchImpl, timeoutMs });
+    } else if (command === 'import') {
+      requirePositionals(parsed.positionals, 2, 'Usage: pearl import <flight|flight-seat|reservation|visit-items> <prepare|commit> --input-file PATH [--confirm]');
+      result = await executeStructuredImport({ server, session: await load(), kind: parsed.positionals[0], stage: parsed.positionals[1],
+        arguments: await optionalInput(parsed.flags, undefined, dependencies.readFileImpl), confirmed: parsed.flags.confirm === true, fetchImpl, timeoutMs });
     } else {
       let request;
       if (command === 'call') {
@@ -657,7 +729,7 @@ export async function runCli(argv = process.argv.slice(2), dependencies = {}) {
     }
 
     printOutput(result, parsed.flags.json === true, dependencies.stdout);
-    return (command === 'doctor' && result.ok !== true) || (parsed.flags.all && result.result.pagination.coverage_state !== 'complete')
+    return (parsed.flags.all && result.result.pagination.coverage_state !== 'complete')
       ? EXIT_CODES.server : EXIT_CODES.success;
   } catch (error) {
     return printError(error, parsed?.flags?.json === true, dependencies.stderr);

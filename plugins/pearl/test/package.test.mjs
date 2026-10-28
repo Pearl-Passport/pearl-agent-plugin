@@ -41,7 +41,10 @@ test("metadata allows only the exact coordinated contracts, without advertising 
   assert.equal(matchingAdvertisedScopes(null, null), false);
   assert.deepEqual(validatePublicText("docs/oauth.md", addition), []);
   assert.ok(validatePublicText("docs/oauth.md", ["payments", "write"].join(":")).length > 0);
-  assert.ok(validatePublicText("docs/oauth.md", ["reservations", "write"].join(":")).length > 0);
+  assert.deepEqual(validatePublicText("docs/oauth.md", "reservations:write flights:write"), []);
+  assert.equal(validAdvertisedScopes([...common, addition, "flights:write", "reservations:write"]), true);
+  assert.equal(validAdvertisedScopes([...common, addition, "flights:write"]), false);
+  assert.equal(validAdvertisedScopes([...common, addition, "reservations:write"]), false);
 });
 
 async function json(relativePath) {
@@ -99,7 +102,7 @@ test("the member quick start is concise, public-safe, and explains revocation", 
   assert.match(guide, /https:\/\/app\.joinpearl\.co\/settings\/connected-apps/);
   assert.match(guide, /wait for your explicit confirmation/);
   assert.match(guide, /Pearl Reserve or above, including Pearl Elite/);
-  assert.match(guide, /Reservation watchers, flight management and visit deletion are also unavailable/);
+  assert.match(guide, /Reservation watchers, airline changes and visit deletion are also unavailable/);
   assert.match(guide, /does not mean a host has approved or listed Pearl/);
 });
 
@@ -241,7 +244,9 @@ test("Cursor uses collision-resistant plugin and MCP identifiers with a secretle
       "visits:write",
       "saves:write",
       "trips:write",
-      "places:write"
+      "places:write",
+      "flights:write",
+      "reservations:write"
     ]
   });
   assert.equal(JSON.stringify(cursor).includes("CLIENT_SECRET"), false);
@@ -317,7 +322,7 @@ test("exported GitHub workflows are valid YAML", () => {
   assert.equal(parsed.status, 0, parsed.stderr || parsed.error?.message || "Ruby YAML parser failed");
 });
 
-test("the public CLI is a read-only runtime projection with secretless trusted publishing", async () => {
+test("the CLI stays read-only by default with narrow opt-in imports and protected publishing", async () => {
   const cliRoot = path.join(REPOSITORY_ROOT, "cli", "pearl");
   const manifest = JSON.parse(await readFile(path.join(cliRoot, "package.json"), "utf8"));
   const source = await readFile(path.join(cliRoot, "src", "index.mjs"), "utf8");
@@ -325,19 +330,30 @@ test("the public CLI is a read-only runtime projection with secretless trusted p
   const keychain = await readFile(path.join(cliRoot, "src", "keychain.mjs"), "utf8");
   const workflow = await readFile(path.join(PUBLIC_REPOSITORY_ROOT, ".github", "workflows", "publish-cli.yml"), "utf8");
   assert.equal(manifest.name, "@joinpearl/cli");
-  assert.equal(manifest.version, "1.0.0");
+  assert.equal(manifest.version, "1.1.0-beta.1");
   assert.equal(manifest.private, undefined);
   assert.equal(manifest.publishConfig.provenance, true);
   assert.match(source, /readOnlyHint !== true/);
   assert.match(source, /api\/v1\/capabilities/);
-  assert.doesNotMatch([source, oauth, keychain].join("\n"), /\b[A-Za-z0-9]+(?:_[A-Za-z0-9]+)*_(?:prepare|commit)\b/);
-  assert.doesNotMatch(oauth, /\b[a-z-]+:write\b/);
+  const { DEFAULT_SCOPES, IMPORT_SCOPES } = await import(path.join(cliRoot, "src", "oauth.mjs"));
+  assert(DEFAULT_SCOPES.every(scope => scope.endsWith(":read")));
+  assert.deepEqual(IMPORT_SCOPES, ["flights", "reservations", "visits"].map(name => `${name}:write`));
+  assert.match(source, /stage === 'commit' && confirmed !== true/);
+  assert.match(source, /complete reviewed import workflow/);
+  assert.match(source, /readOnlyHint !== true/);
   assert.match(keychain, /'-U', '-w'/);
   assert.match(workflow, /id-token: write/);
   assert.match(workflow, /environment: pearl-cli-publish/);
   assert.match(workflow, /test "\$\{GITHUB_REF\}" = "refs\/tags\/\$\{\{ github\.event\.release\.tag_name \}\}"/);
   assert.match(workflow, /refs\/tags\/\$\{\{ github\.event\.release\.tag_name \}\}\^\{commit\}/);
   assert.doesNotMatch(workflow, /NODE_AUTH_TOKEN|NPM_TOKEN|npm_[A-Za-z0-9]{20,}/);
+});
+
+test("reviewed imports may appear in host setup but unrelated writes cannot", () => {
+  const candidate = ["flights", "seat", "update", "prepare"].join("_") + " " + ["flights", "write"].join(":");
+  assert.deepEqual(validatePublicText("cli/pearl/src/index.mjs", candidate), []);
+  assert.deepEqual(validatePublicText("plugins/pearl/docs/setup.md", candidate), []);
+  assert(validatePublicText("cli/pearl/src/index.mjs", ["payments", "write"].join(":")).length > 0);
 });
 
 test("the snapshot adds six save/trip tools while the ChatGPT submission retains eighteen", async () => {
@@ -358,9 +374,9 @@ test("the snapshot adds six save/trip tools while the ChatGPT submission retains
   assert.equal(publicTools.includes("reservations_availability"), true);
   assert.deepEqual(
     [...new Set([...snapshot.matchAll(/\b([A-Za-z0-9]+(?:_[A-Za-z0-9]+)*_(?:prepare|commit))\b/g)].map((match) => match[1]))].sort(),
-    ["saves_change_commit", "saves_change_prepare", "trip_stops_update_commit", "trip_stops_update_prepare", "trips_create_commit", "trips_create_prepare", "visits_import_commit", "visits_import_prepare", "visits_update_commit", "visits_update_prepare"]
+    ["saves_change_commit", "saves_change_prepare", "trip_stops_update_commit", "trip_stops_update_prepare", "trips_create_commit", "trips_create_prepare", "visits_import_commit", "visits_import_prepare", "visits_update_commit", "visits_update_prepare", ...["flights_import", "flights_seat_update", "reservations_import", "visits_items_add"].flatMap(family => [`${family}_prepare`, `${family}_commit`])].sort()
   );
-  assert.deepEqual([...new Set([...snapshot.matchAll(/\b([a-z-]+:write)\b/g)].map((match) => match[1]))], ["visits:write", "saves:write", "trips:write"]);
+  assert.deepEqual([...new Set([...snapshot.matchAll(/\b([a-z-]+:write)\b/g)].map((match) => match[1]))], ["visits:write", "saves:write", "trips:write", "flights:write", "reservations:write"]);
   assert.doesNotMatch(snapshot, /reservations_(?:book|booking|cancel|change|modify)_(?:prepare|commit)/);
 });
 
@@ -423,7 +439,7 @@ test("Cursor Grok Bot setup is marketplace-gated with exact visit actions and no
   assert.match(oauth, /direct grok\.com custom connector is not a supported install path/);
   assert.deepEqual(
     [...new Set([...`${guides}\n${oauth}`.matchAll(/\b([a-z-]+:write)\b/g)].map((match) => match[1]))].sort(),
-    ["places:write", "saves:write", "trips:write", "visits:write"]
+    ["flights:write", "places:write", "reservations:write", "saves:write", "trips:write", "visits:write"]
   );
   assert.doesNotMatch(`${guides}\n${oauth}`, /reservations_(?:book|booking|cancel|change|modify)_(?:prepare|commit)/);
 });
