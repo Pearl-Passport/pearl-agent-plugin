@@ -37,7 +37,20 @@ Codex, Claude and Cursor may also request:
 
 Cursor and hosted Grok Bot may additionally request `places:write` after the coordinated server rollout and package update. This adds missing-place previews and confirmed requests (32 tools with all permissions). It does not enable snipers or booking. Older grants need fresh consent; reinstalling alone cannot expand permissions.
 
-These scopes authorize only the complete reviewed visit, saved-place and trip preview/commit pairs returned through authenticated `tools/list`. With all ten scopes those hosts receive 30 tools, including six discovery reads (`venue_get`, `reservations_release_window`, `venues_similar`, `venues_nearby`, `events_search`, `tables_browse`) that ride the existing read scopes and need no new consent. ChatGPT remains on its submitted 18-tool/eight-scope contract; it cannot request the two new scopes and does not receive the discovery reads. Existing grants and tokens are not widened: reconnect and approve new permissions. Unknown clients, retired registrations, MCP Registry-generic clients, direct grok.com connectors and the standalone Pearl CLI remain limited to the seven reads. No scope here authorizes visit deletion, provider booking, payment, photo uploads or other mutations.
+Selected Codex, Claude, Cursor and standalone CLI registrations may also request:
+
+- `flights:write` — record flight details or update a recorded seat; existing flight eligibility still applies.
+- `reservations:write` — record a restaurant reservation the member already holds, not make a booking.
+
+These registrations can also append dishes, wines and drinks with existing
+visit-write permission. All four record workflows require a preview and explicit
+confirmation. Availability is determined by the exact connection, not a host name.
+Older per-install Codex identities may need a reviewed registration update; do not
+switch identities or clients to bypass a refusal. ChatGPT's submitted permissions
+are unchanged. The CLI still requests seven reads by default; its import-capable
+candidate and server activation are separate from public package publication.
+
+These scopes authorize only complete reviewed pairs returned through authenticated `tools/list`. The earlier save/trip/visit set has 30 tools with ten scopes, including six discovery reads (`venue_get`, `reservations_release_window`, `venues_similar`, `venues_nearby`, `events_search`, `tables_browse`). Optional additions vary by exact connection; do not use a fixed tool count as proof of access. ChatGPT remains on its submitted 18-tool/eight-scope contract. Existing grants and tokens are not widened: reconnect and approve new permissions. Unknown clients, retired registrations, MCP Registry-generic clients and direct grok.com connectors remain limited to the seven reads. No scope here authorizes visit deletion, provider booking, payment or photo uploads.
 
 A request for a scope the client is not reviewed for is narrowed rather than refused: Pearl drops the unreviewed scope and asks the member to approve the rest. It is refused (`invalid_scope`) only when no permitted read scope remains. Access tokens last 60 minutes and are renewed with the refresh token.
 
@@ -104,7 +117,7 @@ Do not reuse `pearl-claude-hosted`, do not pass `--client-secret`, and do not in
 | Desktop app redirect URI | `http://localhost:8787/callback` |
 | Token authentication | `none` |
 | PKCE | `S256` |
-| Scopes | `venues:read profile:read visits:read saves:read friends:read trips:read reservations:read visits:write saves:write trips:write` |
+| Scopes | `venues:read profile:read visits:read saves:read friends:read trips:read reservations:read visits:write saves:write trips:write places:write flights:write reservations:write` |
 
 Register both callbacks exactly. Grok Bot uses the hosted Cursor callback and does not receive a separate OAuth client.
 

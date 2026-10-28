@@ -72,6 +72,12 @@ Families:
 - **Save or remove a place:** resolve the canonical location, then `saves_change_prepare` and `saves_change_commit`. Never remove a newer save using an old preview.
 - **Create a trip:** use only the name, dates and description the member gave; never infer exact dates from vague timing. Call `trips_create_prepare` then `trips_create_commit`. Creation adds no stops, sharing or bookings.
 - **Add, move, swap or remove a stop:** select an owned trip and stable stop/venue IDs, then `trip_stops_update_prepare` and `trip_stops_update_commit`. Respect reservation-linked stop restrictions.
+- **Record a flight:** `flights_import_prepare` and `flights_import_commit` take supplied flight number, airport-local departure date, exact airports and optional seat/cabin. Existing flights are reused unchanged. Do not send tickets, booking codes or passenger documents.
+- **Update a recorded seat:** `flights_seat_update_prepare` and `flights_seat_update_commit` change only Pearl's record. Use an owned flight identifier or confirmed date and airport; ask if "my LA flight" is ambiguous. Show route/date and old/new seat. Never claim to assign or change the airline's seat.
+- **Record an existing restaurant reservation:** `reservations_import_prepare` and `reservations_import_commit` take an exact Pearl venue, local date/time, venue timezone, party size and optional notes. Check existing reservations first. This records a reservation the member says they hold; it does not book, verify, change or cancel it with the restaurant.
+- **Add dishes, wines or drinks:** `visits_items_add_prepare` and `visits_items_add_commit` append up to 20 supplied items to one owned visit, with optional quantity, score and notes. Preserve existing items; review duplicate warnings. An unmatched wine's supplied year/NV is saved in its name, not presented as a verified catalog vintage.
+
+These record workflows require the complete pair in discovery and the relevant approved permission. They are not included in the current ChatGPT app. Do not import a whole mailbox or calendar when structured facts are sufficient.
 
 No action tool deletes a visit or changes a provider booking.
 

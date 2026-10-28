@@ -118,6 +118,67 @@ test('refresh outages preserve credentials and request retry while revoked grant
   }
 });
 
+test('real OAuth refresh persists one-hour rotated credentials and narrowed scopes before reuse', async () => {
+  let stored = JSON.stringify({
+    server: DEFAULT_SERVER,
+    access_token: `pat_${'a'.repeat(43)}`,
+    refresh_token: `prt_${'b'.repeat(43)}`,
+    scope: 'profile:read venues:read',
+    expires_at: 0,
+  });
+  const original = JSON.parse(stored);
+  const returned = {
+    access_token: `pat_${'c'.repeat(43)}`,
+    refresh_token: `prt_${'d'.repeat(43)}`,
+    token_type: 'Bearer',
+    expires_in: 3600,
+    scope: 'venues:read',
+  };
+  let writes = 0;
+  let locks = 0;
+  const calls = [];
+  const options = {
+    readCredentialImpl: async () => stored,
+    writeCredentialImpl: async (account, value) => {
+      assert.equal(account, new URL(DEFAULT_SERVER).host);
+      writes++;
+      stored = value;
+    },
+    withCredentialLockImpl: async (_account, operation) => { locks++; return operation(); },
+    fetchImpl: async (url, init) => {
+      calls.push(url);
+      if (url.endsWith('/.well-known/oauth-authorization-server')) return response(200, {
+        issuer: DEFAULT_SERVER,
+        authorization_endpoint: `${DEFAULT_SERVER}/oauth/authorize`,
+        token_endpoint: `${DEFAULT_SERVER}/oauth/token`,
+        revocation_endpoint: `${DEFAULT_SERVER}/oauth/revoke`,
+        code_challenge_methods_supported: ['S256'],
+        token_endpoint_auth_methods_supported: ['none'],
+        authorization_response_iss_parameter_supported: true,
+      });
+      assert.equal(url, `${DEFAULT_SERVER}/oauth/token`);
+      assert.equal(init.method, 'POST');
+      assert.deepEqual(Object.fromEntries(init.body), {
+        grant_type: 'refresh_token', client_id: 'pearl-cli',
+        refresh_token: original.refresh_token, resource: `${DEFAULT_SERVER}/mcp`,
+      });
+      return response(200, returned);
+    },
+  };
+  const started = Date.now();
+  const next = await loadSession(DEFAULT_SERVER, options);
+  assert.equal(next.access_token, returned.access_token);
+  assert.equal(next.refresh_token, returned.refresh_token);
+  assert.equal(next.scope, 'venues:read');
+  assert(next.expires_at >= started + 3_600_000);
+  assert(next.expires_at <= Date.now() + 3_600_000);
+  assert.deepEqual(JSON.parse(stored), next);
+  assert.deepEqual(await loadSession(DEFAULT_SERVER, options), next);
+  assert.equal(writes, 1);
+  assert.equal(locks, 1);
+  assert.equal(calls.length, 2, 'Reusing the persisted session must not rotate the old token again.');
+});
+
 function response(status, body, headers = {}) {
   return new Response(JSON.stringify(body), {
     status,
@@ -131,7 +192,7 @@ function outputSink() {
 }
 
 test('CLI version and canonical endpoint are stable', () => {
-  assert.equal(VERSION, '1.0.0');
+  assert.equal(VERSION, '1.1.0-beta.1');
   assert.equal(DEFAULT_SERVER, 'https://agent.joinpearl.co');
 });
 
@@ -202,10 +263,11 @@ test('aliases map only the current public read workflows', async () => {
   });
 });
 
-test('public OAuth scopes cannot be widened by command-line input', () => {
+test('OAuth defaults stay read-only; only explicit import scopes can be requested', () => {
   assert.deepEqual(normalizeRequestedScopes([]), [...DEFAULT_SCOPES]);
   assert.deepEqual(normalizeRequestedScopes('venues:read,profile:read,venues:read'), ['profile:read', 'venues:read']);
-  assert.throws(() => normalizeRequestedScopes(`venues:read,reservations:${'write'}`), /Unsupported Pearl CLI scope/);
+  assert.deepEqual(normalizeRequestedScopes('venues:read,reservations:write'), ['venues:read','reservations:write']);
+  assert.throws(() => normalizeRequestedScopes(`venues:read,${['payments', 'write'].join(':')}`), /Unsupported Pearl CLI scope/);
 });
 
 test('OAuth callback requires exactly one matching RFC 9207 issuer and state', () => {
@@ -255,17 +317,22 @@ test('OAuth token responses are exact Bearer credentials and cannot widen scopes
     access_token: `pat_${'a'.repeat(43)}`,
     refresh_token: `prt_${'b'.repeat(43)}`,
     token_type: 'Bearer',
-    expires_in: 600,
+    expires_in: 3600,
     scope: 'profile:read venues:read',
   };
   assert.deepEqual(validateTokenResponse(valid, { allowedScopes: ['profile:read', 'venues:read'] }), {
     access_token: valid.access_token,
     refresh_token: valid.refresh_token,
     scope: 'profile:read venues:read',
-    expires_in: 600,
+    expires_in: 3600,
   });
   assert.throws(() => validateTokenResponse({ ...valid, token_type: 'DPoP' }, { allowedScopes: DEFAULT_SCOPES }), /invalid token response/);
-  assert.throws(() => validateTokenResponse({ ...valid, expires_in: 601 }, { allowedScopes: DEFAULT_SCOPES }), /invalid token response/);
+  for (const expiresIn of [1, 600, 601, 3599, 3600]) {
+    assert.equal(validateTokenResponse({ ...valid, expires_in: expiresIn }, { allowedScopes: DEFAULT_SCOPES }).expires_in, expiresIn);
+  }
+  for (const expiresIn of [0, -1, 3601, 1.5, Infinity, -Infinity, NaN, '3600', null, undefined]) {
+    assert.throws(() => validateTokenResponse({ ...valid, expires_in: expiresIn }, { allowedScopes: DEFAULT_SCOPES }), /invalid token response/);
+  }
   assert.throws(() => validateTokenResponse({ ...valid, refresh_token: '' }, { allowedScopes: DEFAULT_SCOPES }), /invalid token response/);
   assert.throws(() => validateTokenResponse({ ...valid, scope: 'profile:read friends:read' }, { allowedScopes: ['profile:read'] }), /not authorized/);
 });

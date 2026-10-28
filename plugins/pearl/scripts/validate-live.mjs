@@ -26,13 +26,13 @@ const STATIC_HOST_CLIENTS = [
     clientId: "pearl-cli",
     callbacks: ["http://127.0.0.1:49155/oauth/callback"],
     scopes: PUBLIC_READ_SCOPES,
-    deniedScopes: ["visits:write", "saves:write", "trips:write"]
+    additionalScopeProbes: ["visits:write", "saves:write", "trips:write"]
   },
   {
     clientId: "pearl-claude-hosted",
     callbacks: ["https://claude.ai/api/mcp/auth_callback"],
     scopes: REQUIRE_CROSS_HOST_ACTIONS ? CURSOR_SCOPES : PUBLIC_READ_SCOPES,
-    deniedScopes: REQUIRE_CROSS_HOST_ACTIONS ? [["validation", "write"].join(":")] : ["visits:write"]
+    additionalScopeProbes: REQUIRE_CROSS_HOST_ACTIONS ? [["validation", "write"].join(":")] : ["visits:write"]
   },
   {
     clientId: "pearl-cursor",
@@ -41,32 +41,32 @@ const STATIC_HOST_CLIENTS = [
       "http://localhost:8787/callback"
     ],
     scopes: REQUIRE_CURSOR_PLACES ? [...CURSOR_SCOPES, ["places", "write"].join(":")] : CURSOR_SCOPES,
-    deniedScopes: [["validation", "write"].join(":")]
+    additionalScopeProbes: [["validation", "write"].join(":")]
   },
   ...(REQUIRE_CROSS_HOST_ACTIONS ? [
     {
       clientId: "pearl-codex",
       callbacks: ["http://127.0.0.1:49152/callback/pearl-validator"],
       scopes: CURSOR_SCOPES,
-      deniedScopes: [["validation", "write"].join(":")]
+      additionalScopeProbes: [["validation", "write"].join(":")]
     },
     {
       clientId: "https://chatgpt.com/oauth/client.json",
       callbacks: ["https://chatgpt.com/connector_platform_oauth_redirect"],
       scopes: REQUIRE_CHATGPT_SAVE_TRIP ? CURSOR_SCOPES : VISIT_SCOPES,
-      deniedScopes: REQUIRE_CHATGPT_SAVE_TRIP ? [["validation", "write"].join(":")] : ["saves:write", "trips:write"]
+      additionalScopeProbes: REQUIRE_CHATGPT_SAVE_TRIP ? [["validation", "write"].join(":")] : ["saves:write", "trips:write"]
     },
     {
       clientId: "https://claude.ai/oauth/mcp-oauth-client-metadata",
       callbacks: ["https://claude.ai/api/mcp/auth_callback"],
       scopes: CURSOR_SCOPES,
-      deniedScopes: [["validation", "write"].join(":")]
+      additionalScopeProbes: [["validation", "write"].join(":")]
     },
     {
       clientId: "https://claude.ai/oauth/claude-code-client-metadata",
       callbacks: ["http://localhost:49153/callback", "http://127.0.0.1:49154/callback"],
       scopes: CURSOR_SCOPES,
-      deniedScopes: [["validation", "write"].join(":")]
+      additionalScopeProbes: [["validation", "write"].join(":")]
     }
   ] : [])
 ];
@@ -103,6 +103,9 @@ async function expectAuthorizationError(clientId, redirectUri, scopes, expectedE
   assert(callback.searchParams.get("error") === expectedError,
     `${clientId} authorization probe returned ${callback.searchParams.get("error") ?? "no OAuth error"}, expected ${expectedError}`);
   assert(callback.searchParams.get("state") === "pearl-package-validator", `${clientId} authorization probe did not preserve state`);
+  const issuers = callback.searchParams.getAll("iss");
+  assert(issuers.length === 1 && issuers[0] === ORIGIN,
+    `${clientId} authorization probe returned an unexpected issuer`);
 }
 
 const health = await request("/health");
@@ -111,6 +114,7 @@ assert(health.status === 200, `health returned ${health.status}`);
 const authResponse = await request("/.well-known/oauth-authorization-server");
 assert(authResponse.status === 200, `authorization metadata returned ${authResponse.status}`);
 const auth = await authResponse.json();
+assert(auth.issuer === ORIGIN, "authorization metadata must identify Pearl as issuer");
 assert(auth.client_id_metadata_document_supported === true, "authorization metadata must advertise CIMD");
 assert(!("registration_endpoint" in auth), "authorization metadata must not advertise DCR");
 assert(auth.token_endpoint_auth_methods_supported?.includes("none"), "authorization metadata must support public clients");
@@ -141,7 +145,7 @@ const initialize = await request("/mcp", {
     params: {
       protocolVersion: "2025-06-18",
       capabilities: {},
-      clientInfo: { name: "pearl-package-validator", version: "0.12.7" }
+      clientInfo: { name: "pearl-package-validator", version: "0.13.0" }
     }
   })
 });
@@ -165,15 +169,15 @@ if (REQUIRE_OPENAI_CHALLENGE) {
 }
 
 if (REQUIRE_STATIC_HOST_CLIENTS) {
-  for (const { clientId, callbacks, scopes, deniedScopes } of STATIC_HOST_CLIENTS) {
+  for (const { clientId, callbacks, scopes, additionalScopeProbes } of STATIC_HOST_CLIENTS) {
     for (const callback of callbacks) {
       await expectAuthorizationError(clientId, callback, scopes, "invalid_target");
     }
     // OAuth narrows mixed requests to the reviewed client allowlist. A valid
-    // read scope plus an unsupported scope therefore reaches resource checking;
-    // it is not evidence that the unsupported scope would be granted. Keep this
-    // probe non-persistent and test unsupported-only requests separately.
-    for (const scope of deniedScopes) {
+    // read scope therefore reaches resource checking even if a write is removed.
+    // A write-only request checks the read requirement, not whether that write
+    // is allowed. Neither probe verifies a grant; both remain non-persistent.
+    for (const scope of additionalScopeProbes) {
       await expectAuthorizationError(clientId, callbacks[0], [...scopes, scope], "invalid_target");
       await expectAuthorizationError(clientId, callbacks[0], [scope], "invalid_scope");
     }
@@ -182,7 +186,7 @@ if (REQUIRE_STATIC_HOST_CLIENTS) {
 
 const validations = [
   REQUIRE_STATIC_HOST_CLIENTS ? "static host-client registrations" : null,
-  REQUIRE_CROSS_HOST_ACTIONS ? "reviewed cross-host action scopes" : null,
+  REQUIRE_CROSS_HOST_ACTIONS ? "cross-host scope-narrowing probes (not write-grant verification)" : null,
   REQUIRE_OPENAI_CHALLENGE ? "the OpenAI Apps challenge" : null
 ].filter(Boolean);
 console.log(`Pearl live discovery and unauthenticated MCP validation passed${validations.length ? ` with ${validations.join(" and ")}` : ""}.`);

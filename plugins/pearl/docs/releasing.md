@@ -1,17 +1,17 @@
 # Versioning and release
 
-The Codex, Claude, and Cursor manifests, marketplace entries, package metadata, MCP Registry `server.json`, and validators use one semantic version. Package `0.12.7` keeps one shared backend; reviewed Codex, Claude and Cursor clients receive the ten confirmed save/trip/visit tools after fresh consent and six discovery reads without it. ChatGPT keeps its submitted visit/availability contract.
+The Codex, Claude, and Cursor manifests, marketplace entries, package metadata, MCP Registry `server.json`, and validators use one semantic version. Package `0.13.0` adds four confirmed record workflows on enabled connections, using the shared backend. ChatGPT keeps its submitted visit/availability contract.
 
 | Surface | Version | Release tag | Publication boundary |
 | --- | --- | --- | --- |
-| Codex, Claude, Cursor, and shared skill | `0.12.7` | `v0.12.7` | Separate host installation or review |
-| MCP Registry metadata | `0.12.7` | `v0.12.7` | Protected Registry OIDC job after the reviewed host-package release |
-| Pearl CLI | `1.0.0` | `cli-v1.0.0` | Protected npm Trusted Publishing job |
+| Codex, Claude, Cursor, and shared skill | `0.13.0` | `v0.13.0` | Separate host installation or review |
+| MCP Registry metadata | `0.13.0` | `v0.13.0` | Protected Registry OIDC job after the reviewed host-package release |
+| Pearl CLI candidate | `1.1.0-beta.1` | `cli-v1.1.0-beta.1` | Unpublished; protected npm Trusted Publishing job |
 
 The MCP Registry is in preview, so publishing may encounter breaking changes or a data reset. Repository availability and a successful Registry publish are not host approval.
 
 The standalone CLI has an independent `cli-vMAJOR.MINOR.PATCH` release stream.
-Its first candidate is `@joinpearl/cli` `1.0.0`. Do not publish it to npm until Pearl
+The current source candidate is `@joinpearl/cli` `1.1.0-beta.1`. Do not publish it to npm until Pearl
 has verified control of the `@joinpearl` npm scope, configured npm Trusted
 Publishing for this public repository, and protected the
 `pearl-cli-publish` GitHub environment with a required reviewer. No npm token
@@ -26,10 +26,10 @@ Use:
 ## Release checks
 
 1. Confirm runtime `tools/list` remains authoritative and manifests contain no tool allowlist.
-2. Confirm fresh reviewed Codex/Claude/Cursor grants expose 30 tools and ten scopes (20 tools with the seven reads only). ChatGPT must retain the submitted 18 tools/eight scopes, and the standalone CLI the 13 common reads/seven scopes. Existing grants are unchanged. No provider mutation may be advertised.
+2. Verify each connection's exact discovered inventory against its granted permissions. The baseline Codex/Claude/Cursor contract is 30 tools/ten scopes; eligible connections can add place requests and four complete record-import pairs. ChatGPT retains its submitted 18 tools/eight scopes. CLI defaults remain 13 common reads/seven scopes; its candidate import commands require explicit additional consent and server activation. Existing grants are unchanged. No provider mutation may be advertised.
 3. Confirm `.mcp.json` contains one server URL and no headers or credentials, and that Cursor's marketplace source remains isolated at `plugins/pearl/cursor` so it cannot auto-discover that URL-only config.
-4. Confirm `server.json` uses the exact `2025-12-11` schema, case-sensitive GitHub namespace `io.github.Pearl-Passport/pearl-agent-plugin`, stable public repository ID `1343507179`, version `0.12.7`, and exactly one `streamable-http` remote with no headers, variables, credentials, or package declaration.
-5. Confirm reviewed Codex, Claude and Cursor flows request the seven reads plus `visits:write`, `saves:write` and `trips:write`, and ChatGPT the seven reads plus only `visits:write`; static clients use their exact public IDs/callbacks; Codex matches only its reviewed OpenAI-hosted CIMD identities; and no flow has a client secret.
+4. Confirm `server.json` uses the exact `2025-12-11` schema, case-sensitive GitHub namespace `io.github.Pearl-Passport/pearl-agent-plugin`, stable public repository ID `1343507179`, version `0.13.0`, and exactly one `streamable-http` remote with no headers, variables, credentials, or package declaration.
+5. Confirm record-import scopes are granted only to the exact reviewed clients; the general host-family match alone cannot enable imports. ChatGPT retains seven reads plus only `visits:write`. Static clients use their exact public IDs/callbacks; no flow has a client secret. Verify a fresh grant, denied ungranted actions, confirmation and revocation in each target host before claiming host certification.
 6. Confirm Cursor's plugin and MCP IDs are both `pearl-cursor`, while Codex and Claude remain `pearl`, so cross-host discovery cannot shadow Cursor's static client.
 7. Confirm Claude Code CIMD uses its registered loopback hosts with an ephemeral port.
 8. Confirm brand artwork matches the approved Pearl mark, contains no text/EXIF metadata, and is covered by the reviewed brand policy.
@@ -78,9 +78,9 @@ A public repository, successful validation, or portal draft is not host approval
 ## CLI GitHub asset while npm publication is pending
 
 The CLI `1.0.0` tarball is attached to the plugin `v0.11.0` release; later
-plugin releases reuse it until the CLI itself changes. For a release that ships
+plugin releases reused it. The old archive rejects valid one-hour token responses; prepare and validate the new CLI asset before the next approved distribution. For a release that ships
 a new CLI version, run the CLI checks and `npm pack` from the
-canonical `cli/pearl` package. Clean-install the resulting `joinpearl-cli-1.0.0.tgz`
+canonical `cli/pearl` package (currently `1.1.0-beta.1`). Clean-install the resulting `joinpearl-cli-1.1.0-beta.1.tgz`
 into a temporary prefix, run `pearl --version` and `pearl doctor --json`, and
 create `SHA256SUMS` for that exact tarball. Attach both files to the draft GitHub
 release before publishing. Download the published asset, verify its checksum,

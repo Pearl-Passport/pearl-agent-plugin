@@ -1,7 +1,7 @@
 {
   "name": "@joinpearl/cli",
-  "version": "1.0.0",
-  "description": "Read-only command-line client for Pearl's authenticated Agent API",
+  "version": "1.1.0-beta.1",
+  "description": "Pearl command-line client with read workflows and explicitly confirmed structured imports",
   "type": "module",
   "bin": {
     "pearl": "./src/index.mjs"
@@ -16,7 +16,7 @@
   },
   "scripts": {
     "test": "node --test",
-    "check": "node --check src/index.mjs && node --check src/oauth.mjs && node --check src/keychain.mjs",
+    "check": "node --check src/index.mjs && node --check src/oauth.mjs && node --check src/keychain.mjs && node --check src/diagnostics.mjs",
     "validate": "node scripts/validate-package.mjs",
     "prepack": "npm run check && npm test && npm run validate"
   },

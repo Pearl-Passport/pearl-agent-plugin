@@ -46,7 +46,7 @@ The HTTPS callback covers hosted Agents and Grok Bot; the fixed loopback callbac
 
 Cursor's `cursor agent mcp` commands inspect the user-level MCP configuration, not a marketplace plugin. Use them only for a separate manual `~/.cursor/mcp.json` entry.
 
-After the coordinated place-request rollout and package 0.12.7 update, the Pearl Cursor detail view must show exactly one MCP, and a fresh full-scope grant should list 32 tools. Older connections retain their prior permissions. Confirm the two missing-place actions by name, not just the count. Hosted Grok Bot needs the updated hosted plugin, not a local desktop installation.
+After the coordinated place-request rollout and package 0.12.10 update, the Pearl Cursor detail view must show exactly one MCP, and a fresh full-scope grant should list 32 tools. Older connections retain their prior permissions. Confirm the two missing-place actions by name, not just the count. Hosted Grok Bot needs the updated hosted plugin, not a local desktop installation.
 
 For saved Google Maps places, match Pearl's catalog first, save existing matches, and preview missing places in batches of at most ten. Ask the member to select the correct Google match and confirm the preview. A request receipt is not catalog approval or a visit. Test one existing and one missing place before a large import. Sniper proposals must never be reported as activated snipers; this rollout adds no booking authority.
 
